@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Player {
+  id          Int       @id @default(autoincrement())
+  name        String
+  category    String    // Sub-18 | Sub-12
+  birthdate   String?
+  nationality String    @default("Colombian")
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  matches     Match[]
+}
+
+model Tournament {
+  id         Int      @id @default(autoincrement())
+  name       String
+  city       String
+  country    String   // Colombia | USA | Other
+  startDate  String
+  endDate    String
+  surface    String   // Clay | Hard | Grass | Synthetic | Variable
+  category   String?
+  players    String   // Santiago | Nicole | Both
+  level      String   // ITF G1-G5 | National | Regional | Club
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  matches    Match[]
+}
+
+model Match {
+  id                  Int        @id @default(autoincrement())
+  playerId            Int
+  tournamentId        Int?
+  date                String
+  result              String     // W | L | WO | P
+  opponentName        String
+  opponentNationality String?
+  score               String?
+  round               String?    // 1R | 2R | 3R | QF | SF | F
+  surface             String?
+  city                String?
+  country             String?
+  notes               String?
+  duration            Int?       // minutes
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  player              Player     @relation(fields: [playerId], references: [id])
+  tournament          Tournament? @relation(fields: [tournamentId], references: [id])
+}
+
+model Settings {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
