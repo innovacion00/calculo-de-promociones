@@ -8,8 +8,9 @@ import ReservationsTable from './ReservationsTable';
 import PrepurchaseSettings from './PrepurchaseSettings';
 import StatisticalChartsTab from './StatisticalChartsTab';
 import ForecastTab from './ForecastTab';
+import ReconciliationTab from './reconciliation/ReconciliationTab';
 
-type Tab = 'dashboard' | 'reservations' | 'settings' | 'charts' | 'forecast';
+type Tab = 'dashboard' | 'reservations' | 'settings' | 'charts' | 'forecast' | 'reconciliation';
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -17,6 +18,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'settings', label: 'Configuración', icon: '⚙️' },
   { id: 'charts', label: 'Análisis Gráfico', icon: '📈' },
   { id: 'forecast', label: 'Pronóstico', icon: '🔮' },
+  { id: 'reconciliation', label: 'Conciliación Price vs GEH', icon: '🔗' },
 ];
 
 export default function AppShell() {
@@ -135,6 +137,7 @@ export default function AppShell() {
           {activeTab === 'settings' && <PrepurchaseSettings />}
           {activeTab === 'charts' && <StatisticalChartsTab />}
           {activeTab === 'forecast' && <ForecastTab />}
+          {activeTab === 'reconciliation' && <ReconciliationTab />}
         </div>
       </main>
     </div>
