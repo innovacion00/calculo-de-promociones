@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import Image from 'next/image';
 import { usePrepurchase } from '@/context/PrepurchaseContext';
 import { parseExcelFile } from '@/lib/excelParser';
 
@@ -54,19 +55,19 @@ export default function FileUpload() {
       style={{ backgroundColor: '#0d0d0d' }}>
       <div className="w-full max-w-lg">
 
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
-            style={{ backgroundColor: '#c8920a' }}
-          >
-            <svg className="w-8 h-8" style={{ color: '#0d0d0d' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold text-white">Control de Precompra</h1>
-          <p className="mt-2" style={{ color: '#c8920a' }}>GEH Suites · Price / PriceTravel</p>
+        {/* Header — Logo */}
+        <div className="flex flex-col items-center mb-8">
+          <Image
+            src="/geh-logo.svg"
+            alt="GEH Suites Hotels"
+            width={320}
+            height={128}
+            priority
+            className="mb-4"
+          />
+          <p className="text-sm" style={{ color: '#9ca3af' }}>
+            Control de Precompra · Price / PriceTravel
+          </p>
         </div>
 
         {/* Upload Card */}

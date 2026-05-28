@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { usePrepurchase } from '@/context/PrepurchaseContext';
 import Dashboard from './Dashboard';
 import ReservationsTable from './ReservationsTable';
@@ -36,17 +37,13 @@ export default function AppShell() {
         style={{ backgroundColor: '#0d0d0d' }}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 px-4 py-5 border-b" style={{ borderColor: '#2a2a2a' }}>
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm"
-            style={{ backgroundColor: '#c8920a', color: '#0d0d0d' }}
-          >
-            G
-          </div>
-          {sidebarOpen && (
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-white truncate">GEH Suites</p>
-              <p className="text-xs truncate" style={{ color: '#c8920a' }}>Control Precompra</p>
+        <div className="flex items-center justify-center px-4 py-4 border-b" style={{ borderColor: '#2a2a2a' }}>
+          {sidebarOpen ? (
+            <Image src="/geh-logo.svg" alt="GEH Suites" width={150} height={60} priority />
+          ) : (
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm flex-shrink-0"
+              style={{ backgroundColor: '#c8920a', color: '#0d0d0d' }}>
+              G
             </div>
           )}
         </div>
