@@ -27,22 +27,26 @@ export default function AppShell() {
   const showWarning = maxFileDate && maxFileDate < today;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-[#f5f4f2]">
       {/* Sidebar */}
       <aside
-        className={`flex flex-col bg-gray-900 text-white transition-all duration-300 ${
+        className={`flex flex-col transition-all duration-300 flex-shrink-0 ${
           sidebarOpen ? 'w-64' : 'w-16'
-        } flex-shrink-0`}
+        }`}
+        style={{ backgroundColor: '#0d0d0d' }}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 px-4 py-5 border-b border-gray-700">
-          <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
-            <span className="text-sm font-bold">G</span>
+        <div className="flex items-center gap-3 px-4 py-5 border-b" style={{ borderColor: '#2a2a2a' }}>
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm"
+            style={{ backgroundColor: '#c8920a', color: '#0d0d0d' }}
+          >
+            G
           </div>
           {sidebarOpen && (
             <div className="min-w-0">
-              <p className="text-sm font-bold truncate">GEH Suites</p>
-              <p className="text-xs text-gray-400 truncate">Control Precompra</p>
+              <p className="text-sm font-bold text-white truncate">GEH Suites</p>
+              <p className="text-xs truncate" style={{ color: '#c8920a' }}>Control Precompra</p>
             </div>
           )}
         </div>
@@ -53,11 +57,24 @@ export default function AppShell() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors"
+              style={
                 activeTab === tab.id
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
-              }`}
+                  ? { backgroundColor: '#c8920a', color: '#0d0d0d', fontWeight: 600 }
+                  : { color: '#9ca3af' }
+              }
+              onMouseEnter={(e) => {
+                if (activeTab !== tab.id) {
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#1a1a1a';
+                  (e.currentTarget as HTMLButtonElement).style.color = '#ffffff';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeTab !== tab.id) {
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
+                  (e.currentTarget as HTMLButtonElement).style.color = '#9ca3af';
+                }
+              }}
             >
               <span className="text-base flex-shrink-0">{tab.icon}</span>
               {sidebarOpen && <span className="truncate">{tab.label}</span>}
@@ -66,25 +83,32 @@ export default function AppShell() {
         </nav>
 
         {/* Footer */}
-        <div className="p-3 border-t border-gray-700 space-y-2">
+        <div className="p-3 border-t space-y-2" style={{ borderColor: '#2a2a2a' }}>
           {sidebarOpen && fileName && (
-            <p className="text-xs text-gray-500 truncate px-1" title={fileName}>
+            <p className="text-xs truncate px-1" style={{ color: '#6b7280' }} title={fileName}>
               📁 {fileName}
             </p>
           )}
           <button
-            onClick={() => {
-              setRawRows([]);
-              setFileName('');
+            onClick={() => { setRawRows([]); setFileName(''); }}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors"
+            style={{ color: '#6b7280' }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = '#ef4444';
+              (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#1a1a1a';
             }}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-400 hover:text-red-400 hover:bg-gray-800 transition-colors`}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = '#6b7280';
+              (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
+            }}
           >
             <span>🔄</span>
             {sidebarOpen && <span>Cargar nuevo archivo</span>}
           </button>
           <button
             onClick={() => setSidebarOpen((v) => !v)}
-            className="w-full flex items-center justify-center py-2 text-gray-500 hover:text-white"
+            className="w-full flex items-center justify-center py-2 transition-colors"
+            style={{ color: '#6b7280' }}
           >
             {sidebarOpen ? '◀' : '▶'}
           </button>
@@ -107,12 +131,12 @@ export default function AppShell() {
             )}
           </div>
           {showWarning && (
-            <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs px-3 py-2 rounded-lg">
+            <div className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg border"
+              style={{ backgroundColor: '#fefce8', borderColor: '#c8920a', color: '#9a6f07' }}>
               <span>⚠️</span>
               <span>
                 Archivo con información hasta{' '}
-                {maxFileDate!.toLocaleDateString('es-CO')}. El análisis puede
-                estar desactualizado.
+                {maxFileDate!.toLocaleDateString('es-CO')}. El análisis puede estar desactualizado.
               </span>
             </div>
           )}

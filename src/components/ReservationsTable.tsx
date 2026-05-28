@@ -5,6 +5,9 @@ import { usePrepurchase } from '@/context/PrepurchaseContext';
 import { ClassifiedRow, ReservationStatus } from '@/lib/reservationClassifier';
 import { formatCOP } from '@/lib/prepurchaseSettings';
 
+const GOLD = '#c8920a';
+const BLACK = '#0d0d0d';
+
 const STATUS_LABELS: Record<ReservationStatus, string> = {
   effective: 'Efectiva',
   cancelled: 'Cancelada',
@@ -28,7 +31,7 @@ const STATUS_COLORS: Record<ReservationStatus, string> = {
 const PAGE_SIZE = 50;
 
 export default function ReservationsTable() {
-  const { classifiedRows, hotelSummaries } = usePrepurchase();
+  const { classifiedRows } = usePrepurchase();
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | 'all'>('all');
   const [hotelFilter, setHotelFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
@@ -49,8 +52,7 @@ export default function ReservationsTable() {
           !r.reservationId.toLowerCase().includes(q) &&
           !r.hotelBase.toLowerCase().includes(q) &&
           !(r.colE?.toLowerCase().includes(q))
-        )
-          return false;
+        ) return false;
       }
       return true;
     });
@@ -59,41 +61,51 @@ export default function ReservationsTable() {
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
 
+  const inputStyle = {
+    onFocus: (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
+      e.currentTarget.style.borderColor = GOLD;
+      e.currentTarget.style.boxShadow = '0 0 0 2px rgba(200,146,10,0.2)';
+    },
+    onBlur: (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
+      e.currentTarget.style.borderColor = '#d1d5db';
+      e.currentTarget.style.boxShadow = 'none';
+    },
+  };
+
   return (
     <div className="p-6 space-y-4">
+
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-center bg-white border border-gray-200 rounded-xl p-4">
+      <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-wrap gap-3 items-center">
         <input
           type="text"
           placeholder="Buscar por ID, hotel o cliente..."
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-          className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
+          className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none w-64"
+          {...inputStyle}
         />
-
-        <select
-          value={statusFilter}
+        <select value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value as ReservationStatus | 'all'); setPage(0); }}
-          className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
+          className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none"
+          {...inputStyle}>
           <option value="all">Todos los estados</option>
           {Object.entries(STATUS_LABELS).map(([k, v]) => (
             <option key={k} value={k}>{v}</option>
           ))}
         </select>
-
-        <select
-          value={hotelFilter}
+        <select value={hotelFilter}
           onChange={(e) => { setHotelFilter(e.target.value); setPage(0); }}
-          className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
+          className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none"
+          {...inputStyle}>
           <option value="all">Todos los hoteles</option>
           {hotels.map((h) => (
-            <option key={h} value={h}>{h}</option>
+            <option key={h} value={h}>
+              {h.replace(/Hotel\s+/i, '').replace(/\s+By\s+(Geh|GEH) Suites/i, '')}
+            </option>
           ))}
         </select>
-
-        <span className="ml-auto text-sm text-gray-500">
+        <span className="ml-auto text-sm font-semibold" style={{ color: GOLD }}>
           {filtered.length.toLocaleString('es-CO')} registros
         </span>
       </div>
@@ -103,28 +115,26 @@ export default function ReservationsTable() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="px-4 py-3 text-left font-semibold text-gray-600 whitespace-nowrap">ID Reserva</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Hotel</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Cliente</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600 whitespace-nowrap">Fecha</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-600">Monto</th>
-                <th className="px-4 py-3 text-center font-semibold text-gray-600">Estado</th>
+              <tr style={{ backgroundColor: BLACK }}>
+                {['ID Reserva', 'Hotel', 'Cliente', 'Fecha', 'Monto', 'Estado'].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left font-semibold whitespace-nowrap text-xs uppercase tracking-wide"
+                    style={{ color: GOLD }}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {paginated.map((row, i) => (
                 <tr key={i} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-2.5 font-mono text-xs text-gray-600 whitespace-nowrap">
-                    {row.reservationId}
+                  <td className="px-4 py-2.5 font-mono text-xs text-gray-500 whitespace-nowrap">{row.reservationId}</td>
+                  <td className="px-4 py-2.5 text-gray-800 max-w-xs truncate">
+                    {row.hotelBase.replace(/Hotel\s+/i, '').replace(/\s+By\s+(Geh|GEH) Suites/i, '')}
                   </td>
-                  <td className="px-4 py-2.5 text-gray-800 max-w-xs truncate">{row.hotelBase}</td>
                   <td className="px-4 py-2.5 text-gray-700 max-w-xs truncate">{row.colE ?? '—'}</td>
                   <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">
                     {row.date ? row.date.toLocaleDateString('es-CO') : '—'}
                   </td>
                   <td className="px-4 py-2.5 text-right font-mono text-xs">
-                    <span className={row.amount < 0 ? 'text-red-600' : 'text-gray-900'}>
+                    <span style={{ color: row.amount < 0 ? '#ef4444' : row.amount > 0 ? GOLD : '#374151' }}>
                       {formatCOP(row.amount)}
                     </span>
                   </td>
@@ -141,21 +151,15 @@ export default function ReservationsTable() {
 
         {/* Pagination */}
         <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50">
-          <button
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-            disabled={page === 0}
-            className="px-3 py-1 text-sm border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-white transition-colors"
-          >
+          <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0}
+            className="px-3 py-1 text-sm border border-gray-300 rounded-lg disabled:opacity-40 hover:bg-white transition-colors">
             ← Anterior
           </button>
           <span className="text-sm text-gray-600">
-            Página {page + 1} de {totalPages || 1}
+            Página <strong>{page + 1}</strong> de <strong>{totalPages || 1}</strong>
           </span>
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-            disabled={page >= totalPages - 1}
-            className="px-3 py-1 text-sm border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-white transition-colors"
-          >
+          <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
+            className="px-3 py-1 text-sm border border-gray-300 rounded-lg disabled:opacity-40 hover:bg-white transition-colors">
             Siguiente →
           </button>
         </div>
