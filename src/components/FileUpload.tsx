@@ -56,16 +56,14 @@ export default function FileUpload() {
 
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          {/* Logo card with black background to preserve brand */}
-          <div className="rounded-2xl px-10 py-6 mb-4" style={{ backgroundColor: '#0d0d0d' }}>
-            <Image
-              src="/geh-logo.svg"
-              alt="GEH Suites Hotels"
-              width={280}
-              height={112}
-              priority
-            />
-          </div>
+          <Image
+            src="/geh-logo.svg"
+            alt="GEH Suites Hotels"
+            width={280}
+            height={112}
+            priority
+            className="mb-3"
+          />
           <p className="text-sm text-gray-500">
             Control de Precompra · Price / PriceTravel
           </p>

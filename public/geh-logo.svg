@@ -1,6 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 180" width="520" height="180">
-  <rect width="520" height="180" fill="#0d0d0d"/>
-  <!-- Main wordmark: gehsuites -->
+  <!-- No background — transparent -->
   <text
     x="18"
     y="118"
@@ -10,7 +9,6 @@
     fill="#c8920a"
     letter-spacing="-3"
   >gehsuites</text>
-  <!-- Hotels subtitle, italic, aligned right under "suites" -->
   <text
     x="320"
     y="155"
