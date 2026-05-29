@@ -762,7 +762,7 @@ function renderSections(ch) {
   const grid = document.getElementById('grid-'+ch.key);
   if (!grid) return;
   grid.innerHTML = '';
-  grid.style.gridTemplateColumns = ch.gridCols ? `repeat(${ch.gridCols},minmax(0,1fr))` : 'repeat(auto-fill,minmax(480px,1fr))';
+  grid.style.gridTemplateColumns = ch.gridCols ? `repeat(auto-fill,minmax(340px,1fr))` : 'repeat(auto-fill,minmax(480px,1fr))';
 
   ch.sections.forEach(sec => {
     grid.appendChild(buildSectionCard(ch, sec, baseRates, currentHotel));
