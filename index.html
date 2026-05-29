@@ -154,6 +154,13 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
   @media(max-width:640px){.sections-grid{grid-template-columns:1fr;}.content{padding:12px;}.pt-tables{grid-template-columns:1fr;}}
+
+  .save-bar{display:flex;align-items:center;gap:8px;padding:6px 24px;background:var(--gold-subtle);border-bottom:1px solid var(--gold-border);}
+  .save-btn{padding:5px 14px;border-radius:16px;border:1.5px solid var(--gold-border);background:var(--gold-pale);color:var(--gold-dark);font-size:.74rem;font-weight:700;cursor:pointer;transition:all .15s;}
+  .save-btn:hover{background:var(--gold);color:#fff;}
+  .save-btn.primary{background:var(--gold);color:#fff;border-color:var(--gold-dark);}
+  .save-btn.primary:hover{background:var(--gold-dark);}
+  .save-status{font-size:.7rem;color:var(--gray3);margin-left:4px;}
 </style>
 </head>
 <body>
@@ -178,6 +185,12 @@
     <span class="htb-arrow">▼</span>
   </button>
 </header>
+
+<div class="save-bar" id="save-bar">
+  <button class="save-btn primary" id="btn-global-save">💾 Guardar todo</button>
+  <button class="save-btn" id="btn-restore">↩ Restaurar último guardado</button>
+  <span class="save-status" id="save-status"></span>
+</div>
 
 <!-- HOTEL SIDEBAR -->
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
@@ -206,6 +219,8 @@ let currentHotel = HOTELS[0];
 let currentChannelKey = '';
 const hotelBaseInputs = {};
 const hotelRoomNames  = {};
+const hotelPlanPcts = {}; // {hotel: {`${secId}_${rowIdx}`: pct}}
+const hotelPaisPcts = {}; // {hotel: {secId: pct}}
 
 // ── UTILS ───────────────────────────────────────────────────────────────────
 const fmt = n => '$ ' + Math.round(n).toLocaleString('es-CO');
@@ -216,10 +231,33 @@ function applySteps(base, discounts) {
   return vals;
 }
 
-function effectiveDiscounts(row, promoDisc) {
+function getPlanPct(sec, rowIdx, defaultPct) {
+  return hotelPlanPcts[currentHotel]?.[sec._id+'_'+rowIdx] ?? defaultPct;
+}
+function setPlanPct(sec, rowIdx, pct) {
+  if (!hotelPlanPcts[currentHotel]) hotelPlanPcts[currentHotel] = {};
+  hotelPlanPcts[currentHotel][sec._id+'_'+rowIdx] = pct;
+}
+
+function getPaisPct(sec) {
+  return hotelPaisPcts[currentHotel]?.[sec._id] ?? 5;
+}
+function setPaisPct(sec, pct) {
+  if (!hotelPaisPcts[currentHotel]) hotelPaisPcts[currentHotel] = {};
+  hotelPaisPcts[currentHotel][sec._id] = pct;
+}
+
+function effectiveDiscounts(row, promoDisc, sec, rowIdx) {
   const discs = [...row.discounts];
   const idx = row.promoIdx !== undefined ? row.promoIdx : discs.length-1;
-  discs[idx] = promoDisc + (row.promoAdd||0) + (row.nocheAdd||0);
+  // Per-hotel plan pct override
+  if (sec !== undefined && rowIdx !== undefined && discs.length > 1) {
+    const overridePct = getPlanPct(sec, rowIdx, row.planPct ?? discs[0]*100);
+    discs[0] = overridePct / 100;
+  }
+  // País pct override
+  const paisAdd = (row.promoAdd && sec !== undefined) ? getPaisPct(sec)/100 : (row.promoAdd||0);
+  discs[idx] = promoDisc + paisAdd + (row.nocheAdd||0);
   return discs;
 }
 
@@ -447,6 +485,10 @@ const CHANNELS = [
   },
 ];
 
+// Assign unique _id to each section
+let _secIdCounter = 0;
+CHANNELS.forEach(ch => ch.sections.forEach(sec => sec._id = 's'+(++_secIdCounter)));
+
 // ── BASE RATE COMPUTATION ────────────────────────────────────────────────────
 function getBaseRates(ch, input) {
   const pub = input * ch.factor;
@@ -465,7 +507,7 @@ function renderTable(card, sec, baseRates, commission, promoDisc) {
   if (old) old.remove();
 
   const effRows = sec.rows || [];
-  const maxDisc = Math.max(...effRows.map(r => effectiveDiscounts(r, promoDisc).length));
+  const maxDisc = Math.max(...effRows.map((r, ri) => effectiveDiscounts(r, promoDisc, sec, ri).length));
   const table = document.createElement('table');
   const colH = sec.colHeaders || [];
 
@@ -484,7 +526,7 @@ function renderTable(card, sec, baseRates, commission, promoDisc) {
   const tbody = document.createElement('tbody');
   effRows.forEach((row, ri) => {
     const bv = baseRates[row.base]||0;
-    const discs = effectiveDiscounts(row, promoDisc);
+    const discs = effectiveDiscounts(row, promoDisc, sec, ri);
     const vals = applySteps(bv, discs);
     const otaVal = vals[vals.length-1];
     const netVal = commission>0 ? otaVal*(1-commission) : null;
@@ -522,14 +564,16 @@ function renderPTMerged(card, sec, baseRates, promoDisc) {
   const stdRow = sinRows.find(r=>r.base==='std');
   const nrRow  = sinRows.find(r=>r.base==='nr');
   if (stdRow && nrRow) {
-    const stdVals = applySteps(baseRates['std']||0, effectiveDiscounts(stdRow, promoDisc));
-    const nrVals  = applySteps(baseRates['nr']||0,  effectiveDiscounts(nrRow,  promoDisc));
+    const stdIdx  = sinRows.indexOf(stdRow);
+    const nrIdx   = sinRows.indexOf(nrRow);
+    const stdVals = applySteps(baseRates['std']||0, effectiveDiscounts(stdRow, promoDisc, sec, stdIdx));
+    const nrVals  = applySteps(baseRates['nr']||0,  effectiveDiscounts(nrRow,  promoDisc, sec, nrIdx));
     const stdTar  = stdVals[stdVals.length-1];
     const nrTar   = nrVals[nrVals.length-1];
     const diff    = stdTar > 0 ? ((nrTar/stdTar)-1)*100 : 0;
 
-    const sinStdC = applySteps(baseRates['stdC']||0, effectiveDiscounts({...stdRow,base:'stdC'}, promoDisc));
-    const sinNrC  = applySteps(baseRates['nrC']||0,  effectiveDiscounts({...nrRow,base:'nrC'},   promoDisc));
+    const sinStdC = applySteps(baseRates['stdC']||0, effectiveDiscounts({...stdRow,base:'stdC'}, promoDisc, sec, stdIdx));
+    const sinNrC  = applySteps(baseRates['nrC']||0,  effectiveDiscounts({...nrRow,base:'nrC'},   promoDisc, sec, nrIdx));
 
     body.innerHTML = `
       <div class="pt-comparison">
@@ -556,7 +600,7 @@ function renderPTMerged(card, sec, baseRates, promoDisc) {
     const tb = document.createElement('tbody');
     rows.forEach((row, ri) => {
       const bv = baseRates[row.base]||0;
-      const discs = effectiveDiscounts(row, promoDisc);
+      const discs = effectiveDiscounts(row, promoDisc, sec, ri);
       const vals = applySteps(bv, discs);
       const tarVal = vals[vals.length-1];
       const trow = document.createElement('tr');
@@ -599,11 +643,10 @@ function buildCfgPanel(sec, card, ch, baseRates, commission) {
       // plan %
       if (row.discounts && row.discounts.length>1) {
         const pp = document.createElement('div'); pp.className='cfg-pct';
-        const pIn = document.createElement('input'); pIn.type='number'; pIn.value=Math.round((row.planPct||row.discounts[0]*100)); pIn.min=0; pIn.max=100; pIn.step=1;
+        const pIn = document.createElement('input'); pIn.type='number'; pIn.value=Math.round(getPlanPct(sec, ri, row.planPct||row.discounts[0]*100)); pIn.min=0; pIn.max=100; pIn.step=1;
         pIn.addEventListener('change', ()=>{
           const pct = parseFloat(pIn.value)||0;
-          row.planPct = pct;
-          row.discounts[0] = pct/100;
+          setPlanPct(sec, ri, pct);
           reRender(card,sec,baseRates,commission,ch);
         });
         const sp=document.createElement('span'); sp.textContent='%';
@@ -668,6 +711,19 @@ function buildSectionCard(ch, sec, baseRates, hotel) {
   const ctrl = document.createElement('div'); ctrl.className='promo-ctrl';
   ctrl.innerHTML = `<label>% Promo</label><input type="number" class="promo-input" value="${promoVal}" min="0" max="100" step="1"><span class="promo-pct">%</span>`;
   hdr.appendChild(ctrl);
+
+  // País % control (only for sections with promoAdd rows)
+  const hasPais = (sec.rows||[]).some(r=>r.promoAdd);
+  if (hasPais) {
+    const paisCtrl = document.createElement('div'); paisCtrl.className='promo-ctrl';
+    paisCtrl.innerHTML = `<label>País %</label><input type="number" class="promo-input" value="${getPaisPct(sec)}" min="0" max="100" step="1"><span class="promo-pct">%</span>`;
+    hdr.appendChild(paisCtrl);
+    const paisIn = paisCtrl.querySelector('input');
+    paisIn.addEventListener('change', ()=>{
+      setPaisPct(sec, parseFloat(paisIn.value)||0);
+      reRender(card, sec, baseRates, commission, ch);
+    });
+  }
 
   const cfgBtn = document.createElement('button'); cfgBtn.className='icon-btn'; cfgBtn.textContent='✏'; cfgBtn.title='Editar planes';
   hdr.appendChild(cfgBtn);
@@ -869,6 +925,63 @@ function init() {
 }
 
 init();
+
+// ── SAVE / RESTORE ───────────────────────────────────────────────────────────
+function getFullState() {
+  // Collect promoVals from all sections
+  const promoValsMap = {};
+  CHANNELS.forEach(ch => ch.sections.forEach(sec => {
+    if (sec._promoVals) promoValsMap[sec._id] = {...sec._promoVals};
+  }));
+  return JSON.stringify({
+    hotelBaseInputs: JSON.parse(JSON.stringify(hotelBaseInputs)),
+    hotelPlanPcts:   JSON.parse(JSON.stringify(hotelPlanPcts)),
+    hotelPaisPcts:   JSON.parse(JSON.stringify(hotelPaisPcts)),
+    promoValsMap
+  });
+}
+
+function restoreFullState(json) {
+  try {
+    const s = JSON.parse(json);
+    // Restore base inputs
+    Object.assign(hotelBaseInputs, s.hotelBaseInputs||{});
+    Object.keys(s.hotelPlanPcts||{}).forEach(h => hotelPlanPcts[h] = s.hotelPlanPcts[h]);
+    Object.keys(s.hotelPaisPcts||{}).forEach(h => hotelPaisPcts[h] = s.hotelPaisPcts[h]);
+    // Restore promoVals
+    CHANNELS.forEach(ch => ch.sections.forEach(sec => {
+      if (s.promoValsMap[sec._id]) sec._promoVals = {...s.promoValsMap[sec._id]};
+    }));
+  } catch(e) { console.error('Restore error', e); }
+}
+
+let savedSnapshot = null;
+
+document.getElementById('btn-global-save').addEventListener('click', ()=>{
+  savedSnapshot = getFullState();
+  localStorage.setItem('rmd_state', savedSnapshot);
+  const st = document.getElementById('save-status');
+  st.textContent = '✓ Guardado a las ' + new Date().toLocaleTimeString('es-CO');
+  // Re-render current channel
+  const ch = CHANNELS.find(c=>c.key===currentChannelKey);
+  if (ch) renderSections(ch);
+});
+
+document.getElementById('btn-restore').addEventListener('click', ()=>{
+  const snap = savedSnapshot || localStorage.getItem('rmd_state');
+  if (!snap) { alert('No hay estado guardado aún.'); return; }
+  restoreFullState(snap);
+  const st = document.getElementById('save-status');
+  st.textContent = '↩ Restaurado';
+  const ch = CHANNELS.find(c=>c.key===currentChannelKey);
+  if (ch) renderSections(ch);
+});
+
+// Load from localStorage on startup
+(function loadOnStart(){
+  const saved = localStorage.getItem('rmd_state');
+  if (saved) { restoreFullState(saved); savedSnapshot = saved; }
+})();
 </script>
 </body>
 </html>
