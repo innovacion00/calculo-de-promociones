@@ -2190,12 +2190,13 @@ function otbProcessFile(file, side) {
 }
 
 // ── MANUAL ENTRY ─────────────────────────────────────────────────────────────
-function otbOpenManual(e, side) {
+function otbOpenManual(e, side, forceOpen) {
   e.stopPropagation();
   const label = side === 'before' ? 'OTB ANTES (Corte Base)' : 'OTB DESPUÉS (Corte Actual)';
   const container = document.getElementById('otb-manual-'+side);
   if (!container) return;
-  if (container.classList.contains('open')) { container.classList.remove('open'); return; }
+  // Toggle: if already open and not force-opened (e.g., from image load), close it
+  if (container.classList.contains('open') && !forceOpen) { container.classList.remove('open'); return; }
   container.innerHTML = `
     <h4>✏ Ingresar datos de pickup — ${label}</h4>
     <div class="otb-manual-grid">
@@ -2283,12 +2284,30 @@ function otbCheckBothLoaded() {
 function otbProcessImageOCR(file, side) {
   const fnEl  = document.getElementById('otb-fname-'+side);
   const dropEl = document.getElementById('otb-drop-'+side);
-  if (fnEl) fnEl.textContent = '⏳ Iniciando OCR...';
+  const label = side === 'before' ? 'OTB ANTES' : 'OTB DESPUÉS';
+
+  if (fnEl) fnEl.textContent = '⏳ Leyendo imagen con OCR...';
   otbSetStatus('processing');
 
+  // ── Helper: open manual form and pre-fill what we know ──────────────────
+  function openManualPrefilled(startDate, endDate, occSeq, adr, revpar) {
+    var e2 = { stopPropagation: function(){} };
+    otbOpenManual(e2, side, true);
+    var fromEl = document.getElementById('otbm-'+side+'-from');
+    var toEl   = document.getElementById('otbm-'+side+'-to');
+    var adrEl  = document.getElementById('otbm-'+side+'-adr');
+    var rpEl   = document.getElementById('otbm-'+side+'-revpar');
+    var seq    = document.getElementById('otbm-'+side+'-daily');
+    if (fromEl && startDate) fromEl.value = startDate;
+    if (toEl   && endDate)   toEl.value   = endDate;
+    if (adrEl  && adr)       adrEl.value  = adr;
+    if (rpEl   && revpar)    rpEl.value   = revpar;
+    if (seq    && occSeq && occSeq.length) seq.value = occSeq.join(', ');
+  }
+
   if (typeof Tesseract === 'undefined') {
-    otbShowError('Motor OCR no disponible. Verifique conexión a internet.');
-    if (fnEl) fnEl.textContent = '⚠ OCR no disponible';
+    if (fnEl) fnEl.textContent = '⚠ OCR no disponible — ingrese datos manualmente';
+    openManualPrefilled(null, null, [], null, null);
     return;
   }
 
@@ -2300,69 +2319,136 @@ function otbProcessImageOCR(file, side) {
     }
   }).then(function(result) {
     var text = result.data.text;
-    var rows = otbParseOCRText(text);
+
+    // 1. Extract summary KPIs (start date, end date, global occ/ADR/RevPAR)
     var summary = otbExtractSummaryFromOCR(text);
-
     OTB_STATE[side+'Source'] = 'image';
-    OTB_STATE[side+'WB'] = null;
+    if (summary) OTB_STATE[side+'Summary'] = summary;
 
-    if (summary) {
-      OTB_STATE[side+'Summary'] = summary;
-    }
+    // 2. Try to extract a daily occupancy sequence from the text
+    //    (only works if the image is a DATA TABLE, not a bar chart)
+    var tableRows = otbParseOCRText(text);
+    var validTableRows = tableRows.filter(function(r){ return r.occ !== null && r.occ >= 0 && r.occ <= 100; });
 
-    // Count rows that have a valid occupancy value
-    var validRows = rows.filter(function(r){ return r.occ !== null && r.occ >= 0 && r.occ <= 100; });
+    // 3. Also try extracting a bare sequence of numbers in 0-100 range
+    //    (works for images that show occupancy labels on bars)
+    var occSeqFromText = otbExtractOccSequence(text);
 
-    if (rows.length && validRows.length >= 7) {
-      // Enough daily rows detected — accept OCR result
-      OTB_STATE[side+'Data'] = rows;
+    var startDate = summary && summary.startDate ? summary.startDate : null;
+    var endDate   = summary && summary.endDate   ? summary.endDate   : null;
+    var adr       = summary && summary.adr       ? summary.adr       : null;
+    var revpar    = summary && summary.revpar     ? summary.revpar    : null;
+
+    if (validTableRows.length >= 10) {
+      // Best case: OCR found a full data table — accept directly
+      OTB_STATE[side+'Data'] = tableRows;
       OTB_STATE[side+'Headers'] = ['Fecha','Ocup%','Hab.Vendidas','ADR','RevPAR','Ingresos'];
       OTB_STATE[side+'Mapping'] = { date:'Fecha', occ:'Ocup%', rooms:'Hab.Vendidas', adr:'ADR', revpar:'RevPAR', revenue:'Ingresos' };
-      if (validRows.length < rows.length) {
-        if (fnEl) fnEl.textContent = '⚠ ' + file.name + ' · ' + validRows.length + ' de ' + rows.length + ' días con ocupación válida. Revise los datos.';
-        otbShowPartialWarning(side, rows, validRows.length);
-      } else {
-        if (fnEl) fnEl.textContent = '✓ ' + file.name + ' · ' + rows.length + ' días detectados vía OCR';
-      }
-    } else {
-      // OCR found too few usable rows — show what was found and open manual form
-      var reason = rows.length === 0
-        ? 'El OCR no detectó ninguna fila de datos diarios.'
-        : 'El OCR detectó '+rows.length+' fila(s) pero solo '+validRows.length+' con ocupación válida (se requieren al menos 7 para un análisis confiable).';
-
-      if (fnEl) fnEl.textContent = '⚠ ' + file.name + ' · OCR insuficiente (' + validRows.length + ' días válidos) → ingrese manualmente';
-
-      // Pre-fill start date from summary if available
-      var startHint = summary && summary.startDate ? summary.startDate : '';
-
-      // Auto-open manual form with guidance
-      var hint = document.getElementById('otb-manual-'+side);
-      if (hint) {
-        var e2 = { stopPropagation: function(){} };
-        otbOpenManual(e2, side);
-        // Pre-fill start date if we extracted it from OCR
-        if (startHint) {
-          var fromEl = document.getElementById('otbm-'+side+'-from');
-          if (fromEl) fromEl.value = startHint;
-        }
-      }
-
-      var errMsg = '⚠ '+reason
-        + ' Las imágenes de gráficas de barras no son legibles automáticamente por OCR.<br>'
-        + '<strong>Solución:</strong> Use "✏ Ingresar datos manualmente" y pegue la secuencia de ocupación diaria (un número por día, separados por comas).<br>'
-        + 'Ejemplo: <code>76, 76, 91, 74, 65, 76, 87, 91…</code>';
-      otbShowError(errMsg);
-      if (dropEl) dropEl.classList.remove('has-file');
+      if (fnEl) fnEl.textContent = '✓ ' + file.name + ' · ' + validTableRows.length + ' días detectados vía OCR (tabla)';
+      if (dropEl) dropEl.classList.add('has-file');
+      otbCheckBothLoaded();
       return;
     }
 
-    if (dropEl) dropEl.classList.add('has-file');
-    otbCheckBothLoaded();
+    // For bar chart images (most OTB dashboards): OCR cannot read bar heights.
+    // Route to manual entry, pre-filling whatever we could extract.
+    var prefillSeq = occSeqFromText.length >= 5 ? occSeqFromText
+                   : validTableRows.map(function(r){ return r.occ; });
+
+    var infoMsg = '';
+    if (startDate) infoMsg += '📅 Período detectado: ' + startDate + (endDate ? ' → ' + endDate : '') + '  ';
+    if (prefillSeq.length >= 5) infoMsg += '📊 ' + prefillSeq.length + ' valores de ocupación detectados y pre-cargados  ';
+
+    if (fnEl) {
+      fnEl.textContent = infoMsg
+        ? '⚡ ' + file.name + ' — ' + (startDate ? startDate : '') + ' · Complete la secuencia diaria abajo'
+        : '⚠ ' + file.name + ' — OCR no pudo leer los datos diarios · Ingrese manualmente';
+    }
+
+    openManualPrefilled(startDate, endDate, prefillSeq, adr, revpar);
+
+    // Show info/instruction in error area (not red error — informational)
+    var errEl = document.getElementById('otb-errors');
+    if (errEl) {
+      var infoColor = prefillSeq.length >= 5 ? '#d4edda' : '#fff3cd';
+      var infoBorder = prefillSeq.length >= 5 ? '#28a745' : '#ffc107';
+      var infoTextColor = prefillSeq.length >= 5 ? '#155724' : '#856404';
+      errEl.innerHTML = '<div style="background:'+infoColor+';border:1px solid '+infoBorder+';color:'+infoTextColor+';padding:12px 16px;border-radius:8px;font-size:.8rem;line-height:1.6">'
+        + (infoMsg ? '✅ ' + infoMsg.trim() + '<br>' : '')
+        + (startDate ? '' : '⚠ No se detectó la fecha de inicio. Ingrésela manualmente.<br>')
+        + '<strong>Ingrese la secuencia de ocupación diaria</strong> (un número por día, separados por comas) '
+        + 'y haga clic en "Guardar y calcular pickup".<br>'
+        + (prefillSeq.length >= 5
+            ? 'Se pre-cargaron <strong>'+prefillSeq.length+'</strong> valores. Verifique que sean correctos antes de guardar.'
+            : 'Ejemplo: <code style="background:rgba(0,0,0,.08);padding:1px 5px;border-radius:3px">76, 76, 91, 74, 65, 76, 87, 91, 87, 76…</code>')
+        + '</div>';
+      setTimeout(function(){ if(errEl) errEl.innerHTML=''; }, 30000);
+    }
+
   }).catch(function(err) {
-    otbShowError('Error OCR: ' + err.message);
-    if (fnEl) fnEl.textContent = '⚠ Error: ' + err.message;
+    if (fnEl) fnEl.textContent = '⚠ Error OCR — ingrese datos manualmente';
+    openManualPrefilled(null, null, [], null, null);
   });
 }
+
+// ── OCR OCCUPANCY SEQUENCE EXTRACTOR ──────────────────────────────────────────
+// Extracts a sequence of integer/decimal values in range 0-100 that appear
+// as occupancy labels (e.g. "76 76 91 74 65" printed on or near the bars)
+function otbExtractOccSequence(text) {
+  // Look for lines that appear to be data rows: multiple numbers in 0-100 range
+  // with no date and no huge numbers (ADR/RevPAR)
+  var lines = text.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+  var allCandidates = [];
+
+  // Strategy 1: find lines that are mostly numbers in 0-100 (chart label rows)
+  lines.forEach(function(line) {
+    // Skip lines with dates or large numbers
+    if (/\d{4}/.test(line)) return; // has year
+    if (/\d{6,}/.test(line.replace(/[\s,\.]/g,''))) return; // has large number
+
+    var nums = [];
+    var re = /\b(\d{1,2}(?:[.,]\d{1,2})?)\b/g;
+    var m;
+    while ((m = re.exec(line)) !== null) {
+      var v = parseFloat(m[1].replace(',','.'));
+      if (v >= 1 && v <= 100) nums.push(v);
+    }
+    // If line has 3+ numbers all in 0-100, it looks like an occupancy row
+    if (nums.length >= 3) allCandidates = allCandidates.concat(nums);
+  });
+
+  // Strategy 2: scan the whole text for a sequence of standalone integers in 0-100
+  // that appear in close proximity (likely the bar labels)
+  var seqMatch = [];
+  var reSeq = /\b([1-9]\d?|100)\b/g;
+  var sm;
+  var fullText = text.replace(/\n/g, ' ');
+  // Remove date-like patterns first
+  var cleaned = fullText
+    .replace(/\d{4}[-\/]\d{2}[-\/]\d{2}/g, ' ')
+    .replace(/\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}/g, ' ')
+    .replace(/\d{5,}/g, ' ');
+
+  while ((sm = reSeq.exec(cleaned)) !== null) {
+    var v2 = parseInt(sm[1]);
+    if (v2 >= 1 && v2 <= 100) seqMatch.push(v2);
+  }
+
+  // Prefer Strategy 1 if it found enough values; otherwise use Strategy 2
+  var candidates = allCandidates.length >= 7 ? allCandidates : seqMatch;
+
+  // Deduplicate excessively repeated consecutive values
+  if (candidates.length > 40) {
+    var deduped = [];
+    candidates.forEach(function(v, i) {
+      if (i === 0 || !(v === candidates[i-1] && v === candidates[i-2])) deduped.push(v);
+    });
+    candidates = deduped;
+  }
+
+  return candidates.slice(0, 35); // max 35 days
+}
+
 
 function otbShowPartialPreview(side) {
   var data = OTB_STATE[side+'Data'] || [];
