@@ -1971,75 +1971,68 @@ function otbProcessFile(file, side) {
 // ── MANUAL ENTRY ─────────────────────────────────────────────────────────────
 function otbOpenManual(e, side) {
   e.stopPropagation();
-  const label = side === 'before' ? 'OTB ANTES' : 'OTB DESPUÉS';
+  const label = side === 'before' ? 'OTB ANTES (Corte Base)' : 'OTB DESPUÉS (Corte Actual)';
   const container = document.getElementById('otb-manual-'+side);
   if (!container) return;
   if (container.classList.contains('open')) { container.classList.remove('open'); return; }
   container.innerHTML = `
-    <h4>✏ Ingresar datos manualmente — ${label}</h4>
+    <h4>✏ Ingresar datos de pickup — ${label}</h4>
     <div class="otb-manual-grid">
-      <div class="otb-manual-field"><label>Fecha inicio *</label><input type="date" id="otbm-${side}-from"></div>
-      <div class="otb-manual-field"><label>Fecha fin *</label><input type="date" id="otbm-${side}-to"></div>
-      <div class="otb-manual-field"><label>Ocupación % *</label><input type="number" id="otbm-${side}-occ" placeholder="72.39" min="0" max="100" step="0.01"></div>
-      <div class="otb-manual-field"><label>ADR / Tarifa promedio</label><input type="number" id="otbm-${side}-adr" placeholder="195545.88" min="0"></div>
-      <div class="otb-manual-field"><label>RevPAR</label><input type="number" id="otbm-${side}-revpar" placeholder="141558.22" min="0"></div>
-      <div class="otb-manual-field"><label>Ingresos totales</label><input type="number" id="otbm-${side}-rev" placeholder="Opcional" min="0"></div>
+      <div class="otb-manual-field"><label>Fecha de inicio del período *</label><input type="date" id="otbm-${side}-from" title="Fecha del primer día (ej. 01/07/2026)"></div>
+      <div class="otb-manual-field"><label>Fecha de fin del período</label><input type="date" id="otbm-${side}-to"></div>
+      <div class="otb-manual-field"><label>ADR de contexto (opcional)</label><input type="number" id="otbm-${side}-adr" placeholder="195545.88" min="0"></div>
+      <div class="otb-manual-field"><label>RevPAR de contexto (opcional)</label><input type="number" id="otbm-${side}-revpar" placeholder="141558.22" min="0"></div>
     </div>
     <div class="otb-manual-daily">
-      <label>Ocupación diaria % (valores separados por coma, en orden del día 1, 2, 3…)</label>
-      <textarea id="otbm-${side}-daily" placeholder="76,76,91,74,65,76,87,91,76,46,54,61,78,89,48,50,91,76,70,41,39,59,65,74,83,80,80,98,74,61"></textarea>
+      <label><strong>Ocupación diaria % *</strong> — Pegue los valores del eje de la gráfica, separados por coma (día 1, día 2, día 3…)</label>
+      <textarea id="otbm-${side}-daily" rows="3" placeholder="76, 76, 91, 74, 65, 76, 87, 91, 87, 76, 46, 54, 61, 78, 89, 48, 50, 91, 76, 70..."></textarea>
+      <p style="font-size:.72rem;color:#888;margin:4px 0 0">Cada número es la ocupación % de un día. El sistema asignará las fechas automáticamente desde la fecha de inicio.</p>
     </div>
     <div style="margin-top:10px;display:flex;gap:8px">
-      <button class="otb-btn primary" onclick="otbSaveManual('${side}')">✓ Guardar y usar estos datos</button>
+      <button class="otb-btn primary" onclick="otbSaveManual('${side}')">✓ Guardar y calcular pickup</button>
       <button class="otb-btn" onclick="document.getElementById('otb-manual-${side}').classList.remove('open')">Cancelar</button>
     </div>`;
   container.classList.add('open');
 }
 
 function otbSaveManual(side) {
-  const fromEl  = document.getElementById('otbm-'+side+'-from');
-  const toEl    = document.getElementById('otbm-'+side+'-to');
-  const occEl   = document.getElementById('otbm-'+side+'-occ');
-  const adrEl   = document.getElementById('otbm-'+side+'-adr');
-  const revparEl= document.getElementById('otbm-'+side+'-revpar');
-  const revEl   = document.getElementById('otbm-'+side+'-rev');
-  const dailyEl = document.getElementById('otbm-'+side+'-daily');
+  const fromEl   = document.getElementById('otbm-'+side+'-from');
+  const toEl     = document.getElementById('otbm-'+side+'-to');
+  const adrEl    = document.getElementById('otbm-'+side+'-adr');
+  const revparEl = document.getElementById('otbm-'+side+'-revpar');
+  const dailyEl  = document.getElementById('otbm-'+side+'-daily');
 
   const from = fromEl?.value;
-  const to   = toEl?.value;
-  const occ  = parseFloat(occEl?.value);
+  if (!from) { otbShowError('Ingrese la fecha de inicio del período.'); return; }
 
-  if (!from || !to) { otbShowError('Ingrese fecha inicio y fin.'); return; }
-  if (isNaN(occ))   { otbShowError('Ingrese un valor de ocupación.'); return; }
+  const dailyRaw = dailyEl?.value.trim();
+  if (!dailyRaw) { otbShowError('Ingrese al menos la secuencia de ocupación diaria (ej: 76,76,91,74,65...).'); return; }
 
-  // Build summary
-  const summary = {
-    label: (side==='before'?'ANTES':'DESPUÉS') + ' · ' + from.slice(0,7),
-    startDate: from, endDate: to,
-    occ, adr: parseFloat(adrEl?.value)||null,
-    revpar: parseFloat(revparEl?.value)||null,
-    revenue: parseFloat(revEl?.value)||null
+  const dailyVals = dailyRaw.split(/[,;\n\s]+/).map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
+  if (!dailyVals.length) { otbShowError('No se detectaron valores numéricos de ocupación. Separe con comas: 76, 76, 91, 74...'); return; }
+
+  const startD = new Date(from);
+  const rows = dailyVals.map(function(occ, i) {
+    const d = new Date(startD); d.setDate(d.getDate()+i);
+    return { date: d.toISOString().split('T')[0], dayOfMonth: d.getDate(), periodIndex: i,
+             occ: occ, rooms: null, adr: null, revpar: null, revenue: null };
+  });
+
+  const avgOcc = dailyVals.reduce(function(s,v){return s+v;},0) / dailyVals.length;
+  const toDate = toEl?.value || rows[rows.length-1].date;
+  OTB_STATE[side+'Data'] = rows;
+  OTB_STATE[side+'Summary'] = {
+    label: (side==='before'?'Corte Base':'Corte Actual') + ' · ' + from.slice(0,7),
+    startDate: from, endDate: toDate,
+    occ: avgOcc,
+    adr: parseFloat(adrEl?.value)||null,
+    revpar: parseFloat(revparEl?.value)||null
   };
-  OTB_STATE[side+'Summary'] = summary;
   OTB_STATE[side+'Source'] = 'manual';
 
-  // Build daily records if provided
-  const dailyRaw = dailyEl?.value.trim();
-  if (dailyRaw) {
-    const startD = new Date(from);
-    const dailyVals = dailyRaw.split(/[,;\n]/).map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
-    OTB_STATE[side+'Data'] = dailyVals.map((occ, i) => {
-      const d = new Date(startD); d.setDate(d.getDate()+i);
-      return { date: d.toISOString().split('T')[0], dayOfMonth: d.getDate(), periodIndex: i, occ, rooms: null, adr: null, revpar: null, revenue: null };
-    });
-  } else {
-    OTB_STATE[side+'Data'] = [];
-  }
-
-  // Update UI
   const fnEl = document.getElementById('otb-fname-'+side);
   const dropEl = document.getElementById('otb-drop-'+side);
-  if (fnEl) fnEl.textContent = `✓ Manual · ${from} → ${to} · Occ ${occ}%`;
+  if (fnEl) fnEl.textContent = '✓ Manual · '+from+' · '+dailyVals.length+' días · Occ prom. '+avgOcc.toFixed(1)+'%';
   if (dropEl) dropEl.classList.add('has-file');
   document.getElementById('otb-manual-'+side).classList.remove('open');
 
@@ -2089,16 +2082,17 @@ function otbProcessImageOCR(file, side) {
       OTB_STATE[side+'Data'] = rows;
       OTB_STATE[side+'Headers'] = ['Fecha','Ocup%','Hab.Vendidas','ADR','RevPAR','Ingresos'];
       OTB_STATE[side+'Mapping'] = { date:'Fecha', occ:'Ocup%', rooms:'Hab.Vendidas', adr:'ADR', revpar:'RevPAR', revenue:'Ingresos' };
-      if (fnEl) fnEl.textContent = '✓ ' + file.name + ' · ' + rows.length + ' fechas vía OCR';
-    } else if (summary) {
-      OTB_STATE[side+'Data'] = [];
-      if (fnEl) fnEl.textContent = '✓ ' + file.name + ' · KPIs extraídos (sin detalle diario) — use modo Resumen Mensual';
-      OTB_STATE.comparisonMode = 'monthlySummary';
-      var modeEl = document.getElementById('otb-mode-select');
-      if (modeEl) modeEl.value = 'monthlySummary';
+      if (fnEl) fnEl.textContent = '✓ ' + file.name + ' · ' + rows.length + ' días de ocupación detectados vía OCR';
     } else {
-      if (fnEl) fnEl.textContent = '⚠ Sin datos detectados — ingrese manualmente';
-      otbShowError('OCR no detectó datos. Use el botón "Ingresar manualmente" para cargar los KPIs.');
+      // No daily rows found — prompt manual entry
+      if (fnEl) fnEl.textContent = '⚠ ' + file.name + ' · OCR no detectó datos diarios → ingrese manualmente';
+      var hint = document.getElementById('otb-manual-'+side);
+      if (hint) {
+        // Auto-open the manual form so the user can paste the daily sequence
+        var e = { stopPropagation: function(){} };
+        otbOpenManual(e, side);
+      }
+      otbShowError('El OCR no detectó la secuencia de ocupación diaria. Las imágenes de gráficas de barras no son legibles automáticamente. Use "Ingresar datos manualmente" y pegue los valores del eje Y (76, 76, 91, 74…).');
       if (dropEl) dropEl.classList.remove('has-file');
       return;
     }
@@ -2467,62 +2461,64 @@ function otbEditCell(input) {
 }
 
 function otbRunComparison() {
-  var mode = OTB_STATE.comparisonMode || 'dayOfMonth';
   var modeEl = document.getElementById('otb-mode-select');
-  if (modeEl) mode = modeEl.value || mode;
+  var mode = (modeEl ? modeEl.value : null) || OTB_STATE.comparisonMode || 'dayOfMonth';
   OTB_STATE.comparisonMode = mode;
 
-  var diagItems = [];
+  var bData = OTB_STATE.beforeData || [];
+  var aData = OTB_STATE.afterData  || [];
 
-  // Monthly summary mode — doesn't need daily rows
-  if (mode === 'monthlySummary') {
-    var bSum = OTB_STATE.beforeSummary, aSum = OTB_STATE.afterSummary;
-    if (!bSum && OTB_STATE.beforeData && OTB_STATE.beforeData.length) {
-      bSum = buildSummaryFromRows(OTB_STATE.beforeData);
-    }
-    if (!aSum && OTB_STATE.afterData && OTB_STATE.afterData.length) {
-      aSum = buildSummaryFromRows(OTB_STATE.afterData);
-    }
-    if (!bSum || !aSum) {
-      otbShowError('Para Resumen Mensual ingrese los KPIs manualmente o cargue archivos con datos.'); return;
-    }
-    var msum = compareOTBMonthlySummary(bSum, aSum);
-    var compArea = document.getElementById('otb-comparison-area') || document.getElementById('otb-panel-comparison');
-    if (compArea) compArea.innerHTML = otbRenderMonthlySummary(msum);
-    otbRenderConsultantFromSummary(msum);
-    otbSwitchToComparisonTab();
+  // Guard: need daily rows for pickup analysis
+  if (!bData.length || !aData.length) {
+    var missing = [];
+    if (!bData.length) missing.push('OTB Antes (Corte Base)');
+    if (!aData.length) missing.push('OTB Después (Corte Actual)');
+    otbShowError('Faltan datos diarios de: ' + missing.join(' y ') + '. Use el botón "✏ Ingresar datos manualmente" y pegue la secuencia de ocupación diaria (ej: 76, 76, 91, 74, 65…).');
     return;
   }
 
-  var bData = OTB_STATE.beforeData || [], aData = OTB_STATE.afterData || [];
-  if (!bData.length || !aData.length) {
-    otbShowError('Cargue ambos períodos antes de comparar. Use "Ingresar datos manualmente" si el OCR no detectó filas.'); return;
+  // Detect if comparing different months and suggest dayOfMonth
+  var firstB = bData[0] && bData[0].date ? bData[0].date.slice(0,7) : '';
+  var firstA = aData[0] && aData[0].date ? aData[0].date.slice(0,7) : '';
+  var diffMonths = firstB && firstA && firstB !== firstA;
+  if (diffMonths && mode === 'exactDate') {
+    // Auto-correct: different months cannot match by exact date
+    mode = 'dayOfMonth';
+    OTB_STATE.comparisonMode = 'dayOfMonth';
+    if (modeEl) modeEl.value = 'dayOfMonth';
+    var notice = document.getElementById('otb-errors');
+    if (notice) {
+      notice.innerHTML = '<div class="otb-alert yellow">⚠ Los períodos corresponden a meses diferentes ('+firstB+' vs '+firstA+'). Se comparará por día del mes para medir pickup entre períodos equivalentes.</div>';
+      setTimeout(function(){ if(notice) notice.innerHTML=''; }, 6000);
+    }
   }
 
   var result;
   if (mode === 'exactDate') {
-    result = { rows: compareOTB(bData, aData), mode: 'exactDate' };
-    result.matched = result.rows.length;
-    result.unmatched = bData.length - result.rows.length;
+    var rows = compareOTB(bData, aData);
+    result = { rows: rows, matched: rows.length, unmatched: Math.abs(bData.length - aData.length), mode: 'exactDate' };
   } else if (mode === 'periodIndex') {
     result = compareOTBByPeriodIndex(bData, aData);
+  } else if (mode === 'monthlySummary') {
+    // Monthly summary as a supplement rendered below the main pickup table
+    result = compareOTBByDayOfMonth(bData, aData);
   } else {
     result = compareOTBByDayOfMonth(bData, aData);
   }
 
-  diagItems.push({ ok: bData.length>0, text: 'Período base: '+bData.length+' filas' });
-  diagItems.push({ ok: aData.length>0, text: 'Período actual: '+aData.length+' filas' });
-  diagItems.push({ ok: result.matched>0, text: 'Coincidencias encontradas: '+result.matched });
-  if (result.unmatched > 0) diagItems.push({ ok: false, text: result.unmatched+' fechas sin coincidencia' });
-
-  var diag = { items: diagItems };
-  if (result.matched === 0) {
-    diag.suggestion = 'Pruebe el modo "Índice de período" o "Resumen Mensual" si los meses no coinciden.';
-  }
-  otbRenderDiagnostics(diag);
+  // Diagnostics card
+  var diagItems = [
+    { ok: bData.length > 0, text: 'Corte base: ' + bData.length + ' días de ocupación' },
+    { ok: aData.length > 0, text: 'Corte actual: ' + aData.length + ' días de ocupación' },
+    { ok: result.matched > 0, text: 'Días comparables con pickup: ' + result.matched }
+  ];
+  if (result.unmatched > 0) diagItems.push({ ok: false, text: result.unmatched + ' días sin coincidencia' });
+  otbRenderDiagnostics({ items: diagItems,
+    suggestion: result.matched === 0 ? 'Verifique que las fechas de inicio sean correctas. Para meses distintos use el modo "Día del mes".' : null
+  });
 
   if (!result.rows || !result.rows.length) {
-    otbShowError('No se encontraron coincidencias. Cambie el modo de comparación o ingrese datos manualmente.');
+    otbShowError('No se encontraron días comparables. Verifique los datos ingresados y el modo de comparación.');
     return;
   }
 
@@ -2619,6 +2615,22 @@ function otbRenderComparison() {
     + '</div>';
 
   otbRenderTable(rows);
+
+  // Monthly context summary appended below the main pickup table
+  var bSum = OTB_STATE.beforeSummary, aSum = OTB_STATE.afterSummary;
+  if (!bSum && OTB_STATE.beforeData && OTB_STATE.beforeData.length) bSum = buildSummaryFromRows(OTB_STATE.beforeData);
+  if (!aSum && OTB_STATE.afterData && OTB_STATE.afterData.length) aSum = buildSummaryFromRows(OTB_STATE.afterData);
+  var tArea = document.getElementById('otb-table-area');
+  if (tArea && bSum && aSum) {
+    var msum = compareOTBMonthlySummary(bSum, aSum);
+    if (msum) tArea.innerHTML += '<details style="margin-top:16px"><summary style="cursor:pointer;font-size:.72rem;font-weight:700;color:var(--gray3);text-transform:uppercase;letter-spacing:.05em;user-select:none">▶ Resumen mensual de contexto (ADR / RevPAR)</summary>'
+      + otbRenderMonthlySummary(msum) + '</details>';
+  }
+  // Inventory notice
+  if (!OTB_STATE.inventory && tArea) {
+    tArea.innerHTML += '<div style="margin-top:10px;padding:8px 12px;background:#fffbee;border:1px solid #e8c88a;border-radius:6px;font-size:.73rem;color:#7a5a00">'
+      + '💡 Ingrese el número de habitaciones del hotel en el campo "Habitaciones del hotel" para ver el pickup en habitaciones junto a cada fecha.</div>';
+  }
 }
 
 function otbFilter(filter, btn) {
