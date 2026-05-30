@@ -9,8 +9,9 @@ import PrepurchaseSettings from './PrepurchaseSettings';
 import StatisticalChartsTab from './StatisticalChartsTab';
 import ForecastTab from './ForecastTab';
 import ReconciliationTab from './reconciliation/ReconciliationTab';
+import CrossTab from './cross/CrossTab';
 
-type Tab = 'dashboard' | 'reservations' | 'settings' | 'charts' | 'forecast' | 'reconciliation';
+type Tab = 'dashboard' | 'reservations' | 'settings' | 'charts' | 'forecast' | 'reconciliation' | 'cross';
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -19,6 +20,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'charts', label: 'Análisis Gráfico', icon: '📈' },
   { id: 'forecast', label: 'Pronóstico', icon: '🔮' },
   { id: 'reconciliation', label: 'Conciliación Price vs GEH', icon: '🔗' },
+  { id: 'cross', label: 'Conciliación Avanzada', icon: '⚖️' },
 ];
 
 export default function AppShell() {
@@ -138,6 +140,7 @@ export default function AppShell() {
           {activeTab === 'charts' && <StatisticalChartsTab />}
           {activeTab === 'forecast' && <ForecastTab />}
           {activeTab === 'reconciliation' && <ReconciliationTab />}
+          {activeTab === 'cross' && <CrossTab />}
         </div>
       </main>
     </div>
