@@ -907,6 +907,7 @@ const CHANNELS = [
     key:'booking', name:'Booking.com', color:'#003580',
     factor:2.49, commission:0.15,
     geniusPcts:[10, 15, 20],
+    geniusPct:20,
     mobilePct:10,
     baseLabels:['No reembolsable','Mínimo 2 noches','Mínimo 3 noches'],
     baseKeys:  ['nr','min2','min3'],
@@ -984,20 +985,29 @@ function renderTable(card, sec, baseRates, commission, promoDisc, ch) {
     for (let i=discs.length; i<maxDisc; i++) addTd(trow, '—', 'td-mid');
 
     const minRate = HOTEL_MIN_RATES[currentHotel] || 0;
-    const otaAlert = minRate > 0 && otaVal <= minRate;
-    const tdOta = addTd(trow, fmt(otaVal), 'td-ota' + (otaAlert ? ' td-min-alert' : ''));
-    tdOta.title = otaAlert ? `⚠ Tarifa en mínimo permitido (${fmt(minRate)}) — Clic para copiar` : 'Clic para copiar';
-    tdOta.addEventListener('click', ()=>copyValue(otaVal));
 
     if (isBooking) {
+      // GENIUS = "Después promo" * (1 - geniusPct/100)
+      // "Después promo" is the penultimate value (last intermediate step before genius)
+      const despPromo = vals.length >= 2 ? vals[vals.length - 2] : otaVal;
+      const geniusPct = ch.geniusPct !== undefined ? ch.geniusPct : 20;
+      const geniusVal = despPromo * (1 - geniusPct / 100);
+      const geniusAlert = minRate > 0 && geniusVal <= minRate;
+      const tdGenius = addTd(trow, fmt(geniusVal), 'td-ota' + (geniusAlert ? ' td-min-alert' : ''));
+      tdGenius.title = geniusAlert ? `⚠ Tarifa en mínimo permitido (${fmt(minRate)}) — Clic para copiar` : 'Clic para copiar';
+      tdGenius.addEventListener('click', ()=>copyValue(geniusVal));
       const mobPct = ch.mobilePct || 0;
-      const mobVal = otaVal * (1 - mobPct / 100);
+      const mobVal = geniusVal * (1 - mobPct / 100);
       const netVal = commission > 0 ? mobVal * (1 - commission) : null;
       const tdMob = addTd(trow, fmt(mobVal), 'td-mobile');
       tdMob.title = 'Clic para copiar';
       tdMob.addEventListener('click', ()=>copyValue(mobVal));
       if (commission > 0 && netVal !== null) addTd(trow, fmt(netVal), 'td-net');
     } else {
+      const otaAlert = minRate > 0 && otaVal <= minRate;
+      const tdOta = addTd(trow, fmt(otaVal), 'td-ota' + (otaAlert ? ' td-min-alert' : ''));
+      tdOta.title = otaAlert ? `⚠ Tarifa en mínimo permitido (${fmt(minRate)}) — Clic para copiar` : 'Clic para copiar';
+      tdOta.addEventListener('click', ()=>copyValue(otaVal));
       const netVal = commission>0 ? otaVal*(1-commission) : null;
       if (commission>0 && netVal!==null) addTd(trow, fmt(netVal), 'td-net');
     }
@@ -1251,7 +1261,7 @@ function buildSectionCard(ch, sec, baseRates, hotel) {
   const hasPais = (sec.rows||[]).some(r=>r.promoAdd);
   if (hasPais) {
     const paisCtrl = document.createElement('div'); paisCtrl.className='promo-ctrl';
-    paisCtrl.innerHTML = `<label>País %</label><input type="number" class="promo-input" value="${getPaisPct(sec)}" min="0" max="100" step="1"><span class="promo-pct">%</span>`;
+    paisCtrl.innerHTML = `<label>MEMBERS %</label><input type="number" class="promo-input" value="${getPaisPct(sec)}" min="0" max="100" step="1"><span class="promo-pct">%</span>`;
     hdr.appendChild(paisCtrl);
     const paisIn = paisCtrl.querySelector('input');
     paisIn.addEventListener('change', ()=>{
@@ -1289,20 +1299,19 @@ function buildSectionCard(ch, sec, baseRates, hotel) {
   cfgBtn.addEventListener('click', ()=>{ cfgPanel.classList.toggle('open'); });
 
   copyBtn.addEventListener('click', ()=>{
-    // Deep-copy the section data
+    // Deep-copy the section data and append at the end
     const newSec = JSON.parse(JSON.stringify(sec));
     newSec._id = 's'+(++_secIdCounter);
     newSec.title = sec.title + ' (Copia)';
     delete newSec._promoVals; // start with clean promo state
-    const idx = ch.sections.indexOf(sec);
-    ch.sections.splice(idx+1, 0, newSec);
+    ch.sections.push(newSec);
     renderSections(ch);
-    // Scroll to new card after a tick
+    // Scroll to the last card (the copy)
     setTimeout(()=>{
       const grid = document.getElementById('grid-'+ch.key);
       if (grid) {
         const cards = grid.querySelectorAll('.section-card');
-        const newCard = cards[idx+1];
+        const newCard = cards[cards.length - 1];
         if (newCard) newCard.scrollIntoView({behavior:'smooth', block:'nearest'});
       }
     }, 80);
@@ -1352,13 +1361,18 @@ function buildChannelPage(ch) {
     </div>
     ${ch.key === 'booking' ? `
     <div class="genius-config-bar" id="genius-cfg-${ch.key}">
-      <label>🔵 Booking.com — descuento Mobile</label>
+      <label>🔵 Booking.com — descuentos</label>
       <div class="genius-cfg-group">
-        <span>Descuento Mobile</span>
-        <input type="number" id="genius-mob-${ch.key}" value="${ch.mobilePct||0}" min="0" max="50" step="1">
+        <span>Descuento Genius</span>
+        <input type="number" id="genius-pct-${ch.key}" value="${ch.geniusPct !== undefined ? ch.geniusPct : 20}" min="0" max="100" step="0.5">
         <span>%</span>
       </div>
-      <span style="font-size:.65rem;color:#7a6500;font-style:italic">MOBILE = GENIUS × (1 − descuento%). Ajuste el % para ver el impacto en tiempo real.</span>
+      <div class="genius-cfg-group">
+        <span>Descuento Mobile</span>
+        <input type="number" id="genius-mob-${ch.key}" value="${ch.mobilePct||0}" min="0" max="100" step="0.5">
+        <span>%</span>
+      </div>
+      <span style="font-size:.65rem;color:#7a6500;font-style:italic">GENIUS = Después promo × (1 − Genius%). MOBILE = GENIUS × (1 − Mobile%). Recalcula en tiempo real.</span>
     </div>` : ''}
     <div class="sections-grid" id="grid-${ch.key}"></div>
   `;
@@ -1392,18 +1406,28 @@ function renderSections(ch) {
     grid.appendChild(buildSectionCard(ch, sec, baseRates, currentHotel));
   });
 
-  // Wire Mobile discount config input (Booking.com only)
+  // Wire Genius & Mobile discount config inputs (Booking.com only)
   if (ch.key === 'booking') {
+    function reRenderAllBooking() {
+      const commission2 = ch._commission !== undefined ? ch._commission : ch.commission;
+      grid.querySelectorAll('.section-card').forEach((card, i) => {
+        const sec2 = ch.sections[i];
+        if (!sec2) return;
+        renderTable(card, sec2, baseRates, commission2, getPromoVal(sec2)/100, ch);
+      });
+    }
+    const geniusEl = document.getElementById('genius-pct-'+ch.key);
+    if (geniusEl) {
+      geniusEl.addEventListener('input', () => {
+        ch.geniusPct = Math.max(0, Math.min(100, parseFloat(geniusEl.value)||0));
+        reRenderAllBooking();
+      });
+    }
     const mobEl = document.getElementById('genius-mob-'+ch.key);
     if (mobEl) {
       mobEl.addEventListener('input', () => {
-        ch.mobilePct = parseFloat(mobEl.value)||0;
-        const commission2 = ch._commission !== undefined ? ch._commission : ch.commission;
-        grid.querySelectorAll('.section-card').forEach((card, i) => {
-          const sec2 = ch.sections[i];
-          if (!sec2) return;
-          renderTable(card, sec2, baseRates, commission2, getPromoVal(sec2)/100, ch);
-        });
+        ch.mobilePct = Math.max(0, Math.min(100, parseFloat(mobEl.value)||0));
+        reRenderAllBooking();
       });
     }
   }
