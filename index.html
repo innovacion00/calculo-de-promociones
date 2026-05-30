@@ -391,6 +391,75 @@
 .pcfg-hist-table th{background:var(--gold-pale);padding:5px 8px;font-size:.63rem;font-weight:800;color:var(--gold-dark);text-transform:uppercase;border-bottom:1.5px solid var(--gold-border);white-space:nowrap;}
 .pcfg-hist-table td{padding:5px 8px;border-bottom:1px solid var(--gray2);}
 .pcfg-hist-table tr:hover td{background:var(--gold-subtle);}
+/* ═══ AGENDA MODULE ═══ */
+.agenda-section { padding: 20px 24px; }
+.agenda-kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
+.agenda-kpi-card { background: var(--white); border: 1px solid var(--gold-border); border-radius: var(--radius); padding: 14px 16px; text-align: center; }
+.agenda-kpi-num { font-size: 1.6rem; font-weight: 900; color: var(--gold-dark); line-height: 1; }
+.agenda-kpi-label { font-size: .62rem; color: var(--gray3); text-transform: uppercase; letter-spacing: .8px; margin-top: 4px; }
+.agenda-kpi-card.kpi-high .agenda-kpi-num { color: #c00; }
+.agenda-kpi-card.kpi-overdue .agenda-kpi-num { color: #e05800; }
+.agenda-alerts { background: #fff8e1; border: 1px solid #f5c842; border-radius: 8px; padding: 10px 16px; margin-bottom: 16px; font-size: .78rem; color: #7a4f00; }
+.agenda-alerts ul { margin: 4px 0 0 16px; padding: 0; }
+.agenda-filters-bar { background: var(--white); border: 1px solid var(--gold-border); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.agenda-filters-bar label { font-size: .64rem; font-weight: 700; color: var(--gray3); text-transform: uppercase; letter-spacing: .6px; display: block; margin-bottom: 3px; }
+.agenda-filter-group { display: flex; flex-direction: column; min-width: 110px; }
+.agenda-filter-group input, .agenda-filter-group select { border: 1px solid var(--gold-border); border-radius: 6px; padding: 5px 8px; font-size: .74rem; color: var(--text); background: var(--white); outline: none; }
+.agenda-filter-group input:focus, .agenda-filter-group select:focus { border-color: var(--gold); }
+.agenda-filter-actions { display: flex; gap: 6px; align-items: flex-end; margin-left: auto; }
+.agenda-view-toggle { display: flex; gap: 4px; }
+.agenda-view-btn { padding: 5px 12px; border: 1px solid var(--gold-border); background: var(--white); border-radius: 6px; font-size: .72rem; font-weight: 700; cursor: pointer; color: var(--gray3); transition: all .15s; }
+.agenda-view-btn.active { background: var(--gold-subtle); color: var(--gold-dark); border-color: var(--gold); }
+.agenda-table-wrap { overflow-x: auto; background: var(--white); border: 1px solid var(--gold-border); border-radius: var(--radius); }
+.agenda-table { width: 100%; border-collapse: collapse; font-size: .75rem; min-width: 900px; }
+.agenda-table thead th { background: var(--gold-pale); padding: 7px 10px; text-align: left; font-size: .62rem; font-weight: 800; color: var(--gold-dark); border-bottom: 1.5px solid var(--gold-border); white-space: nowrap; cursor: pointer; user-select: none; }
+.agenda-table thead th:hover { background: var(--gold-subtle); }
+.agenda-table thead th .sort-icon { margin-left: 4px; opacity: .5; }
+.agenda-table tbody td { padding: 7px 10px; border-bottom: 1px solid var(--gray2); vertical-align: middle; }
+.agenda-table tbody tr:hover td { background: var(--gold-subtle); }
+.agenda-table .td-actions { display: flex; gap: 4px; white-space: nowrap; }
+.agenda-table .td-actions button { padding: 2px 8px; border: 1px solid var(--gold-border); border-radius: 4px; background: var(--white); font-size: .67rem; font-weight: 700; cursor: pointer; transition: all .15s; }
+.agenda-table .td-actions button:hover { background: var(--gold-subtle); }
+.agenda-table .td-actions .btn-danger { border-color: #f5c6cb; color: #c00; }
+.agenda-table .td-actions .btn-danger:hover { background: #fff0f0; }
+.agenda-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.agenda-card { background: var(--white); border: 1px solid var(--gold-border); border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.agenda-card-title { font-size: .82rem; font-weight: 800; color: var(--text); }
+.agenda-card-desc { font-size: .74rem; color: var(--gray3); flex: 1; }
+.agenda-card-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.agenda-card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: .68rem; color: var(--gray3); }
+.agenda-card-actions { display: flex; gap: 4px; }
+.agenda-card-actions button { padding: 3px 8px; border: 1px solid var(--gold-border); border-radius: 4px; background: var(--white); font-size: .67rem; font-weight: 700; cursor: pointer; }
+.agenda-card-actions button:hover { background: var(--gold-subtle); }
+.badge-priority { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 10px; font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .6px; }
+.badge-priority.high { background: #ffe0e0; color: #c00; }
+.badge-priority.medium { background: #fff3cd; color: #856404; }
+.badge-priority.low { background: #e8f5e9; color: #2e7d32; }
+.badge-status { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 10px; font-size: .62rem; font-weight: 700; white-space: nowrap; }
+.badge-status.pending { background: #fff3cd; color: #856404; }
+.badge-status.inProgress { background: #d0e4f7; color: #0d6efd; }
+.badge-status.executed { background: #d1e7dd; color: #0a3622; }
+.badge-status.underReview { background: #ede8ff; color: #5a3fa0; }
+.badge-status.closed { background: #e2e3e5; color: #41464b; }
+.badge-status.cancelled { background: #f8d7da; color: #842029; }
+.agenda-tag { display: inline-block; background: var(--gold-subtle); color: var(--gold-dark); border: 1px solid var(--gold-border); border-radius: 10px; padding: 1px 8px; font-size: .6rem; font-weight: 700; }
+.agenda-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 2000; display: none; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
+.agenda-modal-overlay.open { display: flex; }
+.agenda-modal { background: var(--white); border-radius: 14px; width: 100%; max-width: 640px; box-shadow: 0 8px 40px rgba(0,0,0,.18); }
+.agenda-modal-head { padding: 18px 22px 14px; border-bottom: 1px solid var(--gold-border); display: flex; align-items: center; justify-content: space-between; }
+.agenda-modal-head h3 { font-size: .9rem; font-weight: 800; color: var(--gold-dark); margin: 0; text-transform: uppercase; letter-spacing: .8px; }
+.agenda-modal-body { padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; }
+.agenda-modal-footer { padding: 14px 22px 18px; border-top: 1px solid var(--gold-border); display: flex; gap: 8px; justify-content: flex-end; }
+.agenda-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.agenda-form-row.full { grid-template-columns: 1fr; }
+.agenda-form-group { display: flex; flex-direction: column; gap: 4px; }
+.agenda-form-group label { font-size: .64rem; font-weight: 800; color: var(--gray3); text-transform: uppercase; letter-spacing: .6px; }
+.agenda-form-group input, .agenda-form-group select, .agenda-form-group textarea { border: 1px solid var(--gold-border); border-radius: 6px; padding: 7px 10px; font-size: .78rem; color: var(--text); background: var(--white); outline: none; font-family: inherit; }
+.agenda-form-group input:focus, .agenda-form-group select:focus, .agenda-form-group textarea:focus { border-color: var(--gold); }
+.agenda-form-group textarea { resize: vertical; min-height: 70px; }
+.agenda-empty { text-align: center; padding: 48px 20px; color: var(--gray3); font-size: .84rem; }
+.agenda-empty .empty-icon { font-size: 2.4rem; margin-bottom: 10px; }
+.agenda-quick-btn { background: var(--gold-subtle) !important; color: var(--gold-dark) !important; border-color: var(--gold) !important; }
 </style>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -435,6 +504,10 @@
       <span class="mnb-icon">📈</span>
       <span class="mnb-label">Comparativa OTB</span>
     </button>
+    <button class="module-nav-btn" id="nav-agenda" onclick="switchModule('agenda')">
+      <span class="mnb-icon">📋</span>
+      <span class="mnb-label">Agenda Revenue</span>
+    </button>
     <span class="module-nav-future">Forecast · Reportes · Configuración</span>
   </div>
 </nav>
@@ -444,6 +517,7 @@
   <button class="save-btn primary" id="btn-global-save">💾 Guardar configuración</button>
   <button class="save-btn" id="btn-restore">↩ Restaurar último guardado</button>
   <button class="save-btn" id="btn-open-pcfg" onclick="openPromoConfig()">⚙ Configurar promociones</button>
+  <button class="save-btn agenda-quick-btn" onclick="agendaQuickModal('rateSimulator')" title="Agregar nota de seguimiento">📋 Nota de seguimiento</button>
   <span class="save-status" id="save-status"></span>
 </div>
 
@@ -454,6 +528,14 @@
   <button class="save-btn" id="otb-new-analysis-btn" onclick="otbConfirmNewAnalysis()" style="background:#fff0f0;color:#c00;border-color:#f5c6cb;font-weight:800">🔄 Nuevo análisis OTB</button>
   <button class="save-btn" onclick="otbSaveToHistory && otbSaveToHistory()">💾 Guardar histórico</button>
   <button class="save-btn primary" onclick="otbExportExcel && otbExportExcel()">⬇ Exportar comparativa</button>
+  <button class="save-btn agenda-quick-btn" onclick="agendaQuickModal('otbComparison')" title="Agregar nota OTB">📋 Nota OTB</button>
+</div>
+
+<!-- AGENDA ACTION BAR -->
+<div class="action-bar" id="action-bar-agenda" style="display:none;">
+  <button class="save-btn primary" onclick="agendaOpenCreate()">✏ Nueva nota</button>
+  <button class="save-btn" onclick="agendaExport()">⬇ Exportar agenda</button>
+  <span class="save-status" id="agenda-save-status"></span>
 </div>
 
 <!-- HOTEL SIDEBAR -->
@@ -475,6 +557,11 @@
 <!-- OTB MODULE -->
 <div id="module-otb" style="display:none;">
   <div id="page-otb"></div>
+</div>
+
+<!-- AGENDA MODULE -->
+<div id="module-agenda" style="display:none;">
+  <div id="page-agenda"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1479,18 +1566,28 @@ document.getElementById('btn-restore').addEventListener('click', ()=>{
 // ── MODULE SWITCH ─────────────────────────────────────────────
 function switchModule(mod) {
   const isOTB = mod === 'otb';
+  const isAgenda = mod === 'agenda';
+  const isSim = !isOTB && !isAgenda;
   // Nav buttons
-  document.getElementById('nav-simulator').classList.toggle('active', !isOTB);
+  document.getElementById('nav-simulator').classList.toggle('active', isSim);
   document.getElementById('nav-otb').classList.toggle('active', isOTB);
+  const navAgenda = document.getElementById('nav-agenda');
+  if (navAgenda) navAgenda.classList.toggle('active', isAgenda);
   // Action bars
-  document.getElementById('action-bar-simulator').style.display = isOTB ? 'none' : '';
+  document.getElementById('action-bar-simulator').style.display = isSim ? '' : 'none';
   document.getElementById('action-bar-otb').style.display       = isOTB ? '' : 'none';
+  const abarAgenda = document.getElementById('action-bar-agenda');
+  if (abarAgenda) abarAgenda.style.display = isAgenda ? '' : 'none';
   // Modules
-  document.getElementById('module-simulator').style.display = isOTB ? 'none' : '';
+  document.getElementById('module-simulator').style.display = isSim ? '' : 'none';
   document.getElementById('module-otb').style.display       = isOTB ? '' : 'none';
+  const modAgenda = document.getElementById('module-agenda');
+  if (modAgenda) modAgenda.style.display = isAgenda ? '' : 'none';
   // Init OTB on first open
   const otbPage = document.getElementById('page-otb');
   if (isOTB && !otbPage._initialized) { initOTB(otbPage); otbPage._initialized = true; }
+  // Init Agenda on first open
+  if (isAgenda) initAgenda();
 }
 
 // Load from localStorage on startup
