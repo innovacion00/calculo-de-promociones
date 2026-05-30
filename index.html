@@ -2107,7 +2107,16 @@ function initOTB(page) {
       page.querySelectorAll('.otb-sub-panel').forEach(function(p) { p.classList.remove('active'); });
       btn.classList.add('active');
       page.querySelector('#otb-panel-'+btn.dataset.tab).classList.add('active');
-      if (btn.dataset.tab === 'charts' && OTB_STATE.comparison) otbRenderCharts();
+      if (btn.dataset.tab === 'charts') {
+        // Always re-render charts when tab is clicked so canvas sizes are correct
+        if (OTB_STATE.comparison) {
+          // Small defer ensures the panel is painted before Chart.js reads canvas dimensions
+          setTimeout(otbRenderCharts, 30);
+        } else {
+          var ca = document.getElementById('otb-charts-area');
+          if (ca) ca.innerHTML = '<div style="padding:32px;text-align:center;color:#aaa;font-size:.85rem">Calcule la comparativa primero para ver los gráficos.</div>';
+        }
+      }
       if (btn.dataset.tab === 'history') otbRenderHistory();
     });
   });
@@ -2813,7 +2822,8 @@ function otbRunComparison() {
 
   otbRenderComparison();
   otbRenderWeekly();
-  otbRenderCharts();
+  // Charts are rendered lazily when the tab is activated (avoids 0px canvas issue on hidden tab)
+  OTB_STATE._chartsDirty = true;
   otbRenderConsultant();
   // Clear stale warnings now that we've recalculated
   ['before','after'].forEach(function(s) {
@@ -2983,21 +2993,73 @@ function otbRenderTable(rows) {
 }
 
 function otbRenderCharts() {
-  if (!OTB_STATE.comparison) return;
-  var rows = OTB_STATE.comparison.filter(function(r){ return r.pickup !== null; });
-  if (!rows.length) return;
-
   var area = document.getElementById('otb-charts-area');
   if (!area) return;
-  area.innerHTML = '';
 
+  // Destroy previous chart instances
   Object.values(OTB_STATE.charts).forEach(function(c){ try { c.destroy(); } catch(e){} });
   OTB_STATE.charts = {};
+  area.innerHTML = '';
+
+  var allRows   = OTB_STATE.comparison || [];
+  var rows      = allRows.filter(function(r){ return r.pickup !== null; });
+  var bData     = OTB_STATE.beforeData  || [];
+  var aData     = OTB_STATE.afterData   || [];
+
+  // ── DEBUG STRIP (always visible, helps diagnose data issues) ──────────────
+  var debugBar = document.createElement('div');
+  debugBar.style.cssText = 'background:#f8f4e8;border:1px solid #e8d88a;border-radius:8px;padding:10px 16px;'
+    + 'font-size:.73rem;color:#7a6500;margin-bottom:16px;display:flex;gap:20px;flex-wrap:wrap;align-items:center';
+  debugBar.innerHTML = '<strong style="color:#5a4a00">📊 Resumen de datos</strong>'
+    + '<span>OTB Base: <strong>'+bData.length+'</strong> días</span>'
+    + '<span>OTB Actual: <strong>'+aData.length+'</strong> días</span>'
+    + '<span>Días comparables: <strong>'+allRows.length+'</strong></span>'
+    + '<span>Con pickup calculado: <strong>'+rows.length+'</strong></span>';
+  if (OTB_STATE.weeklyComparison) {
+    debugBar.innerHTML += '<span>Semanas: <strong>'+OTB_STATE.weeklyComparison.length+'</strong></span>';
+  }
+  area.appendChild(debugBar);
+
+  // ── INSUFFICIENT DATA DIAGNOSTIC ─────────────────────────────────────────
+  if (rows.length < 2) {
+    var diagDiv = document.createElement('div');
+    diagDiv.style.cssText = 'grid-column:1/-1;background:#fff8f0;border:2px solid #f5a623;border-radius:10px;padding:24px 28px;';
+    var reason = '';
+    if (!bData.length && !aData.length) {
+      reason = 'No hay datos en ningún período. Ingrese los datos de OTB Base y OTB Actual.';
+    } else if (!bData.length) {
+      reason = 'Faltan los datos del OTB Base (período anterior).';
+    } else if (!aData.length) {
+      reason = 'Faltan los datos del OTB Actual (período nuevo).';
+    } else if (allRows.length < 2) {
+      reason = 'No se encontraron días comparables. Verifique que las fechas de inicio sean correctas y que los modos de comparación coincidan.';
+    } else if (rows.length < 2) {
+      reason = 'Se detectaron '+allRows.length+' días comparables, pero la mayoría no tienen ocupación válida en ambos períodos. '
+        + 'Esto ocurre cuando el OCR no pudo leer los valores de ocupación. Use "✏ Ingresar datos manualmente" y pegue la secuencia diaria (ej: 76, 76, 91, 74, 65…).';
+    }
+    diagDiv.innerHTML = '<div style="font-size:.9rem;font-weight:800;color:#c07000;margin-bottom:10px">⚠ Datos insuficientes para graficar el pickup diario</div>'
+      + '<p style="font-size:.8rem;color:#555;margin:0 0 14px">Se detectaron <strong>'+rows.length+'</strong> registro(s) con pickup calculado. '
+      + 'Para graficar se requieren al menos <strong>2 registros comparables</strong>.</p>'
+      + '<p style="font-size:.8rem;color:#555;margin:0 0 14px"><strong>Motivo probable:</strong> '+reason+'</p>'
+      + '<table style="font-size:.77rem;border-collapse:collapse;width:100%;max-width:500px">'
+      + '<tr><td style="padding:4px 8px;border:1px solid #e8d88a;color:#7a6500">Registros OTB Base</td><td style="padding:4px 8px;border:1px solid #e8d88a;font-weight:700">'+bData.length+'</td></tr>'
+      + '<tr><td style="padding:4px 8px;border:1px solid #e8d88a;color:#7a6500">Registros OTB Actual</td><td style="padding:4px 8px;border:1px solid #e8d88a;font-weight:700">'+aData.length+'</td></tr>'
+      + '<tr><td style="padding:4px 8px;border:1px solid #e8d88a;color:#7a6500">Días comparables generados</td><td style="padding:4px 8px;border:1px solid #e8d88a;font-weight:700">'+allRows.length+'</td></tr>'
+      + '<tr><td style="padding:4px 8px;border:1px solid #e8d88a;color:#7a6500">Con pickup calculado</td><td style="padding:4px 8px;border:1px solid #e8d88a;font-weight:700">'+rows.length+'</td></tr>'
+      + '</table>'
+      + '<div style="margin-top:16px;padding:12px 16px;background:#fff3cd;border-radius:6px;font-size:.78rem;color:#856404">'
+      + '<strong>Acción sugerida:</strong> Haga clic en "✏ Ingresar datos manualmente" en cada card de carga. '
+      + 'Ingrese la fecha de inicio del período y pegue la secuencia de ocupación diaria (un número por día, separado por comas). '
+      + 'Ejemplo: <code style="background:#fff;padding:1px 6px;border-radius:3px">76, 76, 91, 74, 65, 76, 87, 91, 87, 76…</code>'
+      + '</div>';
+    area.appendChild(diagDiv);
+    return;
+  }
 
   var inv = OTB_STATE.inventory;
-  var labels = rows.map(function(r){ return String(r.day); });
+  var labels = rows.map(function(r){ return 'D'+r.day; });
 
-  // Color helpers (same palette everywhere)
+  // Color helpers
   function barColor(pickup, alpha) {
     alpha = alpha || 1;
     if (pickup > 10)   return 'rgba(22,120,60,'+alpha+')';
@@ -3014,17 +3076,15 @@ function otbRenderCharts() {
     box.style.cssText = 'grid-column:1/-1';
     box.innerHTML = '<div class="otb-chart-title">'+title+'</div>'
       +(subtitle?'<div style="font-size:.68rem;color:#888;margin-bottom:8px">'+subtitle+'</div>':'')
-      +'<div style="position:relative"><canvas id="'+id+'"></canvas></div>';
+      +'<div style="position:relative;height:'+( arguments[3]||260)+'px"><canvas id="'+id+'"></canvas></div>';
     area.appendChild(box); return id;
   }
-  function mkHalf(id, title) {
+  function mkHalf(id, title, h) {
     var box = document.createElement('div'); box.className = 'otb-chart-box';
     box.innerHTML = '<div class="otb-chart-title">'+title+'</div>'
-      +'<div style="position:relative"><canvas id="'+id+'"></canvas></div>';
+      +'<div style="position:relative;height:'+(h||220)+'px"><canvas id="'+id+'"></canvas></div>';
     area.appendChild(box); return id;
   }
-
-  var noDataLabels = { plugins: { datalabels: { display: false } } };
 
   // ─────────────────────────────────────────────────────────────────────────────
   // GRÁFICO 1 — PICKUP VISUAL POR FECHA
@@ -3033,10 +3093,10 @@ function otbRenderCharts() {
   // ─────────────────────────────────────────────────────────────────────────────
   var g1id = mkFull('ch-otb-main',
     'Pickup visual por fecha — OTB Actual vs OTB Base',
-    'Barras = ocupación actual coloreadas por pickup · Línea = ocupación base (referencia) · Verde = ganó pickup · Rojo = perdió pickup · Gris = estable'
+    'Barras = ocupación actual coloreadas por pickup · Línea = ocupación base (referencia) · Verde = ganó pickup · Rojo = perdió pickup · Gris = estable',
+    360
   );
-  document.getElementById(g1id).parentElement.style.height = '360px';
-  var g1labels = rows.map(function(r){ return String(r.day); });
+  var g1labels = rows.map(function(r){ return 'D'+r.day; });
   OTB_STATE.charts['ch-otb-main'] = new Chart(document.getElementById(g1id), {
     type: 'bar',
     data: {
@@ -3118,7 +3178,8 @@ function otbRenderCharts() {
         }
       },
       scales: {
-        x: { grid: { color:'rgba(0,0,0,.05)' }, ticks: { font:{size:10} },
+        x: { grid: { color:'rgba(0,0,0,.05)' },
+          ticks: { font:{size: rows.length > 20 ? 8 : 10}, maxRotation: rows.length > 20 ? 45 : 0 },
           title: { display:true, text:'Día del período', font:{size:10} } },
         y: { min:0, max:100, grid:{ color:'rgba(0,0,0,.06)' },
           ticks: { callback:function(v){return v+'%'}, font:{size:10} },
@@ -3132,9 +3193,9 @@ function otbRenderCharts() {
   // ─────────────────────────────────────────────────────────────────────────────
   var g2id = mkFull('ch-pickup-pp',
     'Pickup diario por fecha (puntos porcentuales)',
-    '▲ Verde = ganó pickup  ▼ Rojo = perdió pickup  ● Gris = estable'
+    '▲ Verde = ganó pickup  ▼ Rojo = perdió pickup  ● Gris = estable',
+    280
   );
-  document.getElementById(g2id).parentElement.style.height = '280px';
   OTB_STATE.charts['ch-pickup-pp'] = new Chart(document.getElementById(g2id), {
     type: 'bar',
     data: {
@@ -3188,9 +3249,9 @@ function otbRenderCharts() {
   // ─────────────────────────────────────────────────────────────────────────────
   var g3id = mkFull('ch-occ-compare',
     'Ocupación diaria: OTB Base vs OTB Actual (%)',
-    'Línea azul discontinua = OTB base  ·  Línea verde sólida = OTB actual  ·  La brecha entre líneas refleja el pickup'
+    'Línea azul discontinua = OTB base  ·  Línea verde sólida = OTB actual  ·  La brecha entre líneas refleja el pickup',
+    280
   );
-  document.getElementById(g3id).parentElement.style.height = '280px';
   OTB_STATE.charts['ch-occ-compare'] = new Chart(document.getElementById(g3id), {
     type: 'line',
     data: {
@@ -3235,7 +3296,7 @@ function otbRenderCharts() {
   // ─────────────────────────────────────────────────────────────────────────────
   var wc = OTB_STATE.weeklyComparison;
   if (wc && wc.length) {
-    var g4id = mkHalf('ch-weekly','Pickup semanal');
+    var g4id = mkHalf('ch-weekly','Pickup semanal', 240);
     OTB_STATE.charts['ch-weekly'] = new Chart(document.getElementById(g4id), {
       type: 'bar',
       data: {
@@ -3269,7 +3330,7 @@ function otbRenderCharts() {
   // GRÁFICO 5 — DISTRIBUCIÓN DEL PICKUP
   // ─────────────────────────────────────────────────────────────────────────────
   var m = OTB_STATE.metrics;
-  var g5id = wc && wc.length ? mkHalf('ch-dist','Distribución del pickup') : mkHalf('ch-dist','Distribución del pickup');
+  var g5id = mkHalf('ch-dist','Distribución del pickup', 240);
   OTB_STATE.charts['ch-dist'] = new Chart(document.getElementById(g5id), {
     type:'doughnut',
     data:{
@@ -3288,7 +3349,7 @@ function otbRenderCharts() {
   var top5up   = valid.slice().sort(function(a,b){return b.pickup-a.pickup;}).slice(0,5);
   var top5down = valid.slice().sort(function(a,b){return a.pickup-b.pickup;}).slice(0,5);
   var g6id = mkFull('ch-ranking','Fechas con mayor crecimiento vs mayor caída de pickup',
-    'Verde = días que más crecieron · Rojo = días que más cayeron');
+    'Verde = días que más crecieron · Rojo = días que más cayeron', 280);
   OTB_STATE.charts['ch-ranking'] = new Chart(document.getElementById(g6id), {
     type:'bar',
     data:{
@@ -3321,7 +3382,7 @@ function otbRenderCharts() {
   // ─────────────────────────────────────────────────────────────────────────────
   if (m.hasRooms) {
     var g7id = mkFull('ch-rooms','Pickup en habitaciones (ganadas o perdidas por fecha)',
-      'Solo disponible cuando se configuró el inventario del hotel');
+      'Solo disponible cuando se configuró el inventario del hotel', 260);
     OTB_STATE.charts['ch-rooms'] = new Chart(document.getElementById(g7id), {
       type:'bar',
       data:{ labels:labels, datasets:[{ label:'Pickup habs',
