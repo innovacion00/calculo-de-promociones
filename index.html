@@ -104,6 +104,28 @@
   .icon-btn{width:24px;height:24px;border:none;border-radius:50%;background:var(--gray1);color:var(--gray4);font-size:.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
   .icon-btn:hover{background:var(--gold-border);color:var(--gold-dark);}
   .icon-btn.del:hover{background:#fde;color:#c00;}
+  .icon-btn.copy:hover{background:#d4edda;color:#1a6e3c;}
+
+  /* GENIUS & MOBILE SUB-TABLE */
+  .genius-panel{border-top:2px dashed var(--gold-border);background:#f8f5ff;padding:10px 14px;}
+  .genius-panel-title{font-size:.62rem;font-weight:800;color:#5a3fa0;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+  .genius-panel-title span{background:#5a3fa0;color:#fff;border-radius:4px;padding:1px 7px;font-size:.6rem;}
+  .genius-table{width:100%;border-collapse:collapse;font-size:.71rem;}
+  .genius-table th{background:#ede8ff;padding:4px 7px;text-align:right;font-size:.6rem;font-weight:800;color:#5a3fa0;border-bottom:1.5px solid #c9b8f5;white-space:nowrap;text-transform:uppercase;}
+  .genius-table th:first-child{text-align:left;}
+  .genius-table td{padding:4px 7px;text-align:right;border-bottom:1px solid #e8e0ff;}
+  .genius-table td:first-child{text-align:left;font-weight:600;}
+  .genius-table .td-genius{background:#f0ebff;color:#3a2a80;font-weight:700;}
+  .genius-table .td-mobile{background:#e8f4ff;color:#003580;font-weight:700;}
+  .genius-table .td-net{color:var(--blue);font-weight:600;}
+
+  /* GENIUS CONFIG TOOLBAR */
+  .genius-config-bar{background:#f0ebff;border:1.5px solid #c9b8f5;border-radius:10px;padding:10px 16px;margin:10px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .genius-config-bar label{font-size:.65rem;font-weight:800;color:#5a3fa0;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap;}
+  .genius-cfg-group{display:flex;align-items:center;gap:5px;background:#fff;border:1px solid #c9b8f5;border-radius:16px;padding:2px 10px;}
+  .genius-cfg-group span{font-size:.65rem;font-weight:700;color:#5a3fa0;white-space:nowrap;}
+  .genius-cfg-group input{width:40px;border:none;border-bottom:1.5px solid #9b7ee0;background:transparent;font-size:.82rem;font-weight:800;color:#3a2a80;text-align:center;outline:none;-moz-appearance:textfield;}
+  .genius-cfg-group input::-webkit-inner-spin-button,.genius-cfg-group input::-webkit-outer-spin-button{-webkit-appearance:none;}
 
   /* CONFIG PANEL */
   .cfg-panel{border-top:1.5px solid var(--gold-border);background:#fffcf5;padding:10px 14px;display:none;}
@@ -778,6 +800,8 @@ const CHANNELS = [
   {
     key:'booking', name:'Booking.com', color:'#003580',
     factor:2.49, commission:0.15,
+    geniusPcts:[10, 15, 20],
+    mobilePct:10,
     baseLabels:['No reembolsable','Mínimo 2 noches','Mínimo 3 noches'],
     baseKeys:  ['nr','min2','min3'],
     baseFactors:[0.88,0.86,0.84],
@@ -994,11 +1018,77 @@ function rebuildCfgPanel(panel, sec, card, ch, baseRates, commission) {
 }
 
 function reRender(card, sec, baseRates, commission, ch) {
+  const v = getPromoVal(sec)/100;
   if (sec.ptMerged) {
-    renderPTMerged(card, sec, baseRates, getPromoVal(sec)/100);
+    renderPTMerged(card, sec, baseRates, v);
   } else {
-    renderTable(card, sec, baseRates, commission, getPromoVal(sec)/100);
+    renderTable(card, sec, baseRates, commission, v);
   }
+  if (ch && ch.geniusPcts) renderGeniusMobile(card, sec, baseRates, commission, v, ch);
+}
+
+// ── GENIUS & MOBILE RENDERER ─────────────────────────────────────────────────
+function renderGeniusMobile(card, sec, baseRates, commission, promoDisc, ch) {
+  const old = card.querySelector('.genius-panel');
+  if (old) old.remove();
+  if (!ch.geniusPcts) return;
+
+  const gPcts = ch.geniusPcts;    // [l1%, l2%, l3%]
+  const mobPct = ch.mobilePct || 0;
+  const effRows = sec.rows || [];
+  if (!effRows.length) return;
+
+  const panel = document.createElement('div');
+  panel.className = 'genius-panel';
+
+  panel.innerHTML = '<div class="genius-panel-title">'
+    + '🔵 Genius &amp; Mobile — tarifas finales al huésped'
+    + '<span>Programa Booking.com</span>'
+    + '</div>';
+
+  const wrap = document.createElement('div');
+  wrap.style.overflowX = 'auto';
+  const table = document.createElement('table');
+  table.className = 'genius-table';
+
+  // Header
+  const thead = document.createElement('thead');
+  thead.innerHTML = '<tr>'
+    + '<th>Plan</th>'
+    + '<th>Tarifa OTA base</th>'
+    + '<th>Genius L1 (-'+gPcts[0]+'%)</th><th>Ingreso L1</th>'
+    + '<th>Genius L2 (-'+gPcts[1]+'%)</th><th>Ingreso L2</th>'
+    + '<th>Genius L3 (-'+gPcts[2]+'%)</th><th>Ingreso L3</th>'
+    + (mobPct > 0 ? '<th>Mobile (-'+mobPct+'%)</th><th>Ingreso Mob</th>' : '')
+    + '</tr>';
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  effRows.forEach((row, ri) => {
+    const bv = baseRates[row.base] || 0;
+    const discs = effectiveDiscounts(row, promoDisc, sec, ri);
+    const vals = applySteps(bv, discs);
+    const otaRate = vals[vals.length - 1];
+    const net = otaRate * (1 - commission);
+
+    const g1 = otaRate * (1 - gPcts[0]/100);
+    const g2 = otaRate * (1 - gPcts[1]/100);
+    const g3 = otaRate * (1 - gPcts[2]/100);
+    const mob = mobPct > 0 ? otaRate * (1 - mobPct/100) : null;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>'+row.label+'</td>'
+      + '<td class="td-base">'+fmt(otaRate)+'</td>'
+      + '<td class="td-genius">'+fmt(g1)+'</td><td class="td-net">'+fmt(g1*(1-commission))+'</td>'
+      + '<td class="td-genius">'+fmt(g2)+'</td><td class="td-net">'+fmt(g2*(1-commission))+'</td>'
+      + '<td class="td-genius">'+fmt(g3)+'</td><td class="td-net">'+fmt(g3*(1-commission))+'</td>'
+      + (mob !== null ? '<td class="td-mobile">'+fmt(mob)+'</td><td class="td-net">'+fmt(mob*(1-commission))+'</td>' : '');
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+  panel.appendChild(wrap);
+  card.appendChild(panel);
 }
 
 // ── BUILD SECTION CARD ───────────────────────────────────────────────────────
@@ -1047,6 +1137,9 @@ function buildSectionCard(ch, sec, baseRates, hotel) {
   const cfgBtn = document.createElement('button'); cfgBtn.className='icon-btn'; cfgBtn.textContent='✏'; cfgBtn.title='Editar planes';
   hdr.appendChild(cfgBtn);
 
+  const copyBtn = document.createElement('button'); copyBtn.className='icon-btn copy'; copyBtn.textContent='📋'; copyBtn.title='Copiar estrategia';
+  hdr.appendChild(copyBtn);
+
   const delBtn = document.createElement('button'); delBtn.className='icon-btn del'; delBtn.textContent='✕'; delBtn.title='Eliminar promoción';
   hdr.appendChild(delBtn);
   card.appendChild(hdr);
@@ -1059,15 +1152,39 @@ function buildSectionCard(ch, sec, baseRates, hotel) {
   if (sec.ptMerged) renderPTMerged(card, sec, baseRates, promoVal/100);
   else renderTable(card, sec, baseRates, commission, promoVal/100);
 
+  // Genius & Mobile sub-table (Booking.com only)
+  if (ch.geniusPcts) renderGeniusMobile(card, sec, baseRates, commission, promoVal/100, ch);
+
   // Events
   ctrl.querySelector('.promo-input').addEventListener('input', e => {
     const v = parseFloat(e.target.value)||0;
     setPromoVal(sec, v);
     if (sec.ptMerged) renderPTMerged(card, sec, baseRates, v/100);
     else renderTable(card, sec, baseRates, commission, v/100);
+    if (ch.geniusPcts) renderGeniusMobile(card, sec, baseRates, commission, v/100, ch);
   });
 
   cfgBtn.addEventListener('click', ()=>{ cfgPanel.classList.toggle('open'); });
+
+  copyBtn.addEventListener('click', ()=>{
+    // Deep-copy the section data
+    const newSec = JSON.parse(JSON.stringify(sec));
+    newSec._id = 's'+(++_secIdCounter);
+    newSec.title = sec.title + ' (Copia)';
+    delete newSec._promoVals; // start with clean promo state
+    const idx = ch.sections.indexOf(sec);
+    ch.sections.splice(idx+1, 0, newSec);
+    renderSections(ch);
+    // Scroll to new card after a tick
+    setTimeout(()=>{
+      const grid = document.getElementById('grid-'+ch.key);
+      if (grid) {
+        const cards = grid.querySelectorAll('.section-card');
+        const newCard = cards[idx+1];
+        if (newCard) newCard.scrollIntoView({behavior:'smooth', block:'nearest'});
+      }
+    }, 80);
+  });
 
   delBtn.addEventListener('click', ()=>{
     const idx = ch.sections.indexOf(sec);
@@ -1111,6 +1228,31 @@ function buildChannelPage(ch) {
       </div>
       <button class="add-promo-btn" id="add-promo-${ch.key}">+ Crear nueva estrategia</button>
     </div>
+    ${ch.geniusPcts ? `
+    <div class="genius-config-bar" id="genius-cfg-${ch.key}">
+      <label>🔵 Genius &amp; Mobile — descuentos Booking.com</label>
+      <div class="genius-cfg-group">
+        <span>Genius L1</span>
+        <input type="number" id="genius-l1-${ch.key}" value="${ch.geniusPcts[0]}" min="0" max="50" step="1">
+        <span>%</span>
+      </div>
+      <div class="genius-cfg-group">
+        <span>Genius L2</span>
+        <input type="number" id="genius-l2-${ch.key}" value="${ch.geniusPcts[1]}" min="0" max="50" step="1">
+        <span>%</span>
+      </div>
+      <div class="genius-cfg-group">
+        <span>Genius L3</span>
+        <input type="number" id="genius-l3-${ch.key}" value="${ch.geniusPcts[2]}" min="0" max="50" step="1">
+        <span>%</span>
+      </div>
+      <div class="genius-cfg-group">
+        <span>Mobile</span>
+        <input type="number" id="genius-mob-${ch.key}" value="${ch.mobilePct||0}" min="0" max="50" step="1">
+        <span>%</span>
+      </div>
+      <span style="font-size:.65rem;color:#7a6500;font-style:italic">Ajuste los % y vea el impacto en tiempo real en cada tarjeta.</span>
+    </div>` : ''}
     <div class="sections-grid" id="grid-${ch.key}"></div>
   `;
   return page;
@@ -1142,6 +1284,28 @@ function renderSections(ch) {
   ch.sections.forEach(sec => {
     grid.appendChild(buildSectionCard(ch, sec, baseRates, currentHotel));
   });
+
+  // Wire Genius & Mobile config inputs (Booking only)
+  if (ch.geniusPcts) {
+    function wireGeniusInput(id, setter) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', () => {
+        setter(parseFloat(el.value)||0);
+        // Re-render all genius panels across all section cards
+        const commission2 = ch._commission !== undefined ? ch._commission : ch.commission;
+        grid.querySelectorAll('.section-card').forEach((card, i) => {
+          const sec2 = ch.sections[i];
+          if (!sec2) return;
+          renderGeniusMobile(card, sec2, baseRates, commission2, getPromoVal(sec2)/100, ch);
+        });
+      });
+    }
+    wireGeniusInput('genius-l1-'+ch.key, v => ch.geniusPcts[0] = v);
+    wireGeniusInput('genius-l2-'+ch.key, v => ch.geniusPcts[1] = v);
+    wireGeniusInput('genius-l3-'+ch.key, v => ch.geniusPcts[2] = v);
+    wireGeniusInput('genius-mob-'+ch.key, v => ch.mobilePct = v);
+  }
 }
 
 // ── SIDEBAR ──────────────────────────────────────────────────────────────────
