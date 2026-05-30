@@ -1601,6 +1601,7 @@ const OTB_STATE = {
   comparison: null, metrics: null, recs: null,
   comparisonMode: 'dayOfMonth',              // 'exactDate'|'dayOfMonth'|'periodIndex'|'monthlySummary'
   diagnostics: null,
+  inventory: null,                           // hotel room count for pickup-in-rooms calculation
   charts: {},
   history: JSON.parse(localStorage.getItem('otb_history')||'[]')
 };
@@ -1670,90 +1671,138 @@ function parseFileData(wb, mapping) {
   })).filter(r => r.date);
 }
 
+// ── PICKUP STATUS CLASSIFIER ──────────────────────────────────────────────────
+function pickupStatus(pp) {
+  if (pp === null || pp === undefined) return 'unknown';
+  if (pp > 10)  return 'strong-up';
+  if (pp > 2)   return 'moderate-up';
+  if (pp >= -2) return 'stable';
+  if (pp >= -10) return 'moderate-down';
+  return 'strong-down';
+}
+function pickupLabel(status) {
+  return { 'strong-up':'⬆ Pickup fuerte', 'moderate-up':'↑ Pickup moderado',
+           'stable':'⚫ Estable', 'moderate-down':'↓ Caída moderada',
+           'strong-down':'⬇ Caída fuerte', 'unknown':'— Sin dato' }[status] || '—';
+}
+function pickupAction(status) {
+  return {
+    'strong-up':     'Evaluar incremento tarifario. Proteger inventario. Cerrar descuentos.',
+    'moderate-up':   'Mantener estrategia. Revisar oportunidad de mejora tarifaria leve.',
+    'stable':        'Monitorear. Mantener visibilidad. Revisar pickup semanal.',
+    'moderate-down': 'Revisar competitividad tarifaria. Activar promoción táctica. Mejorar visibilidad OTA.',
+    'strong-down':   'Acción comercial prioritaria. Revisar tarifa frente al compset. Evaluar descuento táctico. Activar campañas de demanda.',
+    'unknown':       'Sin datos suficientes.'
+  }[status] || '—';
+}
+function pickupIcon(pp) {
+  if (pp === null) return '<span class="ind-same">⚫</span>';
+  if (pp > 2)  return '<span class="ind-up">⬆</span>';
+  if (pp < -2) return '<span class="ind-down">⬇</span>';
+  return '<span class="ind-same">⚫</span>';
+}
+
+// ── CORE PICKUP ROW BUILDER ───────────────────────────────────────────────────
+function buildPickupRow(dayNum, bRow, aRow, inventory) {
+  function getOcc(r) {
+    if (!r) return null;
+    var v = r.occ !== undefined ? r.occ : r['Ocup%'] !== undefined ? r['Ocup%'] : null;
+    return v !== null ? parseFloat(v) : null;
+  }
+  function getField(r, k1, k2) {
+    if (!r) return null;
+    var v = r[k1] !== undefined ? r[k1] : (k2 && r[k2] !== undefined ? r[k2] : null);
+    return v !== null ? parseFloat(v) : null;
+  }
+  var occB = getOcc(bRow), occA = getOcc(aRow);
+  var pickup = (occB !== null && occA !== null) ? occA - occB : null;
+  var pctChange = (pickup !== null && occB && occB !== 0) ? (pickup / occB) * 100 : null;
+  var status = pickupStatus(pickup);
+
+  var invCount = inventory || OTB_STATE.inventory;
+  var roomsB = (occB !== null && invCount) ? Math.round(occB / 100 * invCount) : (getField(bRow,'rooms','Hab.Vendidas'));
+  var roomsA = (occA !== null && invCount) ? Math.round(occA / 100 * invCount) : (getField(aRow,'rooms','Hab.Vendidas'));
+  var roomPickup = (roomsB !== null && roomsA !== null) ? roomsA - roomsB : null;
+
+  return {
+    day: dayNum,
+    beforeDate: bRow ? (bRow.date || bRow.Fecha || 'Día '+dayNum) : '—',
+    afterDate:  aRow ? (aRow.date || aRow.Fecha || 'Día '+dayNum) : '—',
+    occBefore: occB, occAfter: occA,
+    pickup: pickup, pctChange: pctChange,
+    status: status,
+    roomsBefore: roomsB, roomsAfter: roomsA, roomPickup: roomPickup,
+    // context metrics only
+    adrBefore:    getField(bRow,'adr','ADR'),
+    adrAfter:     getField(aRow,'adr','ADR'),
+    revparBefore: getField(bRow,'revpar','RevPAR'),
+    revparAfter:  getField(aRow,'revpar','RevPAR'),
+  };
+}
+
+// ── COMPARE BY EXACT DATE ─────────────────────────────────────────────────────
 function compareOTB(before, after) {
-  const bMap = {};
-  before.forEach(r => { if (r.date) bMap[r.date] = r; });
-  const aMap = {};
-  after.forEach(r => { if (r.date) aMap[r.date] = r; });
-  const allDates = [...new Set([...Object.keys(bMap), ...Object.keys(aMap)])].sort();
-
-  return allDates.map(date => {
-    const b = bMap[date];
-    const a = aMap[date];
-    if (!b) return { date, status:'new', b:null, a, note:'Nueva fecha en DESPUÉS' };
-    if (!a) return { date, status:'missing', b, a:null, note:'Sin dato en DESPUÉS' };
-
-    const diff = (af, bf) => {
-      if (af === null || bf === null) return { abs: null, pct: null, dir: 'same' };
-      const abs = af - bf;
-      const pct = bf !== 0 ? (abs/bf)*100 : null;
-      const tol = 0.5;
-      const dir = Math.abs(abs) < tol ? 'same' : abs > 0 ? 'up' : 'down';
-      return { abs, pct, dir };
-    };
-
-    const occ   = diff(a.occ,   b.occ);
-    const rooms = diff(a.rooms, b.rooms);
-    const adr   = diff(a.adr,   b.adr);
-    const rev   = diff(a.revpar, b.revpar);
-
-    const ups   = [occ,rooms,rev].filter(x=>x.dir==='up').length;
-    const downs = [occ,rooms,rev].filter(x=>x.dir==='down').length;
-    let status = 'stable';
-    if (ups >= 2) status = 'positive';
-    else if (downs >= 2) status = 'negative';
-    else if (ups > 0 && downs > 0) status = 'mixed';
-
-    return { date, status, b, a, occ, rooms, adr, revpar: rev };
+  var bMap = {}, aMap = {};
+  before.forEach(function(r){ if (r.date) bMap[r.date] = r; });
+  after.forEach(function(r){ if (r.date) aMap[r.date] = r; });
+  var allDates = Object.keys(Object.assign({}, bMap, aMap)).sort();
+  return allDates.map(function(date, i) {
+    return buildPickupRow(i+1, bMap[date]||null, aMap[date]||null, null);
   });
 }
 
+// ── SUMMARY METRICS (PICKUP-CENTRIC) ─────────────────────────────────────────
 function buildSummaryMetrics(rows) {
-  const valid = rows.filter(r => r.b && r.a);
-  const up    = rows.filter(r => r.status === 'positive').length;
-  const down  = rows.filter(r => r.status === 'negative').length;
-  const stable= rows.filter(r => r.status === 'stable' || r.status === 'mixed').length;
+  var valid = rows.filter(function(r){ return r.pickup !== null; });
+  var strongUp   = rows.filter(function(r){ return r.status === 'strong-up'; }).length;
+  var modUp      = rows.filter(function(r){ return r.status === 'moderate-up'; }).length;
+  var stable     = rows.filter(function(r){ return r.status === 'stable'; }).length;
+  var modDown    = rows.filter(function(r){ return r.status === 'moderate-down'; }).length;
+  var strongDown = rows.filter(function(r){ return r.status === 'strong-down'; }).length;
+  var up   = strongUp + modUp;
+  var down = modDown + strongDown;
+  var avgPickup = valid.length ? valid.reduce(function(s,r){ return s + r.pickup; }, 0) / valid.length : null;
+  var bestDay = valid.length ? valid.reduce(function(a,b){ return b.pickup > a.pickup ? b : a; }) : null;
+  var worstDay= valid.length ? valid.reduce(function(a,b){ return b.pickup < a.pickup ? b : a; }) : null;
+  var totalRoomPickup = rows.reduce(function(s,r){ return s + (r.roomPickup||0); }, 0);
+  var criticalDays = rows.filter(function(r){ return r.status === 'strong-down'; });
+  var oppDays      = rows.filter(function(r){ return r.status === 'strong-up'; });
 
-  const avg = (field) => {
-    const vals = valid.map(r => r[field] && r[field].abs !== undefined ? r[field].abs : null).filter(v => v !== null);
-    return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
-  };
+  var general;
+  if (up > down && avgPickup > 0) general = 'Positivo';
+  else if (down > up && avgPickup < 0) general = 'Negativo';
+  else if (up > 0 && down > 0) general = 'Mixto';
+  else general = 'Estable';
 
-  const general = (() => {
-    const overallUps = rows.length ? up / rows.length : 0;
-    if (overallUps > 0.6) return 'Positivo';
-    if (overallUps < 0.3 && down > up) return 'Negativo';
-    if (up > 0 && down > 0) return 'Mixto';
-    return 'Estable';
-  })();
-
-  return { total: rows.length, up, down, stable, avgOcc: avg('occ'), avgRooms: avg('rooms'), avgAdr: avg('adr'), avgRevpar: avg('revpar'), general };
+  return { total: rows.length, up, down, stable, strongUp, modUp, modDown, strongDown,
+    avgPickup, bestDay, worstDay, totalRoomPickup, criticalDays, oppDays,
+    hasRooms: rows.some(function(r){ return r.roomPickup !== null; }),
+    general };
 }
 
+// ── RECOMMENDATIONS (PICKUP-CENTRIC) ─────────────────────────────────────────
 function generateRecommendations(metrics, rows) {
-  const recs = [];
-  const { general, avgOcc, avgRevpar, up, down } = metrics;
+  var recs = [];
+  var { general, avgPickup, strongDown, strongUp, criticalDays, oppDays } = metrics;
 
-  if (general === 'Positivo' || avgOcc > 2) {
-    recs.push({ type:'positive', title:'Oportunidad de subida tarifaria', body:'La ocupación y el RevPAR muestran crecimiento. Se recomienda evaluar incremento tarifario gradual entre 3% y 8% en las fechas con mayor presión de demanda.', priority:'high' });
-    recs.push({ type:'positive', title:'Aplicar restricciones de estancia', body:'Con alta ocupación se sugiere activar mínimos de 2 o 3 noches en fechas pico para optimizar el mix de estadía y proteger el inventario.', priority:'medium' });
+  if (general === 'Positivo') {
+    recs.push({ type:'positive', title:'OTB con pickup positivo general', body:'El análisis de pickup por día del mes muestra crecimiento de ocupación frente al período base. Se recomienda evaluar incremento tarifario gradual y proteger inventario en fechas con pickup fuerte.', priority:'high' });
   }
-  if (general === 'Negativo' || avgOcc < -2) {
-    recs.push({ type:'negative', title:'Revisar competitividad tarifaria', body:'Se detecta caída en ocupación y habitaciones vendidas. Se recomienda revisar paridad de canales, activar promociones tácticas y mejorar visibilidad OTA.', priority:'high' });
-    recs.push({ type:'negative', title:'Activar promociones de demanda', body:'Considerar: tarifa No Reembolsable con descuento, promoción móvil, oferta por país o compra anticipada para las fechas afectadas.', priority:'high' });
+  if (general === 'Negativo') {
+    recs.push({ type:'negative', title:'OTB con caída de pickup general', body:'El análisis de pickup por día del mes muestra una caída de ocupación frente al período base. Se recomienda revisar competitividad tarifaria, activar promociones tácticas en fechas con pickup negativo y mejorar visibilidad en canales OTA.', priority:'high' });
+    recs.push({ type:'negative', title:'Acciones de demanda recomendadas', body:'Considere: tarifa No Reembolsable con descuento, promoción móvil, oferta por país o anticipada en las fechas afectadas. Evite restricciones fuertes mientras la ocupación esté por debajo del período base.', priority:'high' });
   }
   if (general === 'Mixto') {
-    recs.push({ type:'warning', title:'Gestión diferenciada por fecha', body:'El comportamiento es mixto. Se recomienda analizar fecha por fecha: subir tarifa en días con alta ocupación y activar promociones en días con baja tracción.', priority:'medium' });
+    recs.push({ type:'warning', title:'Gestión diferenciada por fecha', body:'El pickup es mixto. Suba tarifa en fechas con pickup positivo fuerte y active promociones en fechas con pickup negativo. No aplique estrategia uniforme.', priority:'medium' });
   }
-
-  const critDown = rows.filter(r => r.status === 'negative').slice(0,5);
-  critDown.forEach(r => {
-    recs.push({ type:'negative', title:'Fecha crítica: '+r.date, body:'Ocupación: '+(r.b&&r.b.occ!==null?r.b.occ.toFixed(1):'N/A')+'% → '+(r.a&&r.a.occ!==null?r.a.occ.toFixed(1):'N/A')+'%. RevPAR: '+fmtCOP(r.b&&r.b.revpar)+' → '+fmtCOP(r.a&&r.a.revpar)+'. Acción: revisar tarifa y activar promoción táctica.', priority:'high' });
+  if (avgPickup !== null && avgPickup > 5) {
+    recs.push({ type:'positive', title:'Oportunidad de ajuste tarifario al alza', body:'El pickup promedio supera +'+avgPickup.toFixed(1)+' pp. Evalúe incremento de tarifa base entre 3% y 8% en las fechas con mayor presión de demanda. Proteja inventario y aplique mínimos de noches en pico.', priority:'high' });
+  }
+  (criticalDays||[]).slice(0,5).forEach(function(r){
+    recs.push({ type:'negative', title:'Fecha crítica — Día '+r.day, body:'Pickup: '+r.pickup.toFixed(1)+' pp ('+pickupLabel(r.status)+'). Occ antes: '+(r.occBefore!==null?r.occBefore.toFixed(1):'N/D')+'% → actual: '+(r.occAfter!==null?r.occAfter.toFixed(1):'N/D')+'%. '+pickupAction(r.status), priority:'high' });
   });
-
-  const topUp = rows.filter(r => r.status === 'positive').slice(0,3);
-  topUp.forEach(r => {
-    recs.push({ type:'positive', title:'Fecha destacada: '+r.date, body:'Crecimiento positivo. Se recomienda mantener o incrementar gradualmente la tarifa para capitalizar la demanda.', priority:'low' });
+  (oppDays||[]).slice(0,3).forEach(function(r){
+    recs.push({ type:'positive', title:'Fecha de oportunidad — Día '+r.day, body:'Pickup: +'+r.pickup.toFixed(1)+' pp. Occ actual: '+(r.occAfter!==null?r.occAfter.toFixed(1):'N/D')+'%. Evaluar incremento tarifario y cierre de descuentos.', priority:'medium' });
   });
 
   return recs;
@@ -1777,7 +1826,7 @@ function dirIcon(dir) {
 function initOTB(page) {
   page.innerHTML = '<div class="otb-section">'
     + '<div class="otb-header"><h2>Comparativa On the Book (OTB)</h2>'
-    + '<p>Análisis antes vs después · Ocupación · ADR · RevPAR · Habitaciones vendidas</p></div>'
+    + '<p>Análisis de Pickup diario de Ocupación · Comparación por día del mes · Habitaciones ganadas o perdidas</p></div>'
     + '<div class="otb-tabs">'
     + '<button class="otb-tab-btn active" data-tab="upload">Carga de datos</button>'
     + '<button class="otb-tab-btn" data-tab="comparison">Comparativa</button>'
@@ -1819,13 +1868,15 @@ function initOTB(page) {
     + '<div id="otb-mapping-area"></div>'
     + '<div id="otb-editor-area"></div>'
     + '<div id="otb-mode-bar" class="otb-mode-bar">'
-    + '<span class="otb-mode-label">Tipo de comparación:</span>'
+    + '<span class="otb-mode-label">Modo de comparación:</span>'
     + '<select class="otb-mode-select" id="otb-mode-select" onchange="OTB_STATE.comparisonMode=this.value">'
-    + '<option value="dayOfMonth">Comparar por día del mes</option>'
-    + '<option value="exactDate">Comparar por fecha exacta</option>'
-    + '<option value="periodIndex">Comparar por posición en período</option>'
+    + '<option value="dayOfMonth">Pickup por día del mes (recomendado)</option>'
+    + '<option value="exactDate">Fecha exacta (mismo mes)</option>'
+    + '<option value="periodIndex">Posición en período</option>'
     + '<option value="monthlySummary">Resumen mensual (KPIs globales)</option>'
     + '</select>'
+    + '<span class="otb-mode-label" style="margin-left:18px">Habitaciones del hotel:</span>'
+    + '<input type="number" id="otb-inventory" placeholder="Ej: 100" min="1" max="9999" style="width:80px;padding:4px 8px;border-radius:6px;border:1.5px solid var(--gold-border);font-size:.82rem" onchange="OTB_STATE.inventory=parseInt(this.value)||null" title="Número de habitaciones disponibles. Permite calcular pickup en habitaciones.">'
     + '</div>'
     + '<div style="text-align:center;padding:10px 0" id="otb-compare-btn-area">'
     + '<button class="otb-btn primary" style="font-size:.85rem;padding:10px 28px" onclick="otbRunComparison()">▶ Calcular comparativa</button>'
@@ -2110,33 +2161,42 @@ function otbExtractSummaryFromOCR(text) {
 }
 
 // ── COMPARISON MODE FUNCTIONS ─────────────────────────────────────────────────
+function extractDayNum(row) {
+  var d = row.date || row.Fecha || '';
+  var m = d.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return parseInt(m[3]);
+  m = d.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  if (m) return parseInt(m[1]);
+  if (row.dayOfMonth) return parseInt(row.dayOfMonth);
+  if (row.periodIndex !== undefined) return row.periodIndex + 1;
+  return null;
+}
+
 function compareOTBByDayOfMonth(before, after) {
-  // Match rows by day-of-month number extracted from date string
-  function dayNum(row) {
-    var d = row.date || row.Fecha || '';
-    var m = d.match(/(\d{4})-(\d{2})-(\d{2})/);
-    if (m) return parseInt(m[3]);
-    m = d.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
-    if (m) return parseInt(m[1]);
-    return null;
-  }
   var afterByDay = {};
-  after.forEach(function(r){ var d=dayNum(r); if(d!==null) afterByDay[d]=r; });
+  after.forEach(function(r){ var d=extractDayNum(r); if(d!==null) afterByDay[d]=r; });
   var results=[], matched=0, unmatched=0;
   before.forEach(function(rb){
-    var d=dayNum(rb);
-    var ra = d!==null ? afterByDay[d] : null;
-    if (ra) { matched++; results.push(otbBuildCompRow(rb,ra,'day'+d)); }
+    var d = extractDayNum(rb);
+    var ra = d !== null ? afterByDay[d] : null;
+    if (ra) { matched++; results.push(buildPickupRow(d, rb, ra, null)); }
     else { unmatched++; }
   });
+  // Also add after-only days (new pickup)
+  after.forEach(function(ra){
+    var d = extractDayNum(ra);
+    var hasMatch = before.some(function(rb){ return extractDayNum(rb)===d; });
+    if (!hasMatch) { results.push(buildPickupRow(d, null, ra, null)); }
+  });
+  results.sort(function(a,b){ return a.day - b.day; });
   return { rows: results, matched: matched, unmatched: unmatched, mode:'dayOfMonth' };
 }
 
 function compareOTBByPeriodIndex(before, after) {
   var results=[], matched=0;
   var len = Math.min(before.length, after.length);
-  for (var i=0;i<len;i++) {
-    results.push(otbBuildCompRow(before[i], after[i], 'idx'+i));
+  for (var i=0; i<len; i++) {
+    results.push(buildPickupRow(i+1, before[i], after[i], null));
     matched++;
   }
   return { rows: results, matched: matched, unmatched: Math.abs(before.length-after.length), mode:'periodIndex' };
@@ -2157,23 +2217,6 @@ function compareOTBMonthlySummary(bSum, aSum) {
   };
 }
 
-function otbBuildCompRow(rb, ra, id) {
-  function getV(r,k){ return parseFloat(r[k]||r[k.toLowerCase()]||0)||0; }
-  var occB=getV(rb,'occ')||getV(rb,'Ocup%'), occA=getV(ra,'occ')||getV(ra,'Ocup%');
-  var adrB=getV(rb,'adr')||getV(rb,'ADR'), adrA=getV(ra,'adr')||getV(ra,'ADR');
-  var rpB=getV(rb,'revpar')||getV(rb,'RevPAR'), rpA=getV(ra,'revpar')||getV(ra,'RevPAR');
-  var revB=getV(rb,'revenue')||getV(rb,'Ingresos'), revA=getV(ra,'revenue')||getV(ra,'Ingresos');
-  var roomsB=getV(rb,'rooms')||getV(rb,'Hab.Vendidas'), roomsA=getV(ra,'rooms')||getV(ra,'Hab.Vendidas');
-  var dOcc=occA-occB, dADR=adrA-adrB, dRP=rpA-rpB;
-  var trend = dOcc>0&&dRP>0?'positive':dOcc<0&&dRP<0?'negative':dOcc===0&&dRP===0?'stable':'mixed';
-  return { id:id, date:rb.date||rb.Fecha||id,
-    occB:occB, occA:occA, deltaOcc:dOcc,
-    adrB:adrB, adrA:adrA, deltaADR:dADR,
-    revparB:rpB, revparA:rpA, deltaRevpar:dRP,
-    revenueB:revB, revenueA:revA,
-    roomsB:roomsB, roomsA:roomsA,
-    trend:trend };
-}
 
 function otbRenderDiagnostics(diag) {
   var el = document.getElementById('otb-diagnostics-area');
@@ -2530,38 +2573,49 @@ function otbRenderConsultantFromSummary(msum) {
 }
 
 function otbRenderComparison() {
-  const m = OTB_STATE.metrics;
-  const rows = OTB_STATE.comparison;
+  var m = OTB_STATE.metrics;
+  var rows = OTB_STATE.comparison;
 
-  let alertClass = 'gray', alertText = 'Sin variaciones relevantes frente a la línea base.';
-  if (m.general === 'Positivo') { alertClass='green'; alertText='✅ El OTB muestra crecimiento frente a la línea base.'; }
-  else if (m.general === 'Negativo') { alertClass='red'; alertText='🔴 El OTB presenta caída en fechas críticas.'; }
-  else if (m.general === 'Mixto') { alertClass='yellow'; alertText='⚠ El comportamiento es mixto. Revise fechas específicas.'; }
+  var alertClass = 'gray', alertText = 'OTB estable frente al período base.';
+  if (m.general === 'Positivo') { alertClass='green'; alertText='✅ El OTB muestra pickup positivo — la ocupación está creciendo frente al período base.'; }
+  else if (m.general === 'Negativo') { alertClass='red'; alertText='🔴 El OTB muestra pickup negativo — la ocupación está por debajo del período base en la mayoría de fechas.'; }
+  else if (m.general === 'Mixto') { alertClass='yellow'; alertText='⚠ Pickup mixto — algunas fechas crecen y otras caen. Gestión diferenciada requerida.'; }
 
-  const alertsArea = document.getElementById('otb-alerts-area');
+  var alertsArea = document.getElementById('otb-alerts-area');
   if (alertsArea) alertsArea.innerHTML = '<div class="otb-alert '+alertClass+'">'+alertText+'</div>';
 
-  const kpis = [
-    { label:'Fechas analizadas', val: m.total, cls:'', sub:'' },
-    { label:'Fechas subieron',   val: m.up,    cls:'up',   sub: (m.total?((m.up/m.total)*100).toFixed(0):0)+'%' },
-    { label:'Fechas bajaron',    val: m.down,  cls:'down', sub: (m.total?((m.down/m.total)*100).toFixed(0):0)+'%' },
-    { label:'Fechas estables',   val: m.stable,cls:'',     sub: '' },
-    { label:'Var. prom. Ocup.',  val: m.avgOcc!==null ? fmtPct(m.avgOcc) : 'N/D', cls: m.avgOcc>0?'up':m.avgOcc<0?'down':'', sub:'pp' },
-    { label:'Var. prom. RevPAR', val: m.avgRevpar!==null ? fmtCOP(m.avgRevpar) : 'N/D', cls: m.avgRevpar>0?'up':m.avgRevpar<0?'down':'', sub:'' },
+  // Pickup-centric KPI cards
+  var avgPU = m.avgPickup !== null ? m.avgPickup.toFixed(1) : 'N/D';
+  var avgCls = m.avgPickup > 0 ? 'up' : m.avgPickup < 0 ? 'down' : '';
+  var bestLabel = m.bestDay ? 'Día '+m.bestDay.day+' (+'+m.bestDay.pickup.toFixed(1)+'pp)' : 'N/D';
+  var worstLabel = m.worstDay ? 'Día '+m.worstDay.day+' ('+m.worstDay.pickup.toFixed(1)+'pp)' : 'N/D';
+  var kpis = [
+    { label:'Fechas comparadas', val: m.total, cls:'', sub:'' },
+    { label:'Con pickup positivo', val: m.up, cls:'up', sub: m.total ? Math.round(m.up/m.total*100)+'%' : '' },
+    { label:'Con pickup negativo', val: m.down, cls:'down', sub: m.total ? Math.round(m.down/m.total*100)+'%' : '' },
+    { label:'Estables', val: m.stable, cls:'', sub:'' },
+    { label:'Pickup prom. (pp)', val: (m.avgPickup!==null?(m.avgPickup>0?'+':'')+avgPU+' pp':'N/D'), cls:avgCls, sub:'puntos porcentuales' },
+    { label:'Mejor fecha', val: bestLabel, cls:'up', sub:'' },
+    { label:'Peor fecha', val: worstLabel, cls:'down', sub:'' },
   ];
-  const kpiArea = document.getElementById('otb-kpi-area');
-  if (kpiArea) kpiArea.innerHTML = '<div class="otb-kpi-grid">'
+  if (m.hasRooms) {
+    kpis.push({ label:'Pickup total habs.', val: (m.totalRoomPickup>0?'+':'')+Math.round(m.totalRoomPickup), cls: m.totalRoomPickup>=0?'up':'down', sub:'habitaciones' });
+  }
+  var kpiArea = document.getElementById('otb-kpi-area');
+  if (kpiArea) kpiArea.innerHTML = '<div style="margin-bottom:8px;font-size:.72rem;font-weight:700;color:var(--gray3);text-transform:uppercase;letter-spacing:.05em">Ficha Técnica de Pickup OTB</div>'
+    + '<div class="otb-kpi-grid">'
     + kpis.map(function(k){ return '<div class="otb-kpi '+k.cls+'"><div class="otb-kpi-label">'+k.label+'</div><div class="otb-kpi-value">'+k.val+'</div><div class="otb-kpi-sub">'+k.sub+'</div></div>'; }).join('')
     + '</div>';
 
-  const filtersArea = document.getElementById('otb-filters-area');
+  var filtersArea = document.getElementById('otb-filters-area');
   if (filtersArea) filtersArea.innerHTML = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">'
     + '<span style="font-size:.74rem;font-weight:700;color:var(--gray4)">Filtrar:</span>'
     + '<button class="otb-btn" data-filter="all" onclick="otbFilter(\'all\',this)" style="background:var(--gold);color:#fff">Todas</button>'
-    + '<button class="otb-btn" data-filter="positive" onclick="otbFilter(\'positive\',this)">⬆ Subieron</button>'
-    + '<button class="otb-btn" data-filter="negative" onclick="otbFilter(\'negative\',this)">⬇ Bajaron</button>'
-    + '<button class="otb-btn" data-filter="stable" onclick="otbFilter(\'stable\',this)">⚫ Estables</button>'
-    + '<button class="otb-btn" data-filter="mixed" onclick="otbFilter(\'mixed\',this)">↔ Mixtas</button>'
+    + '<button class="otb-btn" data-filter="strong-up" onclick="otbFilter(\'strong-up\',this)">⬆ Pickup fuerte</button>'
+    + '<button class="otb-btn" data-filter="moderate-up" onclick="otbFilter(\'moderate-up\',this)">↑ Pickup moderado</button>'
+    + '<button class="otb-btn" data-filter="stable" onclick="otbFilter(\'stable\',this)">⚫ Estable</button>'
+    + '<button class="otb-btn" data-filter="moderate-down" onclick="otbFilter(\'moderate-down\',this)">↓ Caída moderada</button>'
+    + '<button class="otb-btn" data-filter="strong-down" onclick="otbFilter(\'strong-down\',this)">⬇ Caída fuerte</button>'
     + '</div>';
 
   otbRenderTable(rows);
@@ -2570,54 +2624,62 @@ function otbRenderComparison() {
 function otbFilter(filter, btn) {
   document.querySelectorAll('[data-filter]').forEach(function(b){ b.style.background=''; b.style.color=''; });
   btn.style.background = 'var(--gold)'; btn.style.color = '#fff';
-  const rows = filter === 'all' ? OTB_STATE.comparison : OTB_STATE.comparison.filter(function(r){ return r.status === filter; });
+  var rows = filter === 'all' ? OTB_STATE.comparison : OTB_STATE.comparison.filter(function(r){ return r.status === filter; });
   otbRenderTable(rows);
 }
 
 function otbRenderTable(rows) {
-  let html = '<div class="otb-table-wrap"><table class="otb-table"><thead><tr>'
-    + '<th>Fecha</th>'
-    + '<th>Ocup Antes</th><th>Ocup Dsp</th><th>Var Ocup</th><th></th>'
-    + '<th>Hab Antes</th><th>Hab Dsp</th><th>Var Hab</th><th></th>'
-    + '<th>ADR Antes</th><th>ADR Dsp</th><th>Var ADR</th><th></th>'
-    + '<th>RevPAR Ant</th><th>RevPAR Dsp</th><th>Var RevPAR</th><th></th>'
-    + '<th>Estado</th><th>Nota</th>'
-    + '</tr></thead><tbody>';
+  var hasRooms = rows.some(function(r){ return r.roomPickup !== null; });
+  var html = '<div style="margin-bottom:6px;font-size:.72rem;font-weight:700;color:var(--gray3);text-transform:uppercase;letter-spacing:.05em">Pickup por Fecha</div>';
+  html += '<div class="otb-table-wrap"><table class="otb-table"><thead><tr>'
+    + '<th>Día</th><th>Fecha Base</th><th>Fecha Actual</th>'
+    + '<th>Occ Base</th><th>Occ Actual</th>'
+    + '<th>Pickup (pp)</th><th>Var. Relativa</th><th></th>';
+  if (hasRooms) html += '<th>Habs Base</th><th>Habs Actual</th><th>Pickup Habs</th>';
+  html += '<th>Estado Pickup</th><th>Diagnóstico Revenue</th></tr></thead><tbody>';
 
   rows.forEach(function(r) {
-    const statusLabel = { positive:'✅ Subió', negative:'🔴 Bajó', stable:'⚫ Estable', mixed:'↔ Mixto', new:'🆕 Nueva', missing:'❓ Sin dato' }[r.status] || r.status;
-    const fmt1 = function(v){ return (v !== null && v !== undefined) ? v.toFixed(1) : '—'; };
-    const fmt0 = function(v){ return (v !== null && v !== undefined) ? fmtCOP(v) : '—'; };
-
-    html += '<tr>'
-      + '<td style="font-weight:700;white-space:nowrap">'+r.date+'</td>'
-      + '<td>'+fmt1(r.b&&r.b.occ)+'%</td><td>'+fmt1(r.a&&r.a.occ)+'%</td>'
-      + '<td>'+(r.occ&&r.occ.abs!==null ? fmtPct(r.occ.abs,1)+' pp' : '—')+'</td><td>'+(r.occ ? dirIcon(r.occ.dir) : '')+'</td>'
-      + '<td>'+fmt1(r.b&&r.b.rooms)+'</td><td>'+fmt1(r.a&&r.a.rooms)+'</td>'
-      + '<td>'+(r.rooms&&r.rooms.abs!==null ? (r.rooms.abs>0?'+':'')+r.rooms.abs.toFixed(0) : '—')+'</td><td>'+(r.rooms ? dirIcon(r.rooms.dir) : '')+'</td>'
-      + '<td>'+fmt0(r.b&&r.b.adr)+'</td><td>'+fmt0(r.a&&r.a.adr)+'</td>'
-      + '<td>'+(r.adr&&r.adr.abs!==null ? fmtCOP(r.adr.abs) : '—')+'</td><td>'+(r.adr ? dirIcon(r.adr.dir) : '')+'</td>'
-      + '<td>'+fmt0(r.b&&r.b.revpar)+'</td><td>'+fmt0(r.a&&r.a.revpar)+'</td>'
-      + '<td>'+(r.revpar&&r.revpar.abs!==null ? fmtCOP(r.revpar.abs) : '—')+'</td><td>'+(r.revpar ? dirIcon(r.revpar.dir) : '')+'</td>'
-      + '<td style="white-space:nowrap">'+statusLabel+'</td>'
-      + '<td style="font-size:.68rem;color:#666;max-width:120px">'+(r.note||'')+'</td>'
-      + '</tr>';
+    var pickup = r.pickup;
+    var pp = pickup !== null ? (pickup>0?'+':'')+pickup.toFixed(1)+' pp' : '—';
+    var pctRel = r.pctChange !== null ? (r.pctChange>0?'+':'')+r.pctChange.toFixed(1)+'%' : '—';
+    var statusCls = { 'strong-up':'color:#1a6e3c;font-weight:800', 'moderate-up':'color:#2a9e5c;font-weight:700',
+                      'stable':'color:#888', 'moderate-down':'color:#c07800;font-weight:700',
+                      'strong-down':'color:#c00;font-weight:800', 'unknown':'color:#aaa' }[r.status] || '';
+    var action = pickupAction(r.status);
+    var row = '<tr>'
+      + '<td style="font-weight:700;text-align:center">'+r.day+'</td>'
+      + '<td style="white-space:nowrap;font-size:.75rem">'+r.beforeDate+'</td>'
+      + '<td style="white-space:nowrap;font-size:.75rem">'+r.afterDate+'</td>'
+      + '<td style="text-align:center">'+(r.occBefore!==null?r.occBefore.toFixed(1)+'%':'—')+'</td>'
+      + '<td style="text-align:center">'+(r.occAfter!==null?r.occAfter.toFixed(1)+'%':'—')+'</td>'
+      + '<td style="text-align:center;'+statusCls+'">'+pp+'</td>'
+      + '<td style="text-align:center;'+statusCls+'">'+pctRel+'</td>'
+      + '<td style="text-align:center">'+pickupIcon(pickup)+'</td>';
+    if (hasRooms) {
+      row += '<td style="text-align:center">'+(r.roomsBefore!==null?Math.round(r.roomsBefore):'—')+'</td>'
+           + '<td style="text-align:center">'+(r.roomsAfter!==null?Math.round(r.roomsAfter):'—')+'</td>'
+           + '<td style="text-align:center;'+statusCls+'">'+(r.roomPickup!==null?(r.roomPickup>0?'+':'')+Math.round(r.roomPickup)+' habs':'—')+'</td>';
+    }
+    row += '<td style="white-space:nowrap;font-size:.8rem">'+pickupLabel(r.status)+'</td>'
+         + '<td style="font-size:.68rem;color:#555;max-width:160px">'+action+'</td>'
+         + '</tr>';
+    html += row;
   });
   html += '</tbody></table></div>';
-  const tArea = document.getElementById('otb-table-area');
+  var tArea = document.getElementById('otb-table-area');
   if (tArea) tArea.innerHTML = html;
 }
 
 function otbRenderCharts() {
   if (!OTB_STATE.comparison) return;
-  const rows = OTB_STATE.comparison.filter(function(r){ return r.b && r.a; });
-  const labels = rows.map(function(r){ return r.date.slice(5); });
-  const area = document.getElementById('otb-charts-area');
+  var rows = OTB_STATE.comparison.filter(function(r){ return r.pickup !== null; });
+  var labels = rows.map(function(r){ return 'Día '+r.day; });
+  var area = document.getElementById('otb-charts-area');
   if (!area) return;
   area.innerHTML = '';
 
-  const mkCanvas = function(id, title) {
-    const box = document.createElement('div'); box.className='otb-chart-box';
+  var mkCanvas = function(id, title) {
+    var box = document.createElement('div'); box.className='otb-chart-box';
     box.innerHTML = '<div class="otb-chart-title">'+title+'</div><canvas id="'+id+'"></canvas>';
     area.appendChild(box); return id;
   };
@@ -2625,55 +2687,102 @@ function otbRenderCharts() {
   Object.values(OTB_STATE.charts).forEach(function(c){ try { c.destroy(); } catch(e){} });
   OTB_STATE.charts = {};
 
-  const mkLine = function(id, title, beforeArr, afterArr) {
-    const cId = mkCanvas(id, title);
-    OTB_STATE.charts[id] = new Chart(document.getElementById(cId), {
-      type:'line',
-      data:{ labels: labels, datasets:[
-        { label:'Antes', data:beforeArr, borderColor:'#e8c88a', backgroundColor:'rgba(232,200,138,.15)', tension:.3, fill:true },
-        { label:'Después', data:afterArr, borderColor:'#1a6e3c', backgroundColor:'rgba(26,110,60,.1)', tension:.3, fill:true }
-      ]},
-      options:{ responsive:true, plugins:{ legend:{position:'top'} }, scales:{ y:{beginAtZero:false} } }
-    });
-  };
-
-  mkLine('ch-occ','Ocupación % — Antes vs Después', rows.map(function(r){return r.b.occ;}), rows.map(function(r){return r.a.occ;}));
-  mkLine('ch-revpar','RevPAR — Antes vs Después', rows.map(function(r){return r.b.revpar;}), rows.map(function(r){return r.a.revpar;}));
-  mkLine('ch-adr','ADR — Antes vs Después', rows.map(function(r){return r.b.adr;}), rows.map(function(r){return r.a.adr;}));
-
-  const barId = mkCanvas('ch-var','Variación diaria de Ocupación (pp)');
-  OTB_STATE.charts['ch-var'] = new Chart(document.getElementById(barId), {
-    type:'bar',
-    data:{ labels: labels, datasets:[{ label:'Var. Ocup (pp)', data:rows.map(function(r){return r.occ&&r.occ.abs!==null?r.occ.abs:0;}),
-      backgroundColor: rows.map(function(r){ return (r.occ&&r.occ.abs>=0) ? 'rgba(26,110,60,.7)' : 'rgba(200,0,0,.6)'; }) }]},
-    options:{ responsive:true, plugins:{legend:{display:false}} }
+  // 1. Ocupación base vs actual (líneas)
+  var occId = mkCanvas('ch-occ','Ocupación de contexto — Base vs Actual (%)');
+  OTB_STATE.charts['ch-occ'] = new Chart(document.getElementById(occId), {
+    type:'line',
+    data:{ labels: labels, datasets:[
+      { label:'Occ Base', data:rows.map(function(r){return r.occBefore;}), borderColor:'#e8c88a', backgroundColor:'rgba(232,200,138,.15)', tension:.3, fill:true, pointRadius:3 },
+      { label:'Occ Actual', data:rows.map(function(r){return r.occAfter;}), borderColor:'#1a6e3c', backgroundColor:'rgba(26,110,60,.1)', tension:.3, fill:true, pointRadius:3 }
+    ]},
+    options:{ responsive:true, plugins:{ legend:{position:'top'}, title:{display:true,text:'Compare la línea azul (actual) vs naranja (base)'} }, scales:{ y:{beginAtZero:false,ticks:{callback:function(v){return v+'%'}}} } }
   });
 
-  const m = OTB_STATE.metrics;
-  const doId = mkCanvas('ch-dist','Distribución de resultados');
+  // 2. Pickup diario (barras verdes/rojas) — eje principal
+  var puId = mkCanvas('ch-pickup','Pickup Diario de Ocupación (pp) — Eje principal del análisis');
+  OTB_STATE.charts['ch-pickup'] = new Chart(document.getElementById(puId), {
+    type:'bar',
+    data:{ labels: labels, datasets:[{ label:'Pickup (pp)', data:rows.map(function(r){return r.pickup||0;}),
+      backgroundColor: rows.map(function(r){
+        if (r.pickup > 10) return 'rgba(26,110,60,.85)';
+        if (r.pickup > 2)  return 'rgba(26,110,60,.55)';
+        if (r.pickup >= -2) return 'rgba(160,160,160,.5)';
+        if (r.pickup >= -10) return 'rgba(200,80,0,.65)';
+        return 'rgba(200,0,0,.85)';
+      }),
+      borderRadius: 4
+    }]},
+    options:{ responsive:true, plugins:{legend:{display:false},title:{display:true,text:'Verde = pickup positivo · Rojo = caída · Gris = estable'}},
+      scales:{ y:{ ticks:{callback:function(v){return (v>0?'+':'')+v+' pp'}}, grid:{color:'rgba(0,0,0,.06)'} } } }
+  });
+
+  // 3. Distribución de estados de pickup
+  var m = OTB_STATE.metrics;
+  var doId = mkCanvas('ch-dist','Distribución de días por estado de pickup');
   OTB_STATE.charts['ch-dist'] = new Chart(document.getElementById(doId), {
     type:'doughnut',
-    data:{ labels:['Subieron','Bajaron','Estables/Mixtos'], datasets:[{
-      data:[m.up, m.down, m.stable],
-      backgroundColor:['#1a6e3c','#c00','#999']
-    }]},
+    data:{ labels:['Pickup fuerte','Pickup moderado','Estable','Caída moderada','Caída fuerte'],
+      datasets:[{ data:[m.strongUp, m.modUp, m.stable, m.modDown, m.strongDown],
+        backgroundColor:['#1a6e3c','#5ab88a','#aaa','#e08000','#c00'] }]},
     options:{ responsive:true, plugins:{ legend:{position:'bottom'} } }
   });
+
+  // 4. Top 5 mejores y peores fechas por pickup
+  var validRows = rows.filter(function(r){ return r.pickup !== null; });
+  var top5up   = validRows.slice().sort(function(a,b){ return b.pickup-a.pickup; }).slice(0,5);
+  var top5down = validRows.slice().sort(function(a,b){ return a.pickup-b.pickup; }).slice(0,5);
+  var rankId = mkCanvas('ch-rank','Top 5 fechas — Mejor vs Peor pickup');
+  OTB_STATE.charts['ch-rank'] = new Chart(document.getElementById(rankId), {
+    type:'bar',
+    data:{ labels: top5up.map(function(r){ return 'Día '+r.day; }).concat(top5down.map(function(r){ return 'Día '+r.day; })),
+      datasets:[{ label:'Pickup (pp)',
+        data: top5up.map(function(r){ return r.pickup; }).concat(top5down.map(function(r){ return r.pickup; })),
+        backgroundColor: top5up.map(function(){ return 'rgba(26,110,60,.8)'; }).concat(top5down.map(function(){ return 'rgba(200,0,0,.7)'; })),
+        borderRadius: 4
+      }]},
+    options:{ responsive:true, plugins:{legend:{display:false}},
+      scales:{ y:{ ticks:{callback:function(v){return (v>0?'+':'')+v+' pp'}} } } }
+  });
+
+  // 5. Pickup en habitaciones (if available)
+  if (m.hasRooms) {
+    var rmId = mkCanvas('ch-rooms','Pickup estimado en habitaciones');
+    OTB_STATE.charts['ch-rooms'] = new Chart(document.getElementById(rmId), {
+      type:'bar',
+      data:{ labels: labels, datasets:[{ label:'Pickup habs',
+        data: rows.map(function(r){ return r.roomPickup !== null ? Math.round(r.roomPickup) : 0; }),
+        backgroundColor: rows.map(function(r){ return (r.roomPickup||0) >= 0 ? 'rgba(26,110,60,.7)' : 'rgba(200,0,0,.65)'; }),
+        borderRadius: 4
+      }]},
+      options:{ responsive:true, plugins:{legend:{display:false}},
+        scales:{ y:{ ticks:{callback:function(v){return (v>0?'+':'')+v+' habs'}} } } }
+    });
+  }
 }
 
 function otbRenderConsultant() {
-  const recs = OTB_STATE.recs || [];
-  const m = OTB_STATE.metrics;
-  const area = document.getElementById('otb-consultant-area');
+  var recs = OTB_STATE.recs || [];
+  var m = OTB_STATE.metrics;
+  var area = document.getElementById('otb-consultant-area');
   if (!area) return;
   if (!m) { area.innerHTML='<p style="color:var(--gray3);padding:20px">Ejecute la comparativa primero.</p>'; return; }
 
-  let html = '<div class="otb-card"><div class="otb-card-title">Diagnóstico general</div>'
-    + '<div class="otb-alert '+(m.general==='Positivo'?'green':m.general==='Negativo'?'red':'yellow')+'">'
-    + 'Estado del OTB: <strong>'+m.general+'</strong> · '+m.up+' fechas mejoraron · '+m.down+' fechas cayeron · Var. prom. RevPAR: '+(m.avgRevpar!==null?fmtCOP(m.avgRevpar):'N/D')
-    + '</div></div>';
+  var avgPU = m.avgPickup !== null ? m.avgPickup.toFixed(1) : 'N/D';
+  var diagBody = 'El análisis de pickup por día del mes muestra ';
+  if (m.general === 'Positivo') {
+    diagBody += 'crecimiento general de ocupación frente al período base. El pickup promedio es de +'+avgPU+' pp. Los días con pickup fuerte son oportunidad para ajuste tarifario al alza y protección de inventario.';
+  } else if (m.general === 'Negativo') {
+    diagBody += 'una caída de ocupación frente al período base. El pickup promedio es de '+avgPU+' pp. Se recomienda revisar competitividad tarifaria, activar acciones tácticas en fechas con pickup negativo y evaluar restricciones activas que puedan estar limitando la conversión.';
+  } else if (m.general === 'Mixto') {
+    diagBody += 'un comportamiento mixto. Algunas fechas ganan pickup y otras lo pierden. Se recomienda gestión diferenciada: proteger tarifa donde el pickup es positivo y activar estímulos comerciales donde es negativo.';
+  } else {
+    diagBody += 'estabilidad frente al período base. El pickup promedio es de '+avgPU+' pp. Se recomienda monitorear el pickup semanal antes de tomar decisiones tarifarias agresivas.';
+  }
 
-  html += '<div class="otb-card"><div class="otb-card-title">Recomendaciones estratégicas ('+recs.length+')</div>';
+  var html = '<div class="otb-card"><div class="otb-card-title">🤖 Análisis de Pickup — Consultor Revenue Manager</div>'
+    + '<div class="otb-alert '+(m.general==='Positivo'?'green':m.general==='Negativo'?'red':m.general==='Mixto'?'yellow':'gray')+'">'+diagBody+'</div></div>';
+
+  html += '<div class="otb-card"><div class="otb-card-title">Recomendaciones por estado de pickup ('+recs.length+')</div>';
   recs.forEach(function(r) {
     html += '<div class="otb-rec '+r.type+'">'
       + '<div class="otb-rec-title">'+r.title+'</div>'
@@ -2683,16 +2792,30 @@ function otbRenderConsultant() {
   });
   html += '</div>';
 
-  const topUp   = (OTB_STATE.comparison||[]).filter(function(r){return r.revpar&&r.revpar.abs!==null;}).slice().sort(function(a,b){return (b.revpar.abs||0)-(a.revpar.abs||0);}).slice(0,5);
-  const topDown = (OTB_STATE.comparison||[]).filter(function(r){return r.revpar&&r.revpar.abs!==null;}).slice().sort(function(a,b){return (a.revpar.abs||0)-(b.revpar.abs||0);}).slice(0,5);
+  // Top 5 best/worst by pickup
+  var validRows = (OTB_STATE.comparison||[]).filter(function(r){ return r.pickup !== null; });
+  var top5up   = validRows.slice().sort(function(a,b){ return b.pickup-a.pickup; }).slice(0,5);
+  var top5down = validRows.slice().sort(function(a,b){ return a.pickup-b.pickup; }).slice(0,5);
 
-  html += '<div class="otb-card"><div class="otb-card-title">Top 5 mejores fechas (RevPAR)</div><table class="otb-hist-table"><thead><tr><th>Fecha</th><th>RevPAR Antes</th><th>RevPAR Después</th><th>Variación</th></tr></thead><tbody>';
-  topUp.forEach(function(r){ html += '<tr><td>'+r.date+'</td><td>'+fmtCOP(r.b&&r.b.revpar)+'</td><td>'+fmtCOP(r.a&&r.a.revpar)+'</td><td class="ind-up">+'+fmtCOP(r.revpar.abs)+'</td></tr>'; });
+  html += '<div class="otb-card"><div class="otb-card-title">Top 5 fechas con mayor pickup positivo</div><table class="otb-hist-table"><thead><tr><th>Día</th><th>Fecha Base</th><th>Fecha Actual</th><th>Occ Base</th><th>Occ Actual</th><th>Pickup</th></tr></thead><tbody>';
+  top5up.forEach(function(r){ html += '<tr><td>'+r.day+'</td><td style="font-size:.76rem">'+r.beforeDate+'</td><td style="font-size:.76rem">'+r.afterDate+'</td><td>'+(r.occBefore!==null?r.occBefore.toFixed(1)+'%':'—')+'</td><td>'+(r.occAfter!==null?r.occAfter.toFixed(1)+'%':'—')+'</td><td class="ind-up">+'+(r.pickup).toFixed(1)+' pp</td></tr>'; });
   html += '</tbody></table></div>';
 
-  html += '<div class="otb-card"><div class="otb-card-title">Top 5 peores fechas (RevPAR)</div><table class="otb-hist-table"><thead><tr><th>Fecha</th><th>RevPAR Antes</th><th>RevPAR Después</th><th>Variación</th></tr></thead><tbody>';
-  topDown.forEach(function(r){ html += '<tr><td>'+r.date+'</td><td>'+fmtCOP(r.b&&r.b.revpar)+'</td><td>'+fmtCOP(r.a&&r.a.revpar)+'</td><td class="ind-down">'+fmtCOP(r.revpar.abs)+'</td></tr>'; });
+  html += '<div class="otb-card"><div class="otb-card-title">Top 5 fechas con mayor caída de pickup</div><table class="otb-hist-table"><thead><tr><th>Día</th><th>Fecha Base</th><th>Fecha Actual</th><th>Occ Base</th><th>Occ Actual</th><th>Pickup</th></tr></thead><tbody>';
+  top5down.forEach(function(r){ html += '<tr><td>'+r.day+'</td><td style="font-size:.76rem">'+r.beforeDate+'</td><td style="font-size:.76rem">'+r.afterDate+'</td><td>'+(r.occBefore!==null?r.occBefore.toFixed(1)+'%':'—')+'</td><td>'+(r.occAfter!==null?r.occAfter.toFixed(1)+'%':'—')+'</td><td class="ind-down">'+(r.pickup).toFixed(1)+' pp</td></tr>'; });
   html += '</tbody></table></div>';
+
+  // Context: ADR & RevPAR if available
+  var hasCtx = validRows.some(function(r){ return r.adrBefore || r.revparBefore; });
+  if (hasCtx) {
+    html += '<div class="otb-card" style="border-color:#ccc"><div class="otb-card-title" style="color:#888">Métricas de contexto (ADR · RevPAR)</div>'
+      + '<p style="font-size:.75rem;color:#888;margin:0 0 8px">ADR y RevPAR se muestran únicamente como referencia. El análisis principal es de pickup de ocupación.</p>'
+      + '<table class="otb-hist-table"><thead><tr><th>Día</th><th>ADR Base</th><th>ADR Actual</th><th>RevPAR Base</th><th>RevPAR Actual</th></tr></thead><tbody>';
+    validRows.slice(0,10).forEach(function(r){
+      html += '<tr><td>'+r.day+'</td><td>'+(r.adrBefore!==null?fmtCOP(r.adrBefore):'—')+'</td><td>'+(r.adrAfter!==null?fmtCOP(r.adrAfter):'—')+'</td><td>'+(r.revparBefore!==null?fmtCOP(r.revparBefore):'—')+'</td><td>'+(r.revparAfter!==null?fmtCOP(r.revparAfter):'—')+'</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
 
   area.innerHTML = html;
 }
