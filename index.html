@@ -2373,7 +2373,53 @@ function otbParseOCRText(text) {
     }
     if (candidates.large.length)    revenue = candidates.large[candidates.large.length-1];
 
-    rows.push({ date: date, occ: occ, rooms: rooms, adr: adr, revpar: revpar, revenue: revenue });
+    rows.push({ date: date, dayOfMonth: parseInt(date.slice(8,10)), occ: occ, rooms: rooms, adr: adr, revpar: revpar, revenue: revenue, confidence: 'ocr' });
+  }
+
+  // Fallback: if no date-keyed rows found, try to extract percentage sequence from bar chart images
+  if (!rows.length) {
+    var summary = otbExtractSummaryFromOCR(text);
+    var startDate = summary && summary.startDate ? summary.startDate : null;
+
+    // Collect all percentage tokens from entire text
+    var pctTokens = [];
+    var rePct = /\b(\d{1,3})[,.](\d{1,2})\s*%|\b(\d{1,3})\s*%/g;
+    var allText = text.replace(/\n/g,' ');
+    var pm;
+    while ((pm = rePct.exec(allText)) !== null) {
+      var val;
+      if (pm[1] !== undefined && pm[2] !== undefined) {
+        val = parseFloat(pm[1] + '.' + pm[2]);
+      } else {
+        val = parseFloat(pm[3]);
+      }
+      if (val >= 0 && val <= 100) pctTokens.push(val);
+    }
+
+    // Deduplicate consecutive identical values only if excessive
+    if (pctTokens.length > 35) {
+      var deduped = [];
+      pctTokens.forEach(function(v, i) {
+        if (i === 0 || v !== pctTokens[i-1]) deduped.push(v);
+      });
+      pctTokens = deduped;
+    }
+
+    if (pctTokens.length >= 2 && startDate) {
+      var baseMs = new Date(startDate).getTime();
+      pctTokens.forEach(function(val, idx) {
+        var d = new Date(baseMs + idx * 86400000);
+        var dateStr = d.toISOString().slice(0,10);
+        var dom = d.getDate();
+        rows.push({ date: dateStr, dayOfMonth: dom, occ: val, rooms: null, adr: null, revpar: null, revenue: null, confidence: 'ocr' });
+      });
+    } else if (pctTokens.length >= 2) {
+      // No start date: use day-of-month index starting at 1
+      pctTokens.forEach(function(val, idx) {
+        var dom = idx + 1;
+        rows.push({ date: null, dayOfMonth: dom, occ: val, rooms: null, adr: null, revpar: null, revenue: null, confidence: 'ocr' });
+      });
+    }
   }
 
   return rows;
@@ -2910,6 +2956,155 @@ function otbRenderConsultant() {
   }
 
   area.innerHTML = html;
+}
+
+// ── WEEKLY GROUPING AND COMPARISON ───────────────────────────────────────────
+function groupByWeek(rows) {
+  var weeks = { week1:[], week2:[], week3:[], week4:[], week5:[] };
+  rows.forEach(function(r) {
+    var day = r.dayOfMonth || r.day || (function(){
+      var d = r.date || '';
+      var m = d.match(/(\d{4})-(\d{2})-(\d{2})/);
+      return m ? parseInt(m[3]) : null;
+    })();
+    if (!day) return;
+    if (day <= 7)  weeks.week1.push(r);
+    else if (day <= 14) weeks.week2.push(r);
+    else if (day <= 21) weeks.week3.push(r);
+    else if (day <= 28) weeks.week4.push(r);
+    else weeks.week5.push(r);
+  });
+  return weeks;
+}
+
+function compareWeekly(bRows, aRows) {
+  var bWeeks = groupByWeek(bRows);
+  var aWeeks = groupByWeek(aRows);
+  var weekDefs = [
+    { key:'week1', label:'Semana 1 (1–7)' },
+    { key:'week2', label:'Semana 2 (8–14)' },
+    { key:'week3', label:'Semana 3 (15–21)' },
+    { key:'week4', label:'Semana 4 (22–28)' },
+    { key:'week5', label:'Semana 5 (29+)' }
+  ];
+  var result = [];
+  weekDefs.forEach(function(wd, idx) {
+    var bWk = bWeeks[wd.key] || [];
+    var aWk = aWeeks[wd.key] || [];
+    if (!bWk.length && !aWk.length) return;
+
+    function avgOcc(rows) {
+      var vals = rows.map(function(r){ return r.occ; }).filter(function(v){ return v !== null && v !== undefined; });
+      return vals.length ? vals.reduce(function(s,v){ return s+v; }, 0) / vals.length : null;
+    }
+    function sumRooms(rows) {
+      var vals = rows.map(function(r){ return r.rooms; }).filter(function(v){ return v !== null && v !== undefined; });
+      return vals.length ? vals.reduce(function(s,v){ return s+v; }, 0) : null;
+    }
+
+    var beforeAvgOcc = avgOcc(bWk);
+    var afterAvgOcc  = avgOcc(aWk);
+    var avgPickup = (beforeAvgOcc !== null && afterAvgOcc !== null) ? afterAvgOcc - beforeAvgOcc : null;
+    var beforeRoomsTotal = sumRooms(bWk);
+    var afterRoomsTotal  = sumRooms(aWk);
+    var roomPickupTotal  = (beforeRoomsTotal !== null && afterRoomsTotal !== null) ? afterRoomsTotal - beforeRoomsTotal : null;
+    var status = pickupStatus(avgPickup);
+    var daysCompared = Math.min(bWk.length, aWk.length);
+
+    result.push({
+      weekLabel: wd.label,
+      weekNum: idx + 1,
+      beforeAvgOcc: beforeAvgOcc,
+      afterAvgOcc:  afterAvgOcc,
+      avgPickup:    avgPickup,
+      beforeRoomsTotal: beforeRoomsTotal,
+      afterRoomsTotal:  afterRoomsTotal,
+      roomPickupTotal:  roomPickupTotal,
+      status: status,
+      daysCompared: daysCompared
+    });
+  });
+  return result;
+}
+
+function buildWeeklyMetrics(weeklyRows) {
+  if (!weeklyRows || !weeklyRows.length) return null;
+  var positiveWeeks = 0, negativeWeeks = 0, stableWeeks = 0;
+  var pickupVals = [];
+  var bestWeek = null, worstWeek = null;
+  weeklyRows.forEach(function(w) {
+    if (w.avgPickup !== null) {
+      pickupVals.push(w.avgPickup);
+      if (w.avgPickup > 2)  { positiveWeeks++; }
+      else if (w.avgPickup < -2) { negativeWeeks++; }
+      else stableWeeks++;
+      if (!bestWeek  || w.avgPickup > bestWeek.avgPickup)  bestWeek  = w;
+      if (!worstWeek || w.avgPickup < worstWeek.avgPickup) worstWeek = w;
+    }
+  });
+  var avgWeeklyPickup = pickupVals.length ? pickupVals.reduce(function(s,v){ return s+v; },0) / pickupVals.length : null;
+  var general = positiveWeeks > negativeWeeks ? 'Positivo' : negativeWeeks > positiveWeeks ? 'Negativo' : 'Mixto';
+  return {
+    totalWeeks: weeklyRows.length,
+    positiveWeeks: positiveWeeks,
+    negativeWeeks: negativeWeeks,
+    stableWeeks: stableWeeks,
+    avgWeeklyPickup: avgWeeklyPickup,
+    bestWeek: bestWeek,
+    worstWeek: worstWeek,
+    general: general
+  };
+}
+
+function otbRenderWeekly() {
+  var wc = OTB_STATE.weeklyComparison;
+  var wm = OTB_STATE.weeklyMetrics;
+  var el = document.getElementById('otb-weekly-area');
+  if (!el) return;
+  if (!wc || !wc.length) { el.innerHTML = ''; return; }
+
+  var hasRooms = wc.some(function(w){ return w.roomPickupTotal !== null; });
+  var html = '<div style="margin-bottom:6px;font-size:.72rem;font-weight:700;color:var(--gray3);text-transform:uppercase;letter-spacing:.05em">Pickup Semanal</div>';
+  html += '<div class="otb-table-wrap"><table class="otb-weekly-table"><thead><tr>'
+    + '<th>Semana</th><th>Días comp.</th><th>Occ Base Prom.</th><th>Occ Actual Prom.</th><th>Pickup Prom. (pp)</th>';
+  if (hasRooms) html += '<th>Habs Base</th><th>Habs Actual</th><th>Pickup Habs</th>';
+  html += '<th>Estado</th><th>Indicador</th><th>Diagnóstico</th><th>Acción</th></tr></thead><tbody>';
+
+  wc.forEach(function(w) {
+    var trCls = '';
+    if (w.status === 'strong-up' || w.status === 'moderate-up') trCls = 'week-positive';
+    else if (w.status === 'strong-down') trCls = 'week-strong-negative';
+    else if (w.status === 'moderate-down') trCls = 'week-negative';
+    var pickupStr = w.avgPickup !== null ? (w.avgPickup > 0 ? '+' : '') + w.avgPickup.toFixed(1) + ' pp' : '—';
+    html += '<tr class="'+trCls+'">'
+      + '<td><strong>'+w.weekLabel+'</strong></td>'
+      + '<td>'+w.daysCompared+'</td>'
+      + '<td>'+(w.beforeAvgOcc !== null ? w.beforeAvgOcc.toFixed(1)+'%' : '—')+'</td>'
+      + '<td>'+(w.afterAvgOcc  !== null ? w.afterAvgOcc.toFixed(1)+'%'  : '—')+'</td>'
+      + '<td><strong>'+pickupStr+'</strong></td>';
+    if (hasRooms) {
+      html += '<td>'+(w.beforeRoomsTotal !== null ? Math.round(w.beforeRoomsTotal) : '—')+'</td>'
+            + '<td>'+(w.afterRoomsTotal  !== null ? Math.round(w.afterRoomsTotal)  : '—')+'</td>'
+            + '<td>'+(w.roomPickupTotal  !== null ? (w.roomPickupTotal > 0 ? '+' : '')+Math.round(w.roomPickupTotal)+' habs' : '—')+'</td>';
+    }
+    html += '<td>'+pickupLabel(w.status)+'</td>'
+          + '<td>'+pickupIcon(w.avgPickup)+'</td>'
+          + '<td style="font-size:.7rem;color:#555">'+pickupLabel(w.status)+'</td>'
+          + '<td style="font-size:.68rem;color:#555;max-width:160px">'+pickupAction(w.status)+'</td>'
+          + '</tr>';
+  });
+  html += '</tbody>';
+  if (wm) {
+    html += '<tfoot><tr>'
+      + '<td colspan="2">Resumen semanal</td>'
+      + '<td>—</td><td>—</td>'
+      + '<td>'+(wm.avgWeeklyPickup !== null ? (wm.avgWeeklyPickup > 0 ? '+' : '')+wm.avgWeeklyPickup.toFixed(1)+' pp prom.' : '—')+'</td>';
+    if (hasRooms) html += '<td colspan="3">—</td>';
+    html += '<td colspan="4">'+wm.positiveWeeks+' positivas · '+wm.negativeWeeks+' negativas · '+wm.stableWeeks+' estables</td>'
+      + '</tr></tfoot>';
+  }
+  html += '</table></div>';
+  el.innerHTML = html;
 }
 
 function otbSaveToHistory() {
