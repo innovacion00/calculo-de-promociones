@@ -460,6 +460,22 @@
 .agenda-empty { text-align: center; padding: 48px 20px; color: var(--gray3); font-size: .84rem; }
 .agenda-empty .empty-icon { font-size: 2.4rem; margin-bottom: 10px; }
 .agenda-quick-btn { background: var(--gold-subtle) !important; color: var(--gold-dark) !important; border-color: var(--gold) !important; }
+/* Detail Drawer */
+.agenda-drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 1900; display: none; }
+.agenda-drawer-overlay.open { display: block; }
+.agenda-drawer { position: fixed; top: 0; right: -480px; width: 460px; max-width: 96vw; height: 100vh; background: var(--white); box-shadow: -4px 0 32px rgba(0,0,0,.15); z-index: 1901; display: flex; flex-direction: column; transition: right .25s cubic-bezier(.4,0,.2,1); overflow: hidden; }
+.agenda-drawer.open { right: 0; }
+.agenda-drawer-head { padding: 16px 20px 14px; border-bottom: 2px solid var(--gold-border); display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-shrink: 0; background: var(--gold-pale); }
+.agenda-drawer-head-title { font-size: .82rem; font-weight: 900; color: var(--gold-dark); text-transform: uppercase; letter-spacing: .8px; line-height: 1.3; flex: 1; }
+.agenda-drawer-close { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--gray3); padding: 0 2px; flex-shrink: 0; }
+.agenda-drawer-body { flex: 1; overflow-y: auto; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.agenda-drawer-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.agenda-drawer-section { border-top: 1px solid var(--gray2); padding-top: 12px; }
+.agenda-drawer-label { font-size: .62rem; font-weight: 800; color: var(--gray3); text-transform: uppercase; letter-spacing: .7px; margin-bottom: 4px; }
+.agenda-drawer-value { font-size: .82rem; color: var(--text); line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.agenda-drawer-value.empty { color: var(--gray2); font-style: italic; }
+.agenda-drawer-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+.agenda-drawer-footer { padding: 14px 20px; border-top: 1px solid var(--gold-border); display: flex; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
 </style>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -5367,7 +5383,7 @@ function agendaRenderTable() {
     const tags = (item.tags||[]).map(t=>`<span class="agenda-tag">${t}</span>`).join(' ');
     return `<tr>
       <td style="white-space:nowrap;color:var(--gray3);font-size:.68rem">${(item.createdAt||'').slice(0,10)}</td>
-      <td style="font-weight:700;max-width:200px">${item.title||'Sin título'}</td>
+      <td style="font-weight:700;max-width:220px"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px" title="${(item.title||'Sin título').replace(/"/g,'&quot;')}">${item.title||'Sin título'}</div>${item.description?`<div style="font-size:.64rem;color:var(--gray3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px">${item.description.slice(0,60)}${item.description.length>60?'…':''}</div>`:''}</td>
       <td style="font-size:.72rem">${item.hotelName||'—'}</td>
       <td style="font-size:.68rem">${AGENDA_MODULES[item.moduleSource]||item.moduleSource||'—'}</td>
       <td style="font-size:.68rem">${item.channelName&&item.channelName!=='(ninguno)'?item.channelName:'—'}</td>
@@ -5376,6 +5392,7 @@ function agendaRenderTable() {
       <td>${agendaPriorityBadge(item.priority)}</td>
       <td style="white-space:nowrap;font-size:.72rem;color:${isOverdue?'#c00':'inherit'}">${isOverdue?'🔴 ':''} ${dateStr}</td>
       <td class="td-actions">
+        <button onclick="agendaOpenDetail('${item.id}')" style="color:#0d6efd;border-color:#b8d4f5">👁 Ver</button>
         <button onclick="agendaOpenEdit('${item.id}')">✏ Editar</button>
         <button onclick="agendaCycleStatus('${item.id}')">↻ Estado</button>
         <button onclick="agendaQuickClose('${item.id}')">✓ Cerrar</button>
@@ -5429,6 +5446,7 @@ function agendaRenderCards() {
         <span style="color:${isOverdue?'#c00':'inherit'}">${isOverdue?'🔴 ':''} ${item.followUpDate||''}</span>
       </div>
       <div class="agenda-card-actions">
+        <button onclick="agendaOpenDetail('${item.id}')" style="color:#0d6efd;border-color:#b8d4f5">👁</button>
         <button onclick="agendaOpenEdit('${item.id}')">✏</button>
         <button onclick="agendaCycleStatus('${item.id}')">↻</button>
         <button onclick="agendaQuickClose('${item.id}')">✓</button>
@@ -5476,6 +5494,80 @@ function agendaConfirmDelete(id) {
 }
 
 // ── MODAL ─────────────────────────────────────────────────────
+// ── DETAIL DRAWER ─────────────────────────────────────────────
+function agendaOpenDetail(id) {
+  const item = agendaGetAll().find(i => i.id === id);
+  if (!item) return;
+  const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const val = (v, fallback) => v ? `<div class="agenda-drawer-value">${esc(v)}</div>` : `<div class="agenda-drawer-value empty">${fallback||'—'}</div>`;
+  const valRaw = (v, fallback) => v ? `<div class="agenda-drawer-value">${v}</div>` : `<div class="agenda-drawer-value empty">${fallback||'—'}</div>`;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const isOverdue = item.followUpDate && new Date(item.followUpDate) < now && !['closed','cancelled'].includes(item.status);
+  const tags = (item.tags||[]).map(t=>`<span class="agenda-tag">${esc(t)}</span>`).join(' ');
+  const drawer = document.getElementById('agenda-detail-drawer');
+  if (!drawer) return;
+  drawer.innerHTML = `
+    <div class="agenda-drawer-head">
+      <div class="agenda-drawer-head-title">${esc(item.title||'Sin título')}</div>
+      <button class="agenda-drawer-close" onclick="agendaCloseDetail()">✕</button>
+    </div>
+    <div class="agenda-drawer-body">
+      <div class="agenda-drawer-badges">
+        ${agendaPriorityBadge(item.priority)}
+        ${agendaStatusBadge(item.status)}
+        ${item.moduleSource ? `<span class="badge-status underReview" style="font-size:.6rem">${esc(AGENDA_MODULES[item.moduleSource]||item.moduleSource)}</span>` : ''}
+        ${item.channelName && item.channelName !== '(ninguno)' ? `<span class="agenda-tag">${esc(item.channelName)}</span>` : ''}
+        ${isOverdue ? `<span style="background:#ffe0e0;color:#c00;border-radius:10px;padding:2px 8px;font-size:.62rem;font-weight:800;">🔴 Vencida</span>` : ''}
+      </div>
+      <div class="agenda-drawer-section">
+        <div class="agenda-drawer-label">Descripción</div>
+        ${val(item.description, 'Sin descripción')}
+      </div>
+      <div class="agenda-drawer-section agenda-drawer-meta-grid">
+        <div>
+          <div class="agenda-drawer-label">Hotel</div>
+          ${val(item.hotelName)}
+        </div>
+        <div>
+          <div class="agenda-drawer-label">Categoría</div>
+          ${val(item.category)}
+        </div>
+        <div>
+          <div class="agenda-drawer-label">Fecha de seguimiento</div>
+          <div class="agenda-drawer-value" style="color:${isOverdue?'#c00':'inherit'}">${item.followUpDate || '—'}</div>
+        </div>
+        <div>
+          <div class="agenda-drawer-label">Responsable</div>
+          ${val(item.responsible)}
+        </div>
+        <div>
+          <div class="agenda-drawer-label">Fecha de creación</div>
+          <div class="agenda-drawer-value">${(item.createdAt||'').slice(0,10) || '—'}</div>
+        </div>
+        <div>
+          <div class="agenda-drawer-label">Última actualización</div>
+          <div class="agenda-drawer-value">${(item.updatedAt||'').slice(0,10) || '—'}</div>
+        </div>
+      </div>
+      ${(item.tags||[]).length ? `<div class="agenda-drawer-section"><div class="agenda-drawer-label">Etiquetas</div><div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px">${tags}</div></div>` : ''}
+      ${item.notes ? `<div class="agenda-drawer-section"><div class="agenda-drawer-label">Observaciones adicionales</div>${val(item.notes)}</div>` : ''}
+    </div>
+    <div class="agenda-drawer-footer">
+      <button class="save-btn" onclick="agendaCloseDetail()">✕ Cerrar</button>
+      ${item.status !== 'closed' ? `<button class="save-btn" onclick="agendaCloseDetail();agendaQuickClose('${item.id}');agendaRender()">✓ Marcar cerrada</button>` : ''}
+      <button class="save-btn" onclick="agendaCloseDetail();agendaCycleStatus('${item.id}')">↻ Cambiar estado</button>
+      <button class="save-btn primary" onclick="agendaCloseDetail();agendaOpenEdit('${item.id}')">✏ Editar nota</button>
+    </div>
+  `;
+  document.getElementById('agenda-drawer-overlay').classList.add('open');
+  drawer.classList.add('open');
+}
+
+function agendaCloseDetail() {
+  document.getElementById('agenda-drawer-overlay')?.classList.remove('open');
+  document.getElementById('agenda-detail-drawer')?.classList.remove('open');
+}
+
 function agendaOpenCreate(preload) {
   agendaEditingId = null;
   const today = new Date().toISOString().slice(0,10);
@@ -5601,6 +5693,10 @@ function agendaExport() {
 
 // ── END AGENDA MODULE ─────────────────────────────────────────
 </script>
+
+<!-- AGENDA DETAIL DRAWER -->
+<div class="agenda-drawer-overlay" id="agenda-drawer-overlay" onclick="agendaCloseDetail()"></div>
+<div class="agenda-drawer" id="agenda-detail-drawer"></div>
 
 <!-- AGENDA CREATE/EDIT MODAL -->
 <div class="agenda-modal-overlay" id="agenda-modal-overlay" onclick="if(event.target===this)agendaCloseModal()">
