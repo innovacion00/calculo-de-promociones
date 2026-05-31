@@ -3,7 +3,7 @@
  * Backed by localStorage. Swap localStorage calls with API calls for production.
  */
 
-import type { User, UserRole } from '../../types/auth';
+import type { User, UserRole, AuthProvider } from '../../types/auth';
 import { hashPassword } from '../auth/authService';
 import { DEFAULT_ROLE_PERMISSIONS } from '../auth/permissions';
 import { writeAuditLog } from '../audit/auditLog';
@@ -23,6 +23,8 @@ export const MASTER_USER: User = {
   updatedAt: '2024-01-01T00:00:00.000Z',
   createdBy: 'system',
   lastLoginAt: null,
+  authProvider: 'email',
+  allowedProviders: ['email', 'google'],
 };
 
 export function getAll(): User[] {

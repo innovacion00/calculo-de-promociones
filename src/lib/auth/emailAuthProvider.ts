@@ -10,7 +10,11 @@
  */
 
 import type { User } from '../../types/auth';
-import { getUserByEmail } from '../users/userStorage';
+import { getAll } from '../users/userStorage';
+
+function getUserByEmail(email: string): User | undefined {
+  return getAll().find(u => u.email.toLowerCase() === email.toLowerCase());
+}
 
 // ── FNV-1a hash (DEV ONLY) ────────────────────────────────────────────────────
 
