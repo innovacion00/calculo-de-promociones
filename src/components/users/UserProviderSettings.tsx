@@ -1,6 +1,5 @@
 import React from 'react';
-
-type AuthProvider = 'email' | 'google' | 'magic_link';
+import type { AuthProvider } from '../../types/auth';
 
 interface ProviderConfig {
   id: AuthProvider;
@@ -15,7 +14,7 @@ const PROVIDERS: ProviderConfig[] = [
   { id: 'magic_link',  label: 'Magic Link',          icon: '🔗', description: 'El usuario recibe un enlace de acceso por correo sin contraseña.' },
 ];
 
-interface UserProviderSettingsProps {
+export interface UserProviderSettingsProps {
   allowedProviders: AuthProvider[];
   onChange: (providers: AuthProvider[]) => void;
   readonly?: boolean;
