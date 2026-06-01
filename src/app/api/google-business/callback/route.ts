@@ -5,7 +5,6 @@ import { logGBPEvent } from '../../../../lib/googleBusiness/googleBusinessAudit'
 
 // GET /api/google-business/callback?code=...&state=...
 // Handles the OAuth redirect from Google. Exchanges code for tokens and stores them.
-// In production this route should redirect the user to the UI with a success/error message.
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const code = searchParams.get('code');
@@ -14,12 +13,16 @@ export async function GET(req: NextRequest) {
 
   const userId = state ? decodeURIComponent(state) : 'unknown';
 
+  // Derive the app base URL from the incoming request so redirects work in any environment.
+  // NEXT_PUBLIC_APP_URL overrides this when set (e.g. custom domain in production).
+  const reqUrl = new URL(req.url);
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? `${reqUrl.protocol}//${reqUrl.host}`;
+
   if (error || !code) {
     logGBPEvent('google_business_connect_failed', {
       userId, userName: '', email: '', status: 'error',
       metadata: { googleError: error },
     });
-    const base = process.env.NEXT_PUBLIC_APP_URL ?? '';
     return NextResponse.redirect(`${base}/?gbp_error=${encodeURIComponent(error ?? 'access_denied')}`);
   }
 
@@ -33,7 +36,6 @@ export async function GET(req: NextRequest) {
         userId, userName: '', email: '', status: 'error',
         metadata: { reason: 'no_refresh_token' },
       });
-      const base = process.env.NEXT_PUBLIC_APP_URL ?? '';
       return NextResponse.redirect(`${base}/?gbp_error=no_refresh_token`);
     }
 
@@ -54,14 +56,12 @@ export async function GET(req: NextRequest) {
       metadata: { scopes: tokens.scope },
     });
 
-    const base = process.env.NEXT_PUBLIC_APP_URL ?? '';
     return NextResponse.redirect(`${base}/?gbp_connected=1`);
   } catch (e) {
     logGBPEvent('google_business_connect_failed', {
       userId, userName: '', email: '', status: 'error',
       metadata: { error: String(e) },
     });
-    const base = process.env.NEXT_PUBLIC_APP_URL ?? '';
     return NextResponse.redirect(`${base}/?gbp_error=${encodeURIComponent(String(e))}`);
   }
 }

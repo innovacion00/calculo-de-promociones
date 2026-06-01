@@ -1592,6 +1592,30 @@ function showDashboard() {
   const usersNav = document.getElementById('nav-users');
   if (usersNav) usersNav.style.display = (AUTH_SESSION && (AUTH_SESSION.role === 'master_admin' || hasPermission('canManageUsers'))) ? '' : 'none';
   setupAppLayout();
+  // Handle GBP OAuth callback params at startup regardless of active module
+  _gbpHandleCallbackParams();
+}
+
+function _gbpHandleCallbackParams() {
+  const sp = new URLSearchParams(window.location.search);
+  if (sp.get('gbp_connected')) {
+    window.history.replaceState({}, '', window.location.pathname);
+    gbpAuditLocal('google_business_connect_success', 'success');
+    gbpShowToast('✅ Google Business Profile conectado correctamente');
+    // If GBP module is already active, reload its status
+    const modGBP = document.getElementById('module-google-business');
+    if (modGBP && modGBP.style.display !== 'none') gbpLoadStatus();
+  }
+  const gbpErr = sp.get('gbp_error');
+  if (gbpErr) {
+    const friendlyErrors = {
+      no_refresh_token: 'No se recibió refresh token. Revisa la configuración OAuth (prompt=consent) y vuelve a autorizar.',
+      access_denied: 'Acceso denegado por el usuario.',
+    };
+    window.history.replaceState({}, '', window.location.pathname);
+    gbpAuditLocal('google_business_connect_failed', 'error', { error: gbpErr });
+    gbpShowError(friendlyErrors[decodeURIComponent(gbpErr)] ?? decodeURIComponent(gbpErr));
+  }
 }
 
 // ── SIDEBAR NAVIGATION ────────────────────────────────────────
@@ -8328,22 +8352,6 @@ function gbpInit() {
   const allowed = GBP_PERMS.some(p => hasPermission(p));
   document.getElementById('gbp-permission-denied').style.display = allowed ? 'none' : '';
   if (!allowed) return;
-
-  // Check for OAuth callback params
-  const sp = new URLSearchParams(window.location.search);
-  if (sp.get('gbp_connected')) {
-    window.history.replaceState({}, '', window.location.pathname);
-    gbpShowToast('✅ Google Business Profile conectado correctamente');
-  }
-  const gbpErr = sp.get('gbp_error');
-  if (gbpErr) {
-    const friendlyErrors = {
-      no_refresh_token: 'No se recibió refresh token. Revisa la configuración OAuth (prompt=consent) y vuelve a autorizar.',
-      access_denied: 'Acceso denegado por el usuario.',
-    };
-    window.history.replaceState({}, '', window.location.pathname);
-    gbpShowError(friendlyErrors[decodeURIComponent(gbpErr)] ?? decodeURIComponent(gbpErr));
-  }
 
   gbpLoadStatus();
 }
