@@ -1346,8 +1346,10 @@ function hasPermission(perm) {
 
 function canAccessHotel(hotelName) {
   if (!AUTH_SESSION) return false;
-  if (AUTH_SESSION.role === 'master_admin' || (AUTH_SESSION.permissions||[]).includes('canViewAllHotels')) return true;
-  return (AUTH_SESSION.hotelAccess || []).includes(hotelName);
+  // hotelAccess vacío = acceso a todos los hoteles (todos los roles)
+  const access = AUTH_SESSION.hotelAccess || [];
+  if (access.length === 0) return true;
+  return access.includes(hotelName);
 }
 
 // ── USER STORAGE ────────────────────────────────────────────────
