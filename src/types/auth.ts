@@ -41,7 +41,9 @@ export type Permission =
   | 'canManageGlobalSettings'
   | 'canManageOfficialHotelConfig'
   | 'canManageAgenda'
-  | 'canViewAllActivity';
+  | 'canViewAllActivity'
+  | 'canManageGoogleBusiness'
+  | 'canViewGoogleBusinessReviews';
 
 export type NoteVisibility = 'private' | 'hotel' | 'team' | 'admin';
 

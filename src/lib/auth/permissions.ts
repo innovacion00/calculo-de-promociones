@@ -8,6 +8,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   'canAssignHotels', 'canManageRoles', 'canManagePermissions', 'canViewAuditLog',
   'canManageHotelAssignments', 'canRestoreConfigurations', 'canManageGlobalSettings',
   'canManageOfficialHotelConfig', 'canManageAgenda', 'canViewAllActivity',
+  'canManageGoogleBusiness', 'canViewGoogleBusinessReviews',
 ];
 
 export const DEFAULT_ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
@@ -17,11 +18,12 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'canEditBookingConfig', 'canEditOtb', 'canUploadOtbFiles', 'canCreateNotes',
     'canEditOwnNotes', 'canEditAllNotes', 'canDeleteNotes', 'canExportReports',
     'canManageAgenda', 'canViewAuditLog', 'canRestoreConfigurations',
+    'canManageGoogleBusiness', 'canViewGoogleBusinessReviews',
   ],
   revenue_manager: [
     'canViewDashboard', 'canEditRateSimulator', 'canEditPromotions', 'canEditBookingConfig',
     'canEditOtb', 'canUploadOtbFiles', 'canCreateNotes', 'canEditOwnNotes',
-    'canExportReports', 'canManageAgenda',
+    'canExportReports', 'canManageAgenda', 'canViewGoogleBusinessReviews',
   ],
   revenue_assistant: [
     'canViewDashboard', 'canCreateNotes', 'canEditOwnNotes', 'canEditOtb', 'canManageAgenda',

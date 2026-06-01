@@ -650,6 +650,72 @@
 .auth-google-notice { font-size:.66rem;color:var(--gray3);text-align:center;margin-top:4px;padding:0 4px; }
 
 /* ── REPUTATION MODULE ──────────────────────────────────────────── */
+/* ── GOOGLE BUSINESS PROFILE MODULE ──────────────────────────────────────── */
+#module-google-business { display:flex;flex-direction:column;overflow:hidden; }
+.gbp-module-header { display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-bottom:1.5px solid var(--gold-border);background:var(--gold-pale);flex-shrink:0; }
+.gbp-module-title { font-size:.9rem;font-weight:900;color:var(--gold-dark);text-transform:uppercase;letter-spacing:.8px; }
+.gbp-module-subtitle { font-size:.75rem;color:var(--gray3); }
+.gbp-refresh-btn { padding:5px 12px;background:none;border:1.5px solid var(--gold-border);border-radius:6px;cursor:pointer;font-size:.8rem;color:var(--gold-dark);transition:background .15s; }
+.gbp-refresh-btn:hover { background:var(--gold-pale2); }
+.gbp-body { display:flex;flex-direction:column;flex:1;overflow-y:auto;gap:18px;padding:18px 20px; }
+/* Status card */
+.gbp-status-card { background:#fff;border:1.5px solid var(--gold-border);border-radius:10px;padding:16px 20px;display:flex;flex-direction:column;gap:10px;max-width:660px; }
+.gbp-status-row { display:flex;align-items:center;gap:10px;flex-wrap:wrap; }
+.gbp-dot { width:11px;height:11px;border-radius:50%;background:#ccc;flex-shrink:0; }
+.gbp-dot.green { background:#2e7d32; }
+.gbp-dot.red { background:#c62828; }
+.gbp-dot.orange { background:#e65100; }
+.gbp-status-email { font-size:.82rem;color:var(--gray3);margin-left:4px; }
+.gbp-status-meta { font-size:.78rem;color:var(--gray3);display:flex;gap:18px;flex-wrap:wrap; }
+.gbp-status-actions { display:flex;gap:10px;flex-wrap:wrap; }
+/* Buttons */
+.gbp-btn { padding:8px 16px;border-radius:7px;border:none;cursor:pointer;font-size:.83rem;font-weight:700;transition:opacity .15s;display:inline-flex;align-items:center; }
+.gbp-btn.primary { background:var(--gold);color:#fff; }
+.gbp-btn.primary:hover { opacity:.88; }
+.gbp-btn.danger { background:#c62828;color:#fff; }
+.gbp-btn.danger:hover { opacity:.88; }
+/* Permission denied */
+.gbp-permission-denied { background:#fbe9e7;border:1.5px solid #ef9a9a;border-radius:10px;padding:20px 24px;display:flex;align-items:center;gap:14px;max-width:520px;color:#b71c1c;font-size:.9rem; }
+.gbp-permission-denied span { font-size:1.8rem; }
+/* Selectors */
+.gbp-selectors { display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end; }
+.gbp-selector-group { display:flex;flex-direction:column;gap:5px;min-width:240px; }
+.gbp-label { font-size:.78rem;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px; }
+.gbp-select { padding:7px 10px;border:1.5px solid var(--gold-border);border-radius:7px;font-size:.88rem;background:#fff;color:var(--gray1);cursor:pointer;min-width:220px; }
+.gbp-selector-msg { font-size:.8rem;min-height:18px; }
+.gbp-selector-msg.error { color:#c62828; }
+.gbp-selector-msg.info { color:var(--gray3); }
+/* Reviews */
+.gbp-reviews-section { display:flex;flex-direction:column;gap:10px; }
+.gbp-reviews-header { display:flex;align-items:center;gap:12px; }
+.gbp-reviews-header h3 { font-size:.95rem;font-weight:900;color:var(--gold-dark);margin:0; }
+.gbp-reviews-count { font-size:.78rem;color:var(--gray3);background:var(--gold-pale);padding:2px 10px;border-radius:20px;border:1px solid var(--gold-border); }
+.gbp-table-wrapper { overflow-x:auto;border:1.5px solid var(--gold-border);border-radius:8px; }
+.gbp-table { width:100%;border-collapse:collapse;font-size:.82rem; }
+.gbp-table th { background:var(--gold-pale);color:var(--gold-dark);font-weight:800;padding:9px 12px;text-align:left;border-bottom:1.5px solid var(--gold-border);white-space:nowrap; }
+.gbp-table td { padding:9px 12px;border-bottom:1px solid #f0e8cc;vertical-align:top; }
+.gbp-table tr:last-child td { border-bottom:none; }
+.gbp-table tr:hover td { background:#faf7ee; }
+.gbp-rating { font-size:.8rem;white-space:nowrap; }
+.gbp-rating.r1,.gbp-rating.r2 { color:#c62828; }
+.gbp-rating.r3 { color:#e65100; }
+.gbp-rating.r4,.gbp-rating.r5 { color:#2e7d32; }
+.gbp-comment { max-width:280px;word-break:break-word; }
+.gbp-reply { max-width:200px;word-break:break-word;font-style:italic;color:var(--gray3); }
+.gbp-status-badge { display:inline-block;padding:2px 9px;border-radius:10px;font-size:.75rem;font-weight:700; }
+.gbp-status-badge.responded { background:#e8f5e9;color:#2e7d32; }
+.gbp-status-badge.pending { background:#fff3e0;color:#e65100; }
+/* Diagnostics */
+.gbp-diagnostics { background:#fff;border:1.5px solid var(--gold-border);border-radius:10px;padding:16px 20px;max-width:560px; }
+.gbp-diagnostics h4 { margin:0 0 12px;font-size:.88rem;font-weight:900;color:var(--gold-dark); }
+.gbp-diag-table { width:100%;border-collapse:collapse;font-size:.8rem; }
+.gbp-diag-table tr { border-bottom:1px solid #f0e8cc; }
+.gbp-diag-table tr:last-child { border-bottom:none; }
+.gbp-diag-label { padding:6px 10px 6px 0;font-weight:700;color:var(--gray2);width:50%;white-space:nowrap; }
+.gbp-diag-value { padding:6px 0;color:var(--gray1); }
+.gbp-diag-error { color:#c62828; }
+/* ── END GOOGLE BUSINESS MODULE ───────────────────────────────────────────── */
+
 #module-reputation { display:flex;flex-direction:column;overflow:hidden; }
 .rep-module-header { display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-bottom:1.5px solid var(--gold-border);background:var(--gold-pale);flex-shrink:0; }
 .rep-module-title { font-size:.9rem;font-weight:900;color:var(--gold-dark);text-transform:uppercase;letter-spacing:.8px; }
@@ -1007,6 +1073,90 @@
   </div>
 </div>
 
+<!-- GOOGLE BUSINESS PROFILE MODULE -->
+<div id="module-google-business" style="display:none;flex-direction:column;overflow:hidden;flex:1;">
+  <div class="gbp-module-header">
+    <div>
+      <span class="gbp-module-title">🔗 Google Business Profile</span>
+      <span class="gbp-module-subtitle"> — Fase 1: Conexión y lectura</span>
+    </div>
+    <button class="gbp-refresh-btn" onclick="gbpRefreshAll()" title="Actualizar">↺ Actualizar</button>
+  </div>
+  <div class="gbp-body">
+    <!-- Status card -->
+    <div class="gbp-status-card" id="gbp-status-card">
+      <div class="gbp-status-row">
+        <span class="gbp-dot" id="gbp-dot"></span>
+        <strong id="gbp-status-label">Verificando...</strong>
+        <span class="gbp-status-email" id="gbp-status-email"></span>
+      </div>
+      <div class="gbp-status-meta" id="gbp-status-meta"></div>
+      <div class="gbp-status-actions">
+        <button class="gbp-btn primary" id="gbp-connect-btn" onclick="gbpConnect()" style="display:none">
+          <svg width="18" height="18" viewBox="0 0 18 18" style="vertical-align:middle;margin-right:6px"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"/><path fill="#FBBC05" d="M3.964 10.707A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.96L3.964 6.293C4.672 4.166 6.656 3.58 9 3.58z"/></svg>
+          Conectar Google Business Profile
+        </button>
+        <button class="gbp-btn danger" id="gbp-disconnect-btn" onclick="gbpDisconnect()" style="display:none">Desconectar</button>
+      </div>
+    </div>
+
+    <!-- Permission denied notice -->
+    <div class="gbp-permission-denied" id="gbp-permission-denied" style="display:none">
+      <span>🔒</span>
+      <p>No tienes permisos para conectar Google Business Profile.</p>
+    </div>
+
+    <!-- Selectors row -->
+    <div class="gbp-selectors" id="gbp-selectors" style="display:none">
+      <div class="gbp-selector-group">
+        <label class="gbp-label">Cuenta de Google Business</label>
+        <select class="gbp-select" id="gbp-account-select" onchange="gbpOnAccountChange()">
+          <option value="">— Cargando cuentas... —</option>
+        </select>
+        <div class="gbp-selector-msg" id="gbp-accounts-msg"></div>
+      </div>
+      <div class="gbp-selector-group" id="gbp-location-group" style="display:none">
+        <label class="gbp-label">Ubicación / Hotel</label>
+        <select class="gbp-select" id="gbp-location-select" onchange="gbpOnLocationChange()">
+          <option value="">— Seleccionar ubicación —</option>
+        </select>
+        <div class="gbp-selector-msg" id="gbp-locations-msg"></div>
+      </div>
+    </div>
+
+    <!-- Reviews table -->
+    <div class="gbp-reviews-section" id="gbp-reviews-section" style="display:none">
+      <div class="gbp-reviews-header">
+        <h3 id="gbp-reviews-title">Reseñas</h3>
+        <span class="gbp-reviews-count" id="gbp-reviews-count"></span>
+      </div>
+      <div id="gbp-reviews-msg" class="gbp-selector-msg"></div>
+      <div class="gbp-table-wrapper" id="gbp-table-wrapper">
+        <table class="gbp-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Hotel / Ubicación</th>
+              <th>Usuario</th>
+              <th>Calificación</th>
+              <th>Comentario</th>
+              <th>Respuesta</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="gbp-reviews-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Diagnostics panel -->
+    <div class="gbp-diagnostics" id="gbp-diagnostics" style="display:none">
+      <h4>Diagnóstico de conexión</h4>
+      <table class="gbp-diag-table" id="gbp-diag-table"></table>
+    </div>
+  </div>
+</div>
+
 <!-- REPUTATION IMPORT MODAL -->
 <div class="rep-map-overlay" id="rep-import-modal">
   <div class="rep-map-box">
@@ -1134,7 +1284,8 @@ const MASTER_USER = {
     'canEditPromotions','canEditBookingConfig','canEditOtb','canUploadOtbFiles',
     'canCreateNotes','canEditOwnNotes','canEditAllNotes','canDeleteNotes',
     'canExportReports','canRestoreConfigurations','canManageGlobalSettings',
-    'canViewAllActivity','canManageAgenda','canManageOfficialHotelConfig','canManageHotelAssignments'
+    'canViewAllActivity','canManageAgenda','canManageOfficialHotelConfig','canManageHotelAssignments',
+    'canManageGoogleBusiness','canViewGoogleBusinessReviews'
   ],
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',
@@ -1150,8 +1301,8 @@ const ROLE_LABELS = {
 
 const DEFAULT_ROLE_PERMISSIONS = {
   master_admin: MASTER_USER.permissions,
-  admin: ['canViewDashboard','canViewAllHotels','canEditRateSimulator','canEditPromotions','canEditBookingConfig','canEditOtb','canUploadOtbFiles','canCreateNotes','canEditOwnNotes','canEditAllNotes','canDeleteNotes','canExportReports','canManageAgenda','canViewAuditLog'],
-  revenue_manager: ['canViewDashboard','canEditRateSimulator','canEditPromotions','canEditBookingConfig','canEditOtb','canUploadOtbFiles','canCreateNotes','canEditOwnNotes','canExportReports','canManageAgenda'],
+  admin: ['canViewDashboard','canViewAllHotels','canEditRateSimulator','canEditPromotions','canEditBookingConfig','canEditOtb','canUploadOtbFiles','canCreateNotes','canEditOwnNotes','canEditAllNotes','canDeleteNotes','canExportReports','canManageAgenda','canViewAuditLog','canManageGoogleBusiness','canViewGoogleBusinessReviews'],
+  revenue_manager: ['canViewDashboard','canEditRateSimulator','canEditPromotions','canEditBookingConfig','canEditOtb','canUploadOtbFiles','canCreateNotes','canEditOwnNotes','canExportReports','canManageAgenda','canViewGoogleBusinessReviews'],
   revenue_assistant: ['canViewDashboard','canCreateNotes','canEditOwnNotes','canEditOtb','canManageAgenda'],
   operations: ['canViewDashboard','canCreateNotes','canEditOwnNotes','canManageAgenda'],
   viewer: ['canViewDashboard']
@@ -1454,6 +1605,13 @@ function getAvailableModulesForUser() {
       { id:'agenda', icon:'📋', label:'Agenda Revenue' },
       { id:'reputation', icon:'🏆', label:'Reputación IA' },
     ]},
+    ...(() => {
+      const gbpItems = [];
+      if (hasPermission('canManageGoogleBusiness') || hasPermission('canViewGoogleBusinessReviews')) {
+        gbpItems.push({ id:'google-business', icon:'🔗', label:'Google Business' });
+      }
+      return gbpItems.length ? [{ group:'Integraciones', items: gbpItems }] : [];
+    })(),
   ];
   const isAdmin = AUTH_SESSION && (AUTH_SESSION.role === 'master_admin' || hasPermission('canManageUsers'));
   if (isAdmin) {
@@ -1505,6 +1663,7 @@ function setupAppLayout() {
   const toMove = [
     'action-bar-simulator','action-bar-otb','action-bar-agenda','action-bar-users',
     'module-simulator','module-otb','module-agenda','module-users','module-reputation',
+    'module-google-business',
     'rep-import-modal',
     'toast',
   ];
@@ -2690,11 +2849,12 @@ document.getElementById('btn-restore').addEventListener('click', ()=>{
 
 // ── MODULE SWITCH ─────────────────────────────────────────────
 function switchModule(mod) {
-  const isOTB = mod === 'otb';
+  const isOTB   = mod === 'otb';
   const isAgenda = mod === 'agenda';
-  const isUsers = mod === 'users';
-  const isRep = mod === 'reputation';
-  const isSim = !isOTB && !isAgenda && !isUsers && !isRep;
+  const isUsers  = mod === 'users';
+  const isRep    = mod === 'reputation';
+  const isGBP    = mod === 'google-business';
+  const isSim    = !isOTB && !isAgenda && !isUsers && !isRep && !isGBP;
   // Nav buttons
   document.getElementById('nav-simulator').classList.toggle('active', isSim);
   document.getElementById('nav-otb').classList.toggle('active', isOTB);
@@ -2703,27 +2863,30 @@ function switchModule(mod) {
   const navUsers = document.getElementById('nav-users');
   if (navUsers) navUsers.classList.toggle('active', isUsers);
   // Action bars
-  document.getElementById('action-bar-simulator').style.display = isSim ? '' : 'none';
-  document.getElementById('action-bar-otb').style.display       = isOTB ? '' : 'none';
+  document.getElementById('action-bar-simulator').style.display = isSim  ? '' : 'none';
+  document.getElementById('action-bar-otb').style.display       = isOTB  ? '' : 'none';
   const abarAgenda = document.getElementById('action-bar-agenda');
   if (abarAgenda) abarAgenda.style.display = isAgenda ? '' : 'none';
   const abarUsers = document.getElementById('action-bar-users');
   if (abarUsers) abarUsers.style.display = isUsers ? '' : 'none';
   // Modules
-  document.getElementById('module-simulator').style.display = isSim ? '' : 'none';
-  document.getElementById('module-otb').style.display       = isOTB ? '' : 'none';
+  document.getElementById('module-simulator').style.display = isSim   ? '' : 'none';
+  document.getElementById('module-otb').style.display       = isOTB   ? '' : 'none';
   const modAgenda = document.getElementById('module-agenda');
   if (modAgenda) modAgenda.style.display = isAgenda ? '' : 'none';
   const modUsers = document.getElementById('module-users');
   if (modUsers) modUsers.style.display = isUsers ? '' : 'none';
   const modRep = document.getElementById('module-reputation');
   if (modRep) modRep.style.display = isRep ? '' : 'none';
+  const modGBP = document.getElementById('module-google-business');
+  if (modGBP) modGBP.style.display = isGBP ? '' : 'none';
   // Init modules on first open
   const otbPage = document.getElementById('page-otb');
   if (isOTB && !otbPage._initialized) { initOTB(otbPage); otbPage._initialized = true; }
   if (isAgenda) initAgenda();
-  if (isUsers) initUsersModule();
-  if (isRep) repInit();
+  if (isUsers)  initUsersModule();
+  if (isRep)    repInit();
+  if (isGBP)    gbpInit();
   // Sidebar active state
   sidebarNavSetActive(mod);
   // Audit
@@ -8141,6 +8304,398 @@ function repShowToast(msg) {
 }
 // ═══════════════════════════════════════════════════════════════
 // END REPUTATION MODULE
+// ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// GOOGLE BUSINESS PROFILE MODULE — Fase 1 (conexión y lectura)
+// ═══════════════════════════════════════════════════════════════
+
+const GBP_PERMS = ['canManageGoogleBusiness', 'canViewGoogleBusinessReviews'];
+
+// Current GBP state (in-memory, not persisted — tokens live on the server)
+let _gbpStatus = null;
+let _gbpAccounts = [];
+let _gbpLocations = [];
+let _gbpReviews = [];
+let _gbpSelectedAccount = null;
+let _gbpSelectedLocation = null; // { id, name }
+let _gbpDiag = {};
+
+// ── Init ───────────────────────────────────────────────────────────────────
+
+function gbpInit() {
+  // Permission check
+  const allowed = GBP_PERMS.some(p => hasPermission(p));
+  document.getElementById('gbp-permission-denied').style.display = allowed ? 'none' : '';
+  if (!allowed) return;
+
+  // Check for OAuth callback params
+  const sp = new URLSearchParams(window.location.search);
+  if (sp.get('gbp_connected')) {
+    window.history.replaceState({}, '', window.location.pathname);
+    gbpShowToast('✅ Google Business Profile conectado correctamente');
+  }
+  const gbpErr = sp.get('gbp_error');
+  if (gbpErr) {
+    const friendlyErrors = {
+      no_refresh_token: 'No se recibió refresh token. Revisa la configuración OAuth (prompt=consent) y vuelve a autorizar.',
+      access_denied: 'Acceso denegado por el usuario.',
+    };
+    window.history.replaceState({}, '', window.location.pathname);
+    gbpShowError(friendlyErrors[decodeURIComponent(gbpErr)] ?? decodeURIComponent(gbpErr));
+  }
+
+  gbpLoadStatus();
+}
+
+// ── API helpers ────────────────────────────────────────────────────────────
+
+function gbpHeaders() {
+  if (!AUTH_SESSION) return {};
+  return {
+    'x-user-id':    AUTH_SESSION.userId,
+    'x-user-name':  AUTH_SESSION.userName,
+    'x-user-email': AUTH_SESSION.userEmail || '',
+  };
+}
+
+async function gbpApiFetch(path, opts = {}) {
+  const res = await fetch(path, { headers: gbpHeaders(), ...opts });
+  let data;
+  try { data = await res.json(); } catch { data = { error: 'parse_error' }; }
+  return { ok: res.ok, status: res.status, data };
+}
+
+// ── Status ─────────────────────────────────────────────────────────────────
+
+async function gbpLoadStatus() {
+  gbpRenderStatusLoading();
+  try {
+    const { data } = await gbpApiFetch('/api/google-business/status');
+    _gbpStatus = data;
+  } catch {
+    _gbpStatus = null;
+  }
+  gbpRenderStatus();
+  if (_gbpStatus && _gbpStatus.connected) {
+    document.getElementById('gbp-selectors').style.display = '';
+    gbpLoadAccounts();
+  } else {
+    document.getElementById('gbp-selectors').style.display = 'none';
+    document.getElementById('gbp-reviews-section').style.display = 'none';
+  }
+  gbpRenderDiagnostics();
+}
+
+function gbpRenderStatusLoading() {
+  const dot = document.getElementById('gbp-dot');
+  const label = document.getElementById('gbp-status-label');
+  dot.className = 'gbp-dot';
+  label.textContent = 'Verificando conexión...';
+  document.getElementById('gbp-connect-btn').style.display = 'none';
+  document.getElementById('gbp-disconnect-btn').style.display = 'none';
+}
+
+function gbpRenderStatus() {
+  const dot   = document.getElementById('gbp-dot');
+  const label = document.getElementById('gbp-status-label');
+  const emailEl = document.getElementById('gbp-status-email');
+  const metaEl  = document.getElementById('gbp-status-meta');
+  const connectBtn    = document.getElementById('gbp-connect-btn');
+  const disconnectBtn = document.getElementById('gbp-disconnect-btn');
+
+  const connected = _gbpStatus && _gbpStatus.connected;
+  dot.className = 'gbp-dot ' + (connected ? 'green' : (_gbpStatus ? 'red' : 'orange'));
+  label.textContent = connected ? 'Conectado' : 'No conectado';
+  emailEl.textContent = connected && _gbpStatus.connectedEmail ? '— ' + _gbpStatus.connectedEmail : '';
+  metaEl.innerHTML = connected
+    ? `<span>Desde: ${_gbpStatus.connectedAt ? new Date(_gbpStatus.connectedAt).toLocaleDateString('es-MX') : '—'}</span>
+       <span>Token: ${_gbpStatus.tokenStatus === 'active' ? '✅ Activo' : '⚠️ ' + (_gbpStatus.tokenStatus ?? '—')}</span>
+       <span>Scopes: ${(_gbpStatus.scopes ?? []).length}</span>`
+    : '';
+  connectBtn.style.display    = connected ? 'none' : '';
+  disconnectBtn.style.display = connected ? '' : 'none';
+}
+
+// ── Connect / Disconnect ───────────────────────────────────────────────────
+
+async function gbpConnect() {
+  if (!hasPermission('canManageGoogleBusiness')) {
+    gbpShowError('No tienes permisos para conectar Google Business Profile.');
+    return;
+  }
+  gbpAuditLocal('google_business_connect_started', 'info');
+  try {
+    const { ok, data } = await gbpApiFetch('/api/google-business/auth-url');
+    if (ok && data.url) {
+      window.location.href = data.url;
+    } else {
+      gbpShowError(data.error ?? 'No se pudo generar la URL de autorización. Verifica GOOGLE_CLIENT_ID y GOOGLE_REDIRECT_URI.');
+    }
+  } catch {
+    gbpShowError('Error de red al iniciar la conexión.');
+  }
+}
+
+async function gbpDisconnect() {
+  if (!confirm('¿Desconectar Google Business Profile? Se borrarán los tokens almacenados en el servidor.')) return;
+  await gbpApiFetch('/api/google-business/disconnect', { method: 'POST' });
+  gbpAuditLocal('google_business_disconnected', 'info');
+  _gbpStatus = null;
+  _gbpAccounts = [];
+  _gbpLocations = [];
+  _gbpReviews = [];
+  _gbpSelectedAccount = null;
+  _gbpSelectedLocation = null;
+  gbpLoadStatus();
+}
+
+// ── Accounts ───────────────────────────────────────────────────────────────
+
+async function gbpLoadAccounts() {
+  const sel = document.getElementById('gbp-account-select');
+  const msg = document.getElementById('gbp-accounts-msg');
+  sel.innerHTML = '<option value="">— Cargando cuentas... —</option>';
+  msg.textContent = '';
+  msg.className = 'gbp-selector-msg info';
+
+  try {
+    const { ok, data } = await gbpApiFetch('/api/google-business/accounts');
+    if (ok && data.accounts) {
+      _gbpAccounts = data.accounts;
+      gbpAuditLocal('google_business_accounts_loaded', 'success', { count: data.accounts.length });
+      sel.innerHTML = '<option value="">— Seleccionar cuenta —</option>' +
+        _gbpAccounts.map(a => `<option value="${a.accountId}">${a.accountName}</option>`).join('');
+      if (_gbpAccounts.length === 0) {
+        msg.textContent = 'No se encontraron cuentas de Google Business asociadas a este usuario.';
+        msg.className = 'gbp-selector-msg error';
+      }
+    } else {
+      const errMsg = gbpFriendlyError(data);
+      sel.innerHTML = '<option value="">— Error al cargar —</option>';
+      msg.textContent = errMsg;
+      msg.className = 'gbp-selector-msg error';
+      if (data.error === 'token_expired') gbpHandleTokenExpired();
+      gbpAuditLocal('google_business_token_error', 'error', { error: errMsg });
+    }
+  } catch {
+    sel.innerHTML = '<option value="">— Error de red —</option>';
+    msg.textContent = 'Error de red al cargar cuentas.';
+    msg.className = 'gbp-selector-msg error';
+  }
+  gbpRenderDiagnostics();
+}
+
+function gbpOnAccountChange() {
+  const sel = document.getElementById('gbp-account-select');
+  _gbpSelectedAccount = sel.value || null;
+  _gbpSelectedLocation = null;
+  _gbpLocations = [];
+  _gbpReviews = [];
+  const locGroup = document.getElementById('gbp-location-group');
+  document.getElementById('gbp-reviews-section').style.display = 'none';
+  if (_gbpSelectedAccount) {
+    locGroup.style.display = '';
+    gbpLoadLocations(_gbpSelectedAccount);
+  } else {
+    locGroup.style.display = 'none';
+  }
+}
+
+// ── Locations ──────────────────────────────────────────────────────────────
+
+async function gbpLoadLocations(accountId) {
+  const sel = document.getElementById('gbp-location-select');
+  const msg = document.getElementById('gbp-locations-msg');
+  sel.innerHTML = '<option value="">— Cargando ubicaciones... —</option>';
+  msg.textContent = '';
+
+  try {
+    const { ok, data } = await gbpApiFetch('/api/google-business/locations?accountId=' + encodeURIComponent(accountId));
+    if (ok && data.locations) {
+      _gbpLocations = data.locations;
+      gbpAuditLocal('google_business_locations_loaded', 'success', { count: data.locations.length });
+      sel.innerHTML = '<option value="">— Seleccionar ubicación —</option>' +
+        _gbpLocations.map(l => `<option value="${l.locationId}" data-name="${gbpEsc(l.locationName)}">${l.locationName}${l.address ? ' — ' + l.address : ''}</option>`).join('');
+      if (_gbpLocations.length === 0) {
+        msg.textContent = 'No se encontraron ubicaciones disponibles para esta cuenta.';
+        msg.className = 'gbp-selector-msg error';
+      }
+    } else {
+      const errMsg = gbpFriendlyError(data);
+      sel.innerHTML = '<option value="">— Error —</option>';
+      msg.textContent = errMsg;
+      msg.className = 'gbp-selector-msg error';
+      if (data.error === 'token_expired') gbpHandleTokenExpired();
+    }
+  } catch {
+    sel.innerHTML = '<option value="">— Error de red —</option>';
+    msg.textContent = 'Error de red al cargar ubicaciones.';
+    msg.className = 'gbp-selector-msg error';
+  }
+  gbpRenderDiagnostics();
+}
+
+function gbpOnLocationChange() {
+  const sel = document.getElementById('gbp-location-select');
+  const opt = sel.options[sel.selectedIndex];
+  if (!sel.value) { _gbpSelectedLocation = null; document.getElementById('gbp-reviews-section').style.display = 'none'; return; }
+  _gbpSelectedLocation = { id: sel.value, name: opt.dataset.name || sel.value };
+  gbpLoadReviews();
+}
+
+// ── Reviews ────────────────────────────────────────────────────────────────
+
+async function gbpLoadReviews() {
+  if (!_gbpSelectedLocation || !_gbpSelectedAccount) return;
+  const section = document.getElementById('gbp-reviews-section');
+  const tbody   = document.getElementById('gbp-reviews-tbody');
+  const msg     = document.getElementById('gbp-reviews-msg');
+  const countEl = document.getElementById('gbp-reviews-count');
+  const title   = document.getElementById('gbp-reviews-title');
+
+  section.style.display = '';
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:18px;color:var(--gray3);">Cargando reseñas...</td></tr>';
+  msg.textContent = '';
+  title.textContent = 'Reseñas — ' + _gbpSelectedLocation.name;
+  countEl.textContent = '';
+
+  const p = new URLSearchParams({
+    accountId: _gbpSelectedAccount,
+    locationId: _gbpSelectedLocation.id,
+    locationName: _gbpSelectedLocation.name,
+  });
+
+  try {
+    const { ok, data } = await gbpApiFetch('/api/google-business/reviews?' + p);
+    if (ok && data.reviews) {
+      _gbpReviews = data.reviews;
+      gbpAuditLocal('google_business_reviews_loaded', 'success', { count: data.reviews.length });
+      if (_gbpReviews.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:18px;color:var(--gray3);">No se encontraron reseñas para esta ubicación.</td></tr>';
+        countEl.textContent = '0 reseñas';
+      } else {
+        countEl.textContent = _gbpReviews.length + ' reseña' + (_gbpReviews.length > 1 ? 's' : '');
+        tbody.innerHTML = _gbpReviews.map(r => gbpReviewRow(r)).join('');
+      }
+    } else {
+      const errMsg = gbpFriendlyError(data);
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:18px;color:#c62828;">${gbpEsc(errMsg)}</td></tr>`;
+      if (data.error === 'token_expired') gbpHandleTokenExpired();
+      gbpAuditLocal('google_business_reviews_loaded', 'error', { error: errMsg });
+    }
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:18px;color:#c62828;">Error de red al cargar reseñas.</td></tr>';
+  }
+  gbpRenderDiagnostics();
+}
+
+function gbpReviewRow(r) {
+  const stars = { ONE:'★☆☆☆☆', TWO:'★★☆☆☆', THREE:'★★★☆☆', FOUR:'★★★★☆', FIVE:'★★★★★' };
+  const ratingClass = 'gbp-rating r' + (r.ratingNumeric || 0);
+  const dateStr = r.createTime ? new Date(r.createTime).toLocaleDateString('es-MX') : '—';
+  const replied = r.reviewReply && r.reviewReply.comment;
+  return `<tr>
+    <td>${dateStr}</td>
+    <td>${gbpEsc(r.locationName)}</td>
+    <td>${r.isAnonymous ? '<em>Anónimo</em>' : gbpEsc(r.reviewerName)}</td>
+    <td class="${ratingClass}">${stars[r.rating] ?? r.rating} (${r.ratingNumeric}/5)</td>
+    <td class="gbp-comment">${r.comment ? gbpEsc(r.comment) : '<em style="color:var(--gray3)">Sin comentario</em>'}</td>
+    <td class="gbp-reply">${replied ? gbpEsc(r.reviewReply.comment) : '<em style="color:var(--gray3)">Sin respuesta</em>'}</td>
+    <td><span class="gbp-status-badge ${replied ? 'responded' : 'pending'}">${replied ? 'Respondida' : 'Pendiente'}</span></td>
+  </tr>`;
+}
+
+// ── Diagnostics ────────────────────────────────────────────────────────────
+
+function gbpRenderDiagnostics() {
+  const panel = document.getElementById('gbp-diagnostics');
+  const table = document.getElementById('gbp-diag-table');
+  panel.style.display = '';
+
+  const connected = _gbpStatus && _gbpStatus.connected;
+  const rows = [
+    ['Estado de conexión', connected ? '✅ Conectado' : '❌ No conectado'],
+    ['Token', !_gbpStatus ? '— No verificado' : (_gbpStatus.tokenStatus === 'active' ? '✅ Activo' : '⚠️ ' + (_gbpStatus.tokenStatus ?? '—'))],
+    ['Correo conectado', (_gbpStatus && _gbpStatus.connectedEmail) || '—'],
+    ['Conectado desde', (_gbpStatus && _gbpStatus.connectedAt) ? new Date(_gbpStatus.connectedAt).toLocaleString('es-MX') : '—'],
+    ['Cuentas detectadas', String(_gbpAccounts.length)],
+    ['Ubicaciones detectadas', String(_gbpLocations.length)],
+    ['Reseñas cargadas', String(_gbpReviews.length)],
+    ['Verificado en', new Date().toLocaleString('es-MX')],
+  ];
+  table.innerHTML = rows.map(([l, v]) =>
+    `<tr><td class="gbp-diag-label">${l}</td><td class="gbp-diag-value">${v}</td></tr>`
+  ).join('');
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function gbpRefreshAll() {
+  _gbpAccounts = [];
+  _gbpLocations = [];
+  _gbpReviews = [];
+  _gbpSelectedAccount = null;
+  _gbpSelectedLocation = null;
+  gbpLoadStatus();
+}
+
+function gbpHandleTokenExpired() {
+  _gbpStatus = { connected: false, tokenStatus: 'expired', scopes: [] };
+  gbpRenderStatus();
+  document.getElementById('gbp-selectors').style.display = 'none';
+  document.getElementById('gbp-reviews-section').style.display = 'none';
+  gbpShowError('La conexión expiró. Vuelve a conectar Google Business Profile.');
+  gbpAuditLocal('google_business_token_error', 'error', { reason: 'expired' });
+}
+
+function gbpFriendlyError(data) {
+  if (!data) return 'Error desconocido.';
+  const map = {
+    no_connection:           'No hay conexión activa con Google Business Profile.',
+    token_expired:           'La conexión expiró. Vuelve a conectar Google Business Profile.',
+    insufficient_permissions:'Permisos insuficientes. Verifica que la cuenta tenga acceso a Google Business.',
+    unknown:                 data.message || 'Error inesperado.',
+  };
+  return map[data.error] ?? data.message ?? JSON.stringify(data);
+}
+
+function gbpEsc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function gbpShowToast(msg) {
+  const t = document.getElementById('toast');
+  if (t) { t.textContent = msg; t.className = 'toast show'; setTimeout(() => t.className = 'toast', 3000); }
+}
+
+function gbpShowError(msg) {
+  alert(msg);
+}
+
+// Lightweight audit log stored in localStorage (mirrors server-side audit)
+function gbpAuditLocal(action, status, metadata) {
+  if (!AUTH_SESSION) return;
+  const entry = {
+    action, status,
+    userId: AUTH_SESSION.userId,
+    userName: AUTH_SESSION.userName,
+    email: AUTH_SESSION.userEmail || '',
+    timestamp: new Date().toISOString(),
+    metadata: metadata || {},
+  };
+  try {
+    const key = 'rmd_gbp_audit';
+    const log = JSON.parse(localStorage.getItem(key) || '[]');
+    log.unshift(entry);
+    if (log.length > 200) log.splice(200);
+    localStorage.setItem(key, JSON.stringify(log));
+  } catch { /* storage full */ }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// END GOOGLE BUSINESS PROFILE MODULE
 // ═══════════════════════════════════════════════════════════════
 </script>
 
