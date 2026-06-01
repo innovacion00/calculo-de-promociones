@@ -45,8 +45,8 @@ export function sortItems(items: AgendaItem[], field: keyof AgendaItem | string,
       va = a.followUpDate || '9999';
       vb = b.followUpDate || '9999';
     } else {
-      va = ((a as Record<string, unknown>)[field] || '').toString().toLowerCase();
-      vb = ((b as Record<string, unknown>)[field] || '').toString().toLowerCase();
+      va = ((a as unknown as Record<string, unknown>)[field] || '').toString().toLowerCase();
+      vb = ((b as unknown as Record<string, unknown>)[field] || '').toString().toLowerCase();
     }
 
     if (va < vb) return dir === 'asc' ? -1 : 1;
