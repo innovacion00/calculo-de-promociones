@@ -1882,6 +1882,7 @@ const HOTELS = [
   'Hotel El Marques'
 ];
 let currentHotel = HOTELS[0];
+let currentRoomType = '';
 let currentChannelKey = '';
 const hotelBaseInputs = {};
 const hotelRoomNames  = {};
@@ -1906,6 +1907,77 @@ const HOTEL_MIN_RATES = {
   'Hotel Playa Salguero':  70000,
 };
 
+// ── ROOM TYPES & BASE RATES PER HOTEL ───────────────────────────────────────
+const HOTEL_ROOM_TYPES = {
+  'Hotel Madison Inn': [
+    {name:'Doble Estándar',base:200000},{name:'Superior con Terraza',base:210000},
+    {name:'Suite Business',base:240000},{name:'Ejecutiva Twin',base:260000},
+    {name:'Familiar Triple',base:320000},{name:'Familiar Cuádruple',base:380000},
+  ],
+  'Hotel Aixo Suites': [
+    {name:'Doble Ciudad',base:240000},{name:'Doble Mar',base:290000},
+    {name:'Cuádruple Ciudad',base:340000},{name:'Cuádruple Mar',base:390000},
+  ],
+  'Hotel Axis Inn': [
+    {name:'Doble',base:100000},{name:'Triple',base:160000},
+    {name:'Cuádruple',base:220000},{name:'Quíntuple',base:280000},
+  ],
+  'Hotel Rodadero Inn': [
+    {name:'Doble',base:110000},{name:'Triple',base:170000},{name:'Cuádruple',base:230000},
+  ],
+  'Hotel Abi Inn': [
+    {name:'Doble',base:200000},{name:'Triple',base:300000},
+    {name:'Cuádruple',base:380000},{name:'Quíntuple',base:420000},
+  ],
+  'Hotel Windsor House': [
+    {name:'Doble Superior',base:225000},{name:'Doble Twin',base:235000},
+    {name:'Junior Doble',base:250000},{name:'Triple',base:300000},
+  ],
+  'Hotel Boquilla Suites': [
+    {name:'Doble',base:92000},{name:'Cuádruple',base:238000},{name:'Séxtuple',base:338000},
+  ],
+  'Hotel Marina Suites': [
+    {name:'Doble Estándar',base:150000},{name:'Cuádruple Estándar',base:290000},
+  ],
+  'Hotel Avexi Suites': [
+    {name:'Doble Estándar',base:150000},{name:'Cuádruple Estándar',base:290000},
+  ],
+  'Hotel Azuan Suites': [
+    {name:'Doble Estándar',base:150000},{name:'Cuádruple Estándar',base:290000},
+  ],
+  'Hotel Sansiraka': [
+    {name:'Doble Estándar',base:136000},{name:'Doble Twin',base:150000},
+    {name:'Triple',base:196000},{name:'Cuádruple Estándar',base:256000},
+    {name:'Junior Suite',base:256000},{name:'Quíntuple',base:316000},
+  ],
+  'Hotel Playa Salguero': [
+    {name:'Doble',base:85000},{name:'Triple',base:145000},
+    {name:'Cuádruple',base:205000},{name:'Quíntuple',base:265000},
+  ],
+  'Hotel El Marques': [
+    {name:'Deluxe',base:600000},{name:'Junior Suite',base:750000},
+    {name:'Suite',base:900000},{name:'Familiar',base:1100000},
+  ],
+  'Hotel El Marqués': [
+    {name:'Deluxe',base:600000},{name:'Junior Suite',base:750000},
+    {name:'Suite',base:900000},{name:'Familiar',base:1100000},
+  ],
+};
+
+// ── HOTEL CAPACITIES (actual room count for OTB calculations) ────────────────
+const HOTEL_CAPACITIES = {
+  'Hotel Madison Inn':60,'Hotel Windsor House':120,'Hotel Aixo Suites':60,
+  'Hotel Abi Inn':35,'Hotel Boquilla Suites':33,'Hotel Marina Suites':45,
+  'Hotel Azuan Suites':33,'Hotel Avexi Suites':44,'Hotel El Marques':9,
+  'Hotel El Marqués':9,'Hotel Playa Salguero':54,'Hotel Sansiraka':62,
+  'Hotel Axis Inn':88,'Hotel Rodadero Inn':39,
+};
+
+// Returns composite key: hotel + room type (for independent per-room config)
+function getRoomKey() {
+  return currentHotel + (currentRoomType ? '||' + currentRoomType : '');
+}
+
 // ── NAME OVERRIDES (persisted globally across all hotels) ────────────────────
 const labelOverrides = {}; // {`${secId}_rows_${ri}` | `${secId}_rowsSin_${ri}` | ...: string}
 const titleOverrides = {}; // {secId: string}
@@ -1920,19 +1992,23 @@ function applySteps(base, discounts) {
 }
 
 function getPlanPct(sec, rowIdx, defaultPct) {
-  return hotelPlanPcts[currentHotel]?.[sec._id+'_'+rowIdx] ?? defaultPct;
+  const k = getRoomKey();
+  return hotelPlanPcts[k]?.[sec._id+'_'+rowIdx] ?? hotelPlanPcts[currentHotel]?.[sec._id+'_'+rowIdx] ?? defaultPct;
 }
 function setPlanPct(sec, rowIdx, pct) {
-  if (!hotelPlanPcts[currentHotel]) hotelPlanPcts[currentHotel] = {};
-  hotelPlanPcts[currentHotel][sec._id+'_'+rowIdx] = pct;
+  const k = getRoomKey();
+  if (!hotelPlanPcts[k]) hotelPlanPcts[k] = {};
+  hotelPlanPcts[k][sec._id+'_'+rowIdx] = pct;
 }
 
 function getPaisPct(sec) {
-  return hotelPaisPcts[currentHotel]?.[sec._id] ?? 5;
+  const k = getRoomKey();
+  return hotelPaisPcts[k]?.[sec._id] ?? hotelPaisPcts[currentHotel]?.[sec._id] ?? 5;
 }
 function setPaisPct(sec, pct) {
-  if (!hotelPaisPcts[currentHotel]) hotelPaisPcts[currentHotel] = {};
-  hotelPaisPcts[currentHotel][sec._id] = pct;
+  const k = getRoomKey();
+  if (!hotelPaisPcts[k]) hotelPaisPcts[k] = {};
+  hotelPaisPcts[k][sec._id] = pct;
 }
 
 function effectiveDiscounts(row, promoDisc, sec, rowIdx) {
@@ -1961,12 +2037,13 @@ function copyValue(val) {
 
 function getPromoVal(sec) {
   if (!sec._promoVals) sec._promoVals = {};
-  if (sec._promoVals[currentHotel] === undefined) sec._promoVals[currentHotel] = sec.promoDefault;
-  return sec._promoVals[currentHotel];
+  const k = getRoomKey();
+  if (sec._promoVals[k] === undefined) sec._promoVals[k] = sec._promoVals[currentHotel] ?? sec.promoDefault;
+  return sec._promoVals[k];
 }
 function setPromoVal(sec, v) {
   if (!sec._promoVals) sec._promoVals = {};
-  sec._promoVals[currentHotel] = v;
+  sec._promoVals[getRoomKey()] = v;
 }
 
 // ── CHANNEL PLAN ROW HELPERS ─────────────────────────────────────────────────
@@ -2516,7 +2593,7 @@ function buildSectionCard(ch, sec, baseRates, hotel) {
   const hasPais = (sec.rows||[]).some(r=>r.promoAdd);
   if (hasPais) {
     const paisCtrl = document.createElement('div'); paisCtrl.className='promo-ctrl';
-    paisCtrl.innerHTML = `<label>MEMBERS %</label><input type="number" class="promo-input" value="${getPaisPct(sec)}" min="0" max="100" step="1"><span class="promo-pct">%</span>`;
+    paisCtrl.innerHTML = `<label>${currentChannelKey === 'expedia' ? 'MEMBERS %' : 'PAÍS %'}</label><input type="number" class="promo-input" value="${getPaisPct(sec)}" min="0" max="100" step="1"><span class="promo-pct">%</span>`;
     hdr.appendChild(paisCtrl);
     const paisIn = paisCtrl.querySelector('input');
     paisIn.addEventListener('change', ()=>{
@@ -2593,12 +2670,14 @@ function buildChannelPage(ch) {
     <div class="input-bar">
       <div class="input-group">
         <label>Tipo de habitación</label>
-        <input type="text" id="room-${ch.key}" value="Doble Estándar" placeholder="Ej: Suite Deluxe">
+        <select id="room-${ch.key}" style="padding:6px 10px;border:1px solid var(--gold-border);border-radius:8px;background:var(--gold-pale);color:var(--text-dark);font-size:.82rem;cursor:pointer;min-width:160px">
+          ${(HOTEL_ROOM_TYPES[currentHotel]||[]).map(rt=>`<option value="${rt.name}"${currentRoomType===rt.name?' selected':''}>${rt.name}</option>`).join('')}
+        </select>
       </div>
       <div class="input-divider"></div>
       <div class="input-group">
         <label>Tarifa base mínima por noche</label>
-        <input type="number" id="inp-${ch.key}" value="240000" min="0" step="1000">
+        <input type="number" id="inp-${ch.key}" value="${(()=>{const r=HOTEL_ROOM_TYPES[currentHotel];const rt=r&&r.find(x=>x.name===currentRoomType);const rk=getRoomKey();return (hotelBaseInputs[rk]||{})[ch.key]!==undefined?(hotelBaseInputs[rk]||{})[ch.key]:(rt?rt.base:240000);})()}" min="0" step="1000">
       </div>
       <div class="input-group">
         <label>Comisión del canal</label>
@@ -2638,9 +2717,15 @@ function buildChannelPage(ch) {
 function renderSections(ch) {
   const inp = document.getElementById('inp-'+ch.key);
   if (!inp) return;
+  // Sync currentRoomType from the SELECT
+  const roomSel = document.getElementById('room-'+ch.key);
+  if (roomSel && roomSel.tagName === 'SELECT') {
+    currentRoomType = roomSel.value || '';
+  }
   const inputVal = parseFloat(inp.value)||0;
-  hotelBaseInputs[currentHotel] = hotelBaseInputs[currentHotel]||{};
-  hotelBaseInputs[currentHotel][ch.key] = inputVal;
+  const rk = getRoomKey();
+  hotelBaseInputs[rk] = hotelBaseInputs[rk]||{};
+  hotelBaseInputs[rk][ch.key] = inputVal;
 
   const commission = ch._commission !== undefined ? ch._commission : ch.commission;
   const baseRates = getBaseRates(ch, inputVal);
@@ -2702,17 +2787,29 @@ function closeSidebar() {
 function switchHotel(name) {
   const _prevHotel = currentHotel;
   currentHotel = name;
+  // Reset to first room type for new hotel
+  const rooms = HOTEL_ROOM_TYPES[name] || [];
+  currentRoomType = rooms.length > 0 ? rooms[0].name : '';
   authSyncHotel(name);
   if (AUTH_SESSION) authWriteAudit('switch_hotel', AUTH_SESSION.userId, AUTH_SESSION.userName, name, _prevHotel, name);
   document.querySelectorAll('.hotel-item').forEach(b=>b.classList.toggle('active', b.dataset.hotel===name));
   document.getElementById('hotel-badge').textContent = name;
   closeSidebar();
-  // Load saved inputs for this hotel, re-render active channel
+  // Load saved inputs for this hotel+room, re-render active channel
   const ch = CHANNELS.find(c=>c.key===currentChannelKey);
   if (ch) {
-    const saved = (hotelBaseInputs[name]||{})[ch.key];
+    // Update room SELECT options for new hotel
+    const roomSel = document.getElementById('room-'+ch.key);
+    if (roomSel && roomSel.tagName === 'SELECT') {
+      roomSel.innerHTML = rooms.map(rt=>`<option value="${rt.name}">${rt.name}</option>`).join('');
+      if (currentRoomType) roomSel.value = currentRoomType;
+    }
+    // Load saved base rate for this hotel+room+channel, or use room default
+    const rk = getRoomKey();
+    const savedBase = (hotelBaseInputs[rk]||{})[ch.key];
+    const defaultBase = rooms[0] ? rooms[0].base : ((hotelBaseInputs[name]||{})[ch.key] || 240000);
     const inp = document.getElementById('inp-'+ch.key);
-    if (inp && saved!==undefined) inp.value = saved;
+    if (inp) inp.value = savedBase !== undefined ? savedBase : defaultBase;
     renderSections(ch);
   }
 }
@@ -2732,7 +2829,19 @@ function addTh(parent,text,style,colArr,colIdx){
 function addTd(parent,text,cls){const td=document.createElement('td');td.textContent=text;if(cls)td.className=cls;parent.appendChild(td);return td;}
 
 function init() {
-  HOTELS.forEach(h=>{hotelBaseInputs[h]={};CHANNELS.forEach(c=>{hotelBaseInputs[h][c.key]=240000;});});
+  // Set initial room type for first hotel
+  const initRooms = HOTEL_ROOM_TYPES[HOTELS[0]] || [];
+  currentRoomType = initRooms.length > 0 ? initRooms[0].name : '';
+  // Initialize base inputs: hotel-level (backward compat) and first-room level
+  HOTELS.forEach(h=>{
+    hotelBaseInputs[h]={};
+    CHANNELS.forEach(c=>{hotelBaseInputs[h][c.key]=240000;});
+    const hRooms = HOTEL_ROOM_TYPES[h] || [];
+    hRooms.forEach(rt=>{
+      const rk = h+'||'+rt.name;
+      if (!hotelBaseInputs[rk]) { hotelBaseInputs[rk]={}; CHANNELS.forEach(c=>{hotelBaseInputs[rk][c.key]=rt.base;}); }
+    });
+  });
 
   // Hotel sidebar list
   const hotelList = document.getElementById('hotel-list');
@@ -2767,6 +2876,25 @@ function init() {
 
     // Wire inputs
     document.getElementById('inp-'+ch.key).addEventListener('input',()=>renderSections(ch));
+    const roomSelEl = document.getElementById('room-'+ch.key);
+    if (roomSelEl && roomSelEl.tagName === 'SELECT') {
+      roomSelEl.addEventListener('change', () => {
+        currentRoomType = roomSelEl.value || '';
+        // Pre-fill base rate from room type default if no saved value
+        const rk = getRoomKey();
+        const savedBase = (hotelBaseInputs[rk]||{})[ch.key];
+        if (savedBase === undefined) {
+          const rooms = HOTEL_ROOM_TYPES[currentHotel] || [];
+          const room = rooms.find(r=>r.name===currentRoomType);
+          const inp2 = document.getElementById('inp-'+ch.key);
+          if (inp2 && room) inp2.value = room.base;
+        } else {
+          const inp2 = document.getElementById('inp-'+ch.key);
+          if (inp2) inp2.value = savedBase;
+        }
+        renderSections(ch);
+      });
+    }
     document.getElementById('com-'+ch.key).addEventListener('input',e=>{
       ch._commission=(parseFloat(e.target.value)||0)/100;
       renderSections(ch);
@@ -2786,6 +2914,15 @@ function init() {
   });
 
   currentChannelKey = CHANNELS[0].key;
+  // Pre-fill base rate input with first room type's base rate
+  const firstRooms = HOTEL_ROOM_TYPES[HOTELS[0]] || [];
+  if (firstRooms.length > 0) {
+    const firstInp = document.getElementById('inp-'+CHANNELS[0].key);
+    if (firstInp) {
+      const rk0 = HOTELS[0]+'||'+firstRooms[0].name;
+      firstInp.value = (hotelBaseInputs[rk0]||{})[CHANNELS[0].key] || firstRooms[0].base;
+    }
+  }
   renderSections(CHANNELS[0]);
   document.getElementById('hotel-badge').textContent = HOTELS[0];
 
@@ -2966,24 +3103,27 @@ function pcfgRenderTabs() {
 }
 
 function pcfgPromoStatus(sec) {
-  const saved = pcfgSavedPerHotel[currentHotel];
+  const rk = getRoomKey();
+  const saved = pcfgSavedPerHotel[rk] || pcfgSavedPerHotel[currentHotel];
   const cur = getPromoVal(sec);
   if (!saved || saved.promoValsMap?.[sec._id] === undefined) return 'inherited';
   return saved.promoValsMap[sec._id] === cur ? 'saved' : 'pending';
 }
 
 function pcfgPlanStatus(sec, rowIdx) {
-  const cur = hotelPlanPcts[currentHotel]?.[sec._id+'_'+rowIdx];
+  const rk = getRoomKey();
+  const cur = hotelPlanPcts[rk]?.[sec._id+'_'+rowIdx];
   if (cur === undefined) return 'inherited';
-  const saved = pcfgSavedPerHotel[currentHotel];
+  const saved = pcfgSavedPerHotel[rk] || pcfgSavedPerHotel[currentHotel];
   if (!saved) return 'pending';
   return saved.planPcts?.[sec._id+'_'+rowIdx] === cur ? 'saved' : 'pending';
 }
 
 function pcfgPaisStatus(sec) {
-  const cur = hotelPaisPcts[currentHotel]?.[sec._id];
+  const rk = getRoomKey();
+  const cur = hotelPaisPcts[rk]?.[sec._id];
   if (cur === undefined) return 'inherited';
-  const saved = pcfgSavedPerHotel[currentHotel];
+  const saved = pcfgSavedPerHotel[rk] || pcfgSavedPerHotel[currentHotel];
   if (!saved) return 'pending';
   return saved.paisPcts?.[sec._id] === cur ? 'saved' : 'pending';
 }
@@ -3117,20 +3257,21 @@ function pcfgRenderChannel(ch) {
   });
 }
 
-function pcfgSnapshotHotel(hotel) {
+function pcfgSnapshotHotel(key) {
   const promoValsMap = {};
   CHANNELS.forEach(ch => ch.sections.forEach(sec => {
-    if (sec._promoVals?.[hotel] !== undefined) promoValsMap[sec._id] = sec._promoVals[hotel];
+    if (sec._promoVals?.[key] !== undefined) promoValsMap[sec._id] = sec._promoVals[key];
   }));
   return {
     promoValsMap,
-    planPcts: JSON.parse(JSON.stringify(hotelPlanPcts[hotel] || {})),
-    paisPcts: JSON.parse(JSON.stringify(hotelPaisPcts[hotel] || {}))
+    planPcts: JSON.parse(JSON.stringify(hotelPlanPcts[key] || {})),
+    paisPcts: JSON.parse(JSON.stringify(hotelPaisPcts[key] || {}))
   };
 }
 
 function pcfgSaveHotel() {
-  pcfgSavedPerHotel[currentHotel] = pcfgSnapshotHotel(currentHotel);
+  const rk = getRoomKey();
+  pcfgSavedPerHotel[rk] = pcfgSnapshotHotel(rk);
   localStorage.setItem('rmd_state', getFullState());
   if (pcfgActiveChannel) pcfgRenderChannel(pcfgActiveChannel);
   const ts = new Date().toLocaleTimeString('es-CO');
@@ -3139,7 +3280,8 @@ function pcfgSaveHotel() {
 }
 
 function pcfgRestoreHotel() {
-  const saved = pcfgSavedPerHotel[currentHotel];
+  const rk = getRoomKey();
+  const saved = pcfgSavedPerHotel[rk] || pcfgSavedPerHotel[currentHotel];
   if (!saved) {
     const snap = localStorage.getItem('rmd_state');
     if (!snap) { alert('No hay configuración guardada para este hotel.'); return; }
@@ -3148,11 +3290,11 @@ function pcfgRestoreHotel() {
     CHANNELS.forEach(ch => ch.sections.forEach(sec => {
       if (saved.promoValsMap[sec._id] !== undefined) {
         if (!sec._promoVals) sec._promoVals = {};
-        sec._promoVals[currentHotel] = saved.promoValsMap[sec._id];
+        sec._promoVals[rk] = saved.promoValsMap[sec._id];
       }
     }));
-    hotelPlanPcts[currentHotel] = JSON.parse(JSON.stringify(saved.planPcts));
-    hotelPaisPcts[currentHotel] = JSON.parse(JSON.stringify(saved.paisPcts));
+    hotelPlanPcts[rk] = JSON.parse(JSON.stringify(saved.planPcts));
+    hotelPaisPcts[rk] = JSON.parse(JSON.stringify(saved.paisPcts));
   }
   if (pcfgActiveChannel) pcfgRenderChannel(pcfgActiveChannel);
   const ac = CHANNELS.find(c=>c.key===currentChannelKey);
@@ -4114,6 +4256,7 @@ function parseForecastExcel(file, side) {
       var totalFechaCount = 0;
       var warnings = [];
       var minDate = null, maxDate = null;
+      var lastDateStr = null; // carry-forward: many reports only print date on first sub-row
 
       for (var ri = headerIdx + 1; ri < aoa.length; ri++) {
         var r = aoa[ri];
@@ -4139,6 +4282,8 @@ function parseForecastExcel(file, side) {
             var p2 = s.split('-'); dateStr = p2[2]+'-'+p2[1].padStart(2,'0')+'-'+p2[0].padStart(2,'0');
           }
         }
+        // Carry forward date from previous row (e.g. rptForecastNew prints date only on first sub-row)
+        if (dateStr) { lastDateStr = dateStr; } else { dateStr = lastDateStr; }
         if (!dateStr) continue;
 
         var totales   = num(r[colIdx.totales]);
@@ -4237,12 +4382,18 @@ function parseForecastExcel(file, side) {
       OTB_STATE[side+'Headers'] = null; // not needed for Excel
       OTB_STATE[side+'Mapping'] = null;
 
-      // Auto-fill inventory from Totales if consistent
-      var totalesVals = rows.map(function(r){ return r.totales; }).filter(function(v){ return v !== null; });
-      if (totalesVals.length) {
-        var maxTot = Math.max.apply(null, totalesVals);
-        if (!OTB_STATE.inventory && maxTot > 0 && maxTot < 5000) {
-          OTB_STATE.inventory = Math.round(maxTot);
+      // Use hotel capacity from HOTEL_CAPACITIES if available (more reliable than Excel Totales)
+      var hotelCap = typeof HOTEL_CAPACITIES !== 'undefined' ? (HOTEL_CAPACITIES[currentHotel] || 0) : 0;
+      if (hotelCap > 0) {
+        OTB_STATE.inventory = hotelCap;
+      } else {
+        // Auto-fill inventory from Totales if consistent
+        var totalesVals = rows.map(function(r){ return r.totales; }).filter(function(v){ return v !== null; });
+        if (totalesVals.length) {
+          var maxTot = Math.max.apply(null, totalesVals);
+          if (!OTB_STATE.inventory && maxTot > 0 && maxTot < 5000) {
+            OTB_STATE.inventory = Math.round(maxTot);
+          }
         }
       }
 
