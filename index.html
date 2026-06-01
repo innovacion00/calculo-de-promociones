@@ -1302,10 +1302,10 @@ const ROLE_LABELS = {
 const DEFAULT_ROLE_PERMISSIONS = {
   master_admin: MASTER_USER.permissions,
   admin: ['canViewDashboard','canViewAllHotels','canEditRateSimulator','canEditPromotions','canEditBookingConfig','canEditOtb','canUploadOtbFiles','canCreateNotes','canEditOwnNotes','canEditAllNotes','canDeleteNotes','canExportReports','canManageAgenda','canViewAuditLog','canManageGoogleBusiness','canViewGoogleBusinessReviews'],
-  revenue_manager: ['canViewDashboard','canEditRateSimulator','canEditPromotions','canEditBookingConfig','canEditOtb','canUploadOtbFiles','canCreateNotes','canEditOwnNotes','canExportReports','canManageAgenda','canViewGoogleBusinessReviews'],
-  revenue_assistant: ['canViewDashboard','canCreateNotes','canEditOwnNotes','canEditOtb','canManageAgenda'],
-  operations: ['canViewDashboard','canCreateNotes','canEditOwnNotes','canManageAgenda'],
-  viewer: ['canViewDashboard']
+  revenue_manager: ['canViewDashboard','canViewAllHotels','canEditRateSimulator','canEditPromotions','canEditBookingConfig','canEditOtb','canUploadOtbFiles','canCreateNotes','canEditOwnNotes','canExportReports','canManageAgenda','canViewGoogleBusinessReviews'],
+  revenue_assistant: ['canViewDashboard','canViewAllHotels','canCreateNotes','canEditOwnNotes','canEditOtb','canManageAgenda'],
+  operations: ['canViewDashboard','canViewAllHotels','canCreateNotes','canEditOwnNotes','canManageAgenda'],
+  viewer: ['canViewDashboard','canViewAllHotels']
 };
 
 // ── SESSION ────────────────────────────────────────────────────
@@ -1443,8 +1443,8 @@ function _buildSession(user, provider) {
   const session = {
     userId: user.id, userName: user.name, email: user.email,
     role: user.role, permissions: user.permissions || DEFAULT_ROLE_PERMISSIONS[user.role] || [],
-    hotelAccess: user.hotelAccess || [],
-    activeHotelId: (user.hotelAccess && user.hotelAccess.length > 0) ? user.hotelAccess[0] : null,
+    hotelAccess: [],  // vacío = todos los hoteles para todos los usuarios
+    activeHotelId: null,
     authProvider: provider,
     createdAt: now, lastActivityAt: now,
     expiresAt: new Date(Date.now() + SESSION_INACTIVITY_HOURS * 3600000).toISOString()
