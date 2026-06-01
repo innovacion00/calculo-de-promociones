@@ -1853,7 +1853,10 @@ async function initAuth() {
     authWriteAudit('session_restored', session.userId, session.userName, session.activeHotelId, null, null);
     showDashboard();
   } else {
-    showLogin();
+    // ACCESO DIRECTO TEMPORAL — login desactivado mientras se migra a base de datos compartida
+    AUTH_SESSION = _buildSession(MASTER_USER, 'email');
+    authSaveSession(AUTH_SESSION);
+    showDashboard();
   }
 }
 
