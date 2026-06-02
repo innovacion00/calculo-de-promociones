@@ -16,22 +16,38 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Correo y contraseña son requeridos.' }, { status: 400 });
   }
 
-  const user = await findByEmail(email).catch(() => null);
+  console.log(`[login] intento: ${email}`);
 
-  // Generic error to avoid user enumeration
-  const invalidMsg = 'Correo o contraseña incorrectos.';
+  let user;
+  try {
+    user = await findByEmail(email);
+  } catch (e) {
+    console.error(`[login] error al buscar usuario: ${e}`);
+    return NextResponse.json({ ok: false, error: 'Error de base de datos.' }, { status: 500 });
+  }
 
   if (!user) {
-    return NextResponse.json({ ok: false, error: invalidMsg }, { status: 401 });
+    console.warn(`[login] usuario no encontrado: ${email}`);
+    return NextResponse.json({ ok: false, error: 'Correo o contraseña incorrectos.' }, { status: 401 });
   }
+
+  console.log(`[login] usuario encontrado: ${user.id} | estado: ${user.status} | hashType: ${user.passwordHash?.slice(0, 10)}`);
+
   if (user.status === 'inactive') {
+    console.warn(`[login] usuario inactivo: ${email}`);
     return NextResponse.json({ ok: false, error: 'Usuario desactivado. Contacte al administrador.' }, { status: 403 });
   }
+
   if (user.allowedProviders.length > 0 && !user.allowedProviders.includes('email')) {
+    console.warn(`[login] proveedor no permitido para: ${email}`);
     return NextResponse.json({ ok: false, error: 'Este usuario no puede iniciar sesión con contraseña. Use Google Sign-In.' }, { status: 403 });
   }
-  if (!verifyPassword(password, user.passwordHash)) {
-    return NextResponse.json({ ok: false, error: invalidMsg }, { status: 401 });
+
+  const passwordOk = verifyPassword(password, user.passwordHash);
+  console.log(`[login] verificación de contraseña: ${passwordOk ? '✅ correcta' : '❌ incorrecta'}`);
+
+  if (!passwordOk) {
+    return NextResponse.json({ ok: false, error: 'Correo o contraseña incorrectos.' }, { status: 401 });
   }
 
   const now = new Date().toISOString();
@@ -54,5 +70,6 @@ export async function POST(req: NextRequest) {
   await setSession(session);
   await updateUser(user.id, { lastLoginAt: now, authProvider: 'email' });
 
+  console.log(`[login] ✅ sesión creada para: ${user.email} (${user.role})`);
   return NextResponse.json({ ok: true, session, user: toPublicUser(user) });
 }
