@@ -15,10 +15,10 @@ import type { GoogleBusinessReview } from '../../types/googleBusiness';
  * Throws if no tokens are stored or refresh fails.
  */
 export async function getValidAccessToken(userId: string): Promise<string> {
-  const tokens = getTokens(userId);
+  const tokens = await getTokens(userId);
   if (!tokens) throw new Error('NOT_CONNECTED');
 
-  if (!isTokenExpired(userId)) return tokens.accessToken;
+  if (!(await isTokenExpired(userId))) return tokens.accessToken;
 
   if (!tokens.refreshToken) throw new Error('TOKEN_EXPIRED_NO_REFRESH');
 
@@ -29,7 +29,7 @@ export async function getValidAccessToken(userId: string): Promise<string> {
       accessToken: refreshed.access_token,
       expiresAt: Date.now() + refreshed.expires_in * 1000,
     };
-    saveTokens(userId, updated);
+    await saveTokens(userId, updated);
     return updated.accessToken;
   } catch {
     throw new Error('TOKEN_REFRESH_FAILED');

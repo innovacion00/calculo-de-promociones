@@ -37,6 +37,9 @@ export async function GET(req: NextRequest) {
     if (msg.includes('INSUFFICIENT_PERMISSIONS')) {
       return NextResponse.json({ error: 'insufficient_permissions', message: 'Permisos insuficientes. Verifica la configuración OAuth.' }, { status: 403 });
     }
+    if (msg.includes('QUOTA_EXCEEDED')) {
+      return NextResponse.json({ error: 'quota_exceeded', message: 'Cuota de API excedida. Espera un minuto e intenta de nuevo.' }, { status: 429 });
+    }
     return NextResponse.json({ error: 'unknown', message: `Error al cargar cuentas: ${msg}` }, { status: 500 });
   }
 }

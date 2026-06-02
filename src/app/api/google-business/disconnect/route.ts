@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 
   if (!userId) return NextResponse.json({ error: 'Missing x-user-id header' }, { status: 400 });
 
-  deleteTokens(userId);
+  await deleteTokens(userId);
 
   logGBPEvent('google_business_disconnected', {
     userId, userName, email: userEmail, status: 'info',

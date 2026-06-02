@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
 
     const idClaims = tokens.id_token ? decodeIdToken(tokens.id_token) : {};
 
-    saveTokens(userId, {
+    await saveTokens(userId, {
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token,
       expiresAt: Date.now() + tokens.expires_in * 1000,

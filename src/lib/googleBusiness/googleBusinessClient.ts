@@ -20,10 +20,18 @@ const STAR_TO_NUM: Record<string, number> = {
   ONE: 1, TWO: 2, THREE: 3, FOUR: 4, FIVE: 5,
 };
 
-async function gbpFetch<T>(url: string, accessToken: string): Promise<T> {
+async function gbpFetch<T>(url: string, accessToken: string, attempt = 0): Promise<T> {
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
+
+  if (res.status === 429) {
+    if (attempt >= 3) throw new Error('QUOTA_EXCEEDED');
+    const retryAfter = parseInt(res.headers.get('Retry-After') ?? '10', 10);
+    const wait = Math.max(retryAfter, 5 + attempt * 5) * 1000;
+    await new Promise(r => setTimeout(r, wait));
+    return gbpFetch(url, accessToken, attempt + 1);
+  }
 
   if (res.status === 401) throw new Error('TOKEN_EXPIRED');
   if (res.status === 403) throw new Error('INSUFFICIENT_PERMISSIONS');

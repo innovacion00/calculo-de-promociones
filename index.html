@@ -59,7 +59,7 @@
   .channel-tab.active{color:var(--gold);border-bottom-color:var(--gold);background:var(--gold-subtle);}
 
   /* CONTENT */
-  .content{padding:20px 24px;max-width:1600px;margin:0 auto;}
+  .content{padding:20px 24px;}
   .channel-page{display:none;}
   .channel-page.active{display:block;}
 
@@ -680,8 +680,8 @@
 /* Selectors */
 .gbp-selectors { display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end; }
 .gbp-selector-group { display:flex;flex-direction:column;gap:5px;min-width:240px; }
-.gbp-label { font-size:.78rem;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px; }
-.gbp-select { padding:7px 10px;border:1.5px solid var(--gold-border);border-radius:7px;font-size:.88rem;background:#fff;color:var(--gray1);cursor:pointer;min-width:220px; }
+.gbp-label { font-size:.78rem;font-weight:700;color:var;text-transform:uppercase;letter-spacing:.5px; }
+.gbp-select { padding:7px 10px;border:1.5px solid var(--gold-border);border-radius:7px;font-size:.88rem;background:#fff;color:var;cursor:pointer;min-width:220px; }
 .gbp-selector-msg { font-size:.8rem;min-height:18px; }
 .gbp-selector-msg.error { color:#c62828; }
 .gbp-selector-msg.info { color:var(--gray3); }
@@ -711,8 +711,8 @@
 .gbp-diag-table { width:100%;border-collapse:collapse;font-size:.8rem; }
 .gbp-diag-table tr { border-bottom:1px solid #f0e8cc; }
 .gbp-diag-table tr:last-child { border-bottom:none; }
-.gbp-diag-label { padding:6px 10px 6px 0;font-weight:700;color:var(--gray2);width:50%;white-space:nowrap; }
-.gbp-diag-value { padding:6px 0;color:var(--gray1); }
+.gbp-diag-label { padding:6px 10px 6px 0;font-weight:700;color:black;width:50%;white-space:nowrap; }
+.gbp-diag-value { padding:6px 0;color:var; }
 .gbp-diag-error { color:#c62828; }
 /* ── END GOOGLE BUSINESS MODULE ───────────────────────────────────────────── */
 
@@ -1129,6 +1129,7 @@
       <div class="gbp-reviews-header">
         <h3 id="gbp-reviews-title">Reseñas</h3>
         <span class="gbp-reviews-count" id="gbp-reviews-count"></span>
+        <button id="gbp-sync-btn" onclick="gbpSyncToReputation()" style="display:none;margin-left:14px;padding:7px 16px;background:linear-gradient(135deg,#f0a500,#c8860a);color:#fff;border:none;border-radius:7px;cursor:pointer;font-weight:700;font-size:.83rem;letter-spacing:.3px;">🔄 Sincronizar con Reputación IA</button>
       </div>
       <div id="gbp-reviews-msg" class="gbp-selector-msg"></div>
       <div class="gbp-table-wrapper" id="gbp-table-wrapper">
@@ -1463,6 +1464,7 @@ function authLogout(reason) {
   }
   AUTH_SESSION = null;
   localStorage.removeItem(AUTH_STORAGE_KEY);
+  fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
   showLogin(reason === 'session_expired_inactivity' ? 'Tu sesión se cerró por inactividad. Inicia sesión nuevamente para continuar.' : null);
 }
 
@@ -1823,21 +1825,38 @@ function updateHotelSelectorForUser() {
   }
 }
 
-function handleLoginSubmit(e) {
+async function handleLoginSubmit(e) {
   if (e) e.preventDefault();
   const email = document.getElementById('login-email')?.value || '';
   const password = document.getElementById('login-password')?.value || '';
   if (!email || !password) { showAuthError('Ingrese correo y contraseña.'); return; }
-  const result = authLogin(email, password);
-  if (result.ok) {
-    clearAuthError();
-    if (result.session.activeHotelId && typeof HOTELS !== 'undefined') {
-      const h = HOTELS.find(x => x === result.session.activeHotelId);
-      if (h) currentHotel = h;
+
+  const btn = document.querySelector('#auth-overlay .auth-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Iniciando sesión...'; }
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      clearAuthError();
+      AUTH_SESSION = data.session;
+      authSaveSession(data.session);
+      if (data.session.activeHotelId && typeof HOTELS !== 'undefined') {
+        const h = HOTELS.find(x => x === data.session.activeHotelId);
+        if (h) currentHotel = h;
+      }
+      showDashboard();
+    } else {
+      showAuthError(data.error || 'Error al iniciar sesión.');
     }
-    showDashboard();
-  } else {
-    showAuthError(result.error);
+  } catch {
+    showAuthError('Error de conexión. Verifica tu red e intenta de nuevo.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Iniciar sesión'; }
   }
 }
 
@@ -1855,10 +1874,7 @@ async function initAuth() {
     authWriteAudit('session_restored', session.userId, session.userName, session.activeHotelId, null, null);
     showDashboard();
   } else {
-    // ACCESO DIRECTO TEMPORAL — login desactivado mientras se migra a base de datos compartida
-    AUTH_SESSION = _buildSession(MASTER_USER, 'email');
-    authSaveSession(AUTH_SESSION);
-    showDashboard();
+    showLogin();
   }
 }
 
@@ -7203,7 +7219,19 @@ function initUsersModule() {
   usersRenderPage();
 }
 
-function usersRenderPage() {
+let _usersCache = [];
+
+async function usersLoadFromDB() {
+  try {
+    const res = await fetch('/api/users');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.ok && Array.isArray(data.users)) _usersCache = data.users;
+  } catch { /* keep cache */ }
+}
+
+async function usersRenderPage() {
+  await usersLoadFromDB();
   usersRenderKPIs();
   usersRenderTable();
 }
@@ -7211,7 +7239,7 @@ function usersRenderPage() {
 function usersRenderKPIs() {
   const el = document.getElementById('users-kpi-area');
   if (!el) return;
-  const users = usersGetAll();
+  const users = _usersCache.length ? _usersCache : usersGetAll();
   const active = users.filter(u => u.status === 'active').length;
   const inactive = users.filter(u => u.status === 'inactive').length;
   const roleCount = {};
@@ -7229,7 +7257,7 @@ function usersRenderKPIs() {
 function usersRenderTable() {
   const el = document.getElementById('users-table-area');
   if (!el) return;
-  const users = usersGetAll();
+  const users = _usersCache.length ? _usersCache : usersGetAll();
   const rows = users.map(u => {
     const isMaster = u.id === 'u_master';
     const hotelsStr = u.hotelAccess && u.hotelAccess.length > 0 ? u.hotelAccess.slice(0,2).join(', ')+(u.hotelAccess.length>2?` +${u.hotelAccess.length-2}`:'') : '<em style="color:var(--gray3)">Todos</em>';
@@ -7287,7 +7315,7 @@ function usersOpenCreate() {
 
 function usersOpenEdit(id) {
   if (!hasPermission('canEditUsers')) { alert('No tiene permisos para editar usuarios.'); return; }
-  const user = usersGetAll().find(u => u.id === id);
+  const user = (_usersCache.length ? _usersCache : usersGetAll()).find(u => u.id === id);
   if (!user) return;
   _editingUserId = id;
   document.getElementById('user-modal-title').textContent = 'Editar usuario';
@@ -7312,33 +7340,65 @@ function usersCloseModal() {
   _editingUserId = null;
 }
 
-function usersSaveModal() {
+async function usersSaveModal() {
   const name = document.getElementById('um-name').value.trim();
   const email = document.getElementById('um-email').value.trim();
   const password = document.getElementById('um-password').value;
   const role = document.getElementById('um-role').value;
   if (!name || !email) { alert('Nombre y correo son obligatorios.'); return; }
   if (!_editingUserId && !password) { alert('La contraseña es obligatoria para nuevos usuarios.'); return; }
+  if (!_editingUserId && password.length < 8) { alert('La contraseña debe tener mínimo 8 caracteres.'); return; }
+
   const hotelAccess = Array.from(document.querySelectorAll('#um-hotels-grid input:checked')).map(cb => cb.value);
-  const data = { name, email, role, hotelAccess, permissions: DEFAULT_ROLE_PERMISSIONS[role] || [] };
-  if (password) data.password = password;
-  if (_editingUserId) { usersUpdate(_editingUserId, data); }
-  else {
-    const exists = usersGetAll().find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (exists) { alert('Ya existe un usuario con ese correo.'); return; }
-    usersCreate(data);
+  const saveBtn = document.getElementById('um-save-btn');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Guardando...'; }
+
+  try {
+    let res, data;
+    if (_editingUserId) {
+      const body = { name, role, hotelAccess, permissions: DEFAULT_ROLE_PERMISSIONS[role] || [] };
+      if (password) body.password = password;
+      res = await fetch(`/api/users/${_editingUserId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      data = await res.json();
+    } else {
+      res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, role, hotelAccess }),
+      });
+      data = await res.json();
+    }
+    if (!data.ok) { alert(data.error || 'Error al guardar usuario.'); return; }
+    usersCloseModal();
+    await usersRenderPage();
+  } catch {
+    alert('Error de conexión al guardar usuario.');
+  } finally {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; }
   }
-  usersCloseModal();
-  usersRenderPage();
 }
 
-function usersToggleStatus(id, newStatus) {
+async function usersToggleStatus(id, newStatus) {
   if (!hasPermission('canDisableUsers')) { alert('No tiene permisos para cambiar el estado de usuarios.'); return; }
   const msg = newStatus === 'inactive' ? '¿Desactivar este usuario?' : '¿Reactivar este usuario?';
   if (!confirm(msg)) return;
-  usersUpdate(id, { status: newStatus });
-  authWriteAudit(newStatus === 'inactive' ? 'user_disabled' : 'user_updated', AUTH_SESSION?.userId, AUTH_SESSION?.userName, null, null, id);
-  usersRenderPage();
+  try {
+    const res = await fetch(`/api/users/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    const data = await res.json();
+    if (!data.ok) { alert(data.error || 'Error al cambiar estado.'); return; }
+    authWriteAudit(newStatus === 'inactive' ? 'user_disabled' : 'user_updated', AUTH_SESSION?.userId, AUTH_SESSION?.userName, null, null, id);
+    await usersRenderPage();
+  } catch {
+    alert('Error de conexión.');
+  }
 }
 // ═══════════════════════════════════════════════════════════════
 // END USER MANAGEMENT MODULE
@@ -7503,7 +7563,7 @@ function usersToggleStatus(id, newStatus) {
     </div>
     <div class="user-modal-footer">
       <button class="save-btn" onclick="usersCloseModal()">Cancelar</button>
-      <button class="save-btn primary" onclick="usersSaveModal()">💾 Guardar</button>
+      <button class="save-btn primary" id="um-save-btn" onclick="usersSaveModal()">💾 Guardar</button>
     </div>
   </div>
 </div>
@@ -8738,9 +8798,11 @@ async function gbpLoadReviews() {
       if (_gbpReviews.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:18px;color:var(--gray3);">No se encontraron reseñas para esta ubicación.</td></tr>';
         countEl.textContent = '0 reseñas';
+        document.getElementById('gbp-sync-btn').style.display = 'none';
       } else {
         countEl.textContent = _gbpReviews.length + ' reseña' + (_gbpReviews.length > 1 ? 's' : '');
         tbody.innerHTML = _gbpReviews.map(r => gbpReviewRow(r)).join('');
+        document.getElementById('gbp-sync-btn').style.display = '';
       }
     } else {
       const errMsg = gbpFriendlyError(data);
@@ -8768,6 +8830,74 @@ function gbpReviewRow(r) {
     <td class="gbp-reply">${replied ? gbpEsc(r.reviewReply.comment) : '<em style="color:var(--gray3)">Sin respuesta</em>'}</td>
     <td><span class="gbp-status-badge ${replied ? 'responded' : 'pending'}">${replied ? 'Respondida' : 'Pendiente'}</span></td>
   </tr>`;
+}
+
+// ── Sync to Reputation IA ──────────────────────────────────────────────────
+
+function gbpSyncToReputation() {
+  if (!_gbpReviews || !_gbpReviews.length) {
+    gbpShowToast('No hay reseñas cargadas para sincronizar.');
+    return;
+  }
+  const now = new Date().toISOString();
+  const existing = repRead();
+  let added = 0, updated = 0;
+
+  for (let i = 0; i < _gbpReviews.length; i++) {
+    const r = _gbpReviews[i];
+    const rating10 = (r.ratingNumeric || 0) * 2;
+    const externalId = r.reviewId || null;
+    const existingIdx = externalId
+      ? existing.findIndex(e => e.externalId === externalId && e.source === 'google_business')
+      : -1;
+
+    const base = {
+      source: 'google_business',
+      externalId,
+      hotelId: r.locationName || 'GEH Suites',
+      authorName: r.isAnonymous ? 'Huésped' : (r.reviewerName || 'Huésped'),
+      rating: rating10,
+      title: null,
+      comment: r.comment || null,
+      positiveComment: null,
+      negativeComment: null,
+      language: 'es',
+      reviewDate: r.createTime ? new Date(r.createTime).toISOString() : now,
+      publishedAt: r.createTime ? new Date(r.createTime).toISOString() : now,
+      sourceUrl: null,
+      status: (r.reviewReply && r.reviewReply.comment) ? 'response_published' : 'pending_response',
+      updatedAt: now,
+      tags: [],
+    };
+
+    if (existingIdx >= 0) {
+      const old = existing[existingIdx];
+      existing[existingIdx] = {
+        ...old,
+        ...base,
+        id: old.id,
+        createdAt: old.createdAt,
+        tags: old.tags || [],
+        // Preserve manual status and AI work
+        status: old.status !== 'pending_response' ? old.status : base.status,
+        aiAnalysis: old.aiAnalysis,
+        responseDraft: old.responseDraft,
+      };
+      updated++;
+    } else {
+      existing.push({ ...base, id: 'rep_gbp_' + Date.now() + '_' + i, createdAt: now });
+      added++;
+    }
+  }
+
+  repWrite(existing);
+  _repReviews = existing;
+  if (typeof repRenderList === 'function') repRenderList();
+  if (typeof repPopulateHotelFilter === 'function') repPopulateHotelFilter();
+
+  const msg = `✅ ${added} reseñas nuevas · ${updated} actualizadas. Ve a la pestaña Reputación IA para verlas.`;
+  gbpShowToast(msg);
+  setTimeout(() => alert(msg), 100);
 }
 
 // ── Diagnostics ────────────────────────────────────────────────────────────
@@ -8801,6 +8931,8 @@ function gbpRefreshAll() {
   _gbpReviews = [];
   _gbpSelectedAccount = null;
   _gbpSelectedLocation = null;
+  const syncBtn = document.getElementById('gbp-sync-btn');
+  if (syncBtn) syncBtn.style.display = 'none';
   gbpLoadStatus();
 }
 
@@ -8819,6 +8951,7 @@ function gbpFriendlyError(data) {
     no_connection:           'No hay conexión activa con Google Business Profile.',
     token_expired:           'La conexión expiró. Vuelve a conectar Google Business Profile.',
     insufficient_permissions:'Permisos insuficientes. Verifica que la cuenta tenga acceso a Google Business.',
+    quota_exceeded:          'Cuota de API excedida. Espera 1 minuto e intenta de nuevo (límite de Google para proyectos nuevos).',
     unknown:                 data.message || 'Error inesperado.',
   };
   return map[data.error] ?? data.message ?? JSON.stringify(data);
