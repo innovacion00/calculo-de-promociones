@@ -1498,22 +1498,32 @@ function initGoogleSignIn() {
   });
 }
 
-function handleGoogleCredential(response) {
-  const payload = decodeGoogleJWT(response.credential);
-  if (!payload || !payload.email) {
-    showAuthError('No se pudo obtener la información de Google. Intente nuevamente.');
-    return;
-  }
-  const result = authLoginWithGoogle(payload.email, payload.name || payload.email);
-  if (result.ok) {
-    clearAuthError();
-    if (result.session.activeHotelId && typeof HOTELS !== 'undefined') {
-      const h = HOTELS.find(x => x === result.session.activeHotelId);
-      if (h) currentHotel = h;
+async function handleGoogleCredential(response) {
+  const btn = document.getElementById('google-signin-btn');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; }
+  clearAuthError();
+  try {
+    const res = await fetch('/api/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: response.credential }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      AUTH_SESSION = data.session;
+      authSaveSession(data.session);
+      if (data.session.activeHotelId && typeof HOTELS !== 'undefined') {
+        const h = HOTELS.find(x => x === data.session.activeHotelId);
+        if (h) currentHotel = h;
+      }
+      showDashboard();
+    } else {
+      showAuthError(data.error || 'Error al iniciar sesión con Google.');
     }
-    showDashboard();
-  } else {
-    showAuthError(result.error);
+  } catch {
+    showAuthError('Error de conexión. Intente nuevamente.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
   }
 }
 
