@@ -34,11 +34,11 @@ async function gbpFetch<T>(url: string, accessToken: string, attempt = 0): Promi
   }
 
   if (res.status === 401) throw new Error('TOKEN_EXPIRED');
-  if (res.status === 403) throw new Error('INSUFFICIENT_PERMISSIONS');
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     const isHtml = body.trimStart().startsWith('<');
-    const detail = isHtml ? `[HTML response — URL may be wrong: ${url}]` : body.slice(0, 300);
+    const detail = isHtml ? `[HTML response — URL may be wrong: ${url}]` : body.slice(0, 500);
+    if (res.status === 403) throw new Error(`INSUFFICIENT_PERMISSIONS: ${detail}`);
     throw new Error(`GBP API error ${res.status}: ${detail}`);
   }
 
