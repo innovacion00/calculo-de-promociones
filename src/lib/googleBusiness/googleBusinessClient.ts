@@ -37,7 +37,9 @@ async function gbpFetch<T>(url: string, accessToken: string, attempt = 0): Promi
   if (res.status === 403) throw new Error('INSUFFICIENT_PERMISSIONS');
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new Error(`GBP API error ${res.status}: ${body.slice(0, 200)}`);
+    const isHtml = body.trimStart().startsWith('<');
+    const detail = isHtml ? `[HTML response — URL may be wrong: ${url}]` : body.slice(0, 300);
+    throw new Error(`GBP API error ${res.status}: ${detail}`);
   }
 
   return res.json();
@@ -180,6 +182,8 @@ export async function listReviews(
   const locationPath = locationId.includes('/locations/')
     ? 'locations/' + locationId.split('/locations/')[1]
     : locationId;
+
+  console.log(`[GBP] listReviews — raw locationId: "${locationId}" → locationPath: "${locationPath}"`);
 
   do {
     const url = new URL(`${REVIEWS_API}/${locationPath}/reviews`);
