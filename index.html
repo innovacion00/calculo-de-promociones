@@ -2106,9 +2106,11 @@ const expHdrs = ['Plan','Base','Mod. Canal','Promo','Sugerida OTA ▼','Ingreso 
 
 function bookRows() {
   return [
+    { label:'Tarifa Estándar',  base:'std',  discounts:[0,0.20], promoIdx:0 },
     { label:'No Reembolsable',  base:'nr',   discounts:[0,0.20], promoIdx:0 },
     { label:'Mín 2 noches',     base:'min2', discounts:[0,0.20], promoIdx:0 },
     { label:'Mín 3 noches',     base:'min3', discounts:[0,0.20], promoIdx:0 },
+    { label:'Tarifa Semanal',   base:'sem',  discounts:[0,0.20], promoIdx:0 },
   ];
 }
 const bookHdrs = ['Estrategia','Base OTA','Después promo','GENIUS ▼','MOBILE ▼','Ingreso ▼'];
@@ -2267,9 +2269,9 @@ const CHANNELS = [
     geniusPcts:[10, 15, 20],
     geniusPct:20,
     mobilePct:10,
-    baseLabels:['No reembolsable','Mínimo 2 noches','Mínimo 3 noches'],
-    baseKeys:  ['nr','min2','min3'],
-    baseFactors:[0.88,0.86,0.84],
+    baseLabels:['Tarifa Estándar','No reembolsable','Mínimo 2 noches','Mínimo 3 noches','Tarifa Semanal'],
+    baseKeys:  ['std','nr','min2','min3','sem'],
+    baseFactors:[1,0.88,0.86,0.84,0.82],
     sections:[
       {title:'CAMPAÑA GETAWAY',  promoDefault:40,colHeaders:bookHdrs,rows:bookRows()},
       {title:'OCULTA',           promoDefault:36,colHeaders:bookHdrs,rows:bookRows()},
