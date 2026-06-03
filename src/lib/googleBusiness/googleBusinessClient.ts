@@ -14,7 +14,7 @@ import type { GoogleBusinessAccount, GoogleBusinessLocation, GoogleBusinessRevie
 
 const ACCOUNTS_API = 'https://mybusinessaccountmanagement.googleapis.com/v1';
 const LOCATIONS_API = 'https://mybusinessbusinessinformation.googleapis.com/v1';
-const REVIEWS_API   = 'https://mybusinessreviews.googleapis.com/v1';
+const REVIEWS_API   = 'https://mybusiness.googleapis.com/v4';
 
 const STAR_TO_NUM: Record<string, number> = {
   ONE: 1, TWO: 2, THREE: 3, FOUR: 4, FIVE: 5,
