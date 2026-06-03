@@ -14,7 +14,7 @@ import type { GoogleBusinessAccount, GoogleBusinessLocation, GoogleBusinessRevie
 
 const ACCOUNTS_API = 'https://mybusinessaccountmanagement.googleapis.com/v1';
 const LOCATIONS_API = 'https://mybusinessbusinessinformation.googleapis.com/v1';
-const REVIEWS_API   = 'https://mybusinessreviews.googleapis.com/v1';
+const REVIEWS_API   = 'https://mybusiness.googleapis.com/v4';
 
 const STAR_TO_NUM: Record<string, number> = {
   ONE: 1, TWO: 2, THREE: 3, FOUR: 4, FIVE: 5,
@@ -178,15 +178,16 @@ export async function listReviews(
   let pageToken: string | undefined;
   let page = 0;
 
-  // v1 API expects "locations/{id}/reviews", not the full "accounts/{a}/locations/{id}" path
-  const locationPath = locationId.includes('/locations/')
-    ? 'locations/' + locationId.split('/locations/')[1]
-    : locationId;
+  // v4 API expects: accounts/{accountId}/locations/{numericLocationId}/reviews
+  // locationId comes as "locations/{id}" from the v1 Business Information API
+  const numericLocationId = locationId.startsWith('locations/')
+    ? locationId.slice('locations/'.length)
+    : locationId.split('/locations/')[1] ?? locationId;
 
-  console.log(`[GBP] listReviews — raw locationId: "${locationId}" → locationPath: "${locationPath}"`);
+  console.log(`[GBP] listReviews — accountId: "${accountId}", locationId: "${locationId}", numericLocationId: "${numericLocationId}"`);
 
   do {
-    const url = new URL(`${REVIEWS_API}/${locationPath}/reviews`);
+    const url = new URL(`${REVIEWS_API}/${accountId}/locations/${numericLocationId}/reviews`);
     console.log(`[GBP] listReviews URL: ${url.toString()}`);
     url.searchParams.set('pageSize', String(pageSize));
     if (pageToken) url.searchParams.set('pageToken', pageToken);
