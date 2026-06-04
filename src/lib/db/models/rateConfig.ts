@@ -18,6 +18,8 @@ export interface RateConfig {
   titleOverrides: Record<string, string>;
   // Custom row labels: {`${secId}_${rowsKey}_${ri}`: string}
   labelOverrides: Record<string, string>;
+  // Extra sections created via add-promo: {channelKey: sectionData[]}
+  extraSections: Record<string, unknown[]>;
 }
 
 async function getCollection(): Promise<Collection<RateConfig>> {

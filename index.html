@@ -2288,6 +2288,17 @@ const CHANNELS = [
 let _secIdCounter = 0;
 CHANNELS.forEach(ch => ch.sections.forEach(sec => sec._id = 's'+(++_secIdCounter)));
 
+// Per-hotel extra sections (added via add-promo / copy). Default sections live in ch._defaultSections.
+const hotelExtraSections = {}; // {hotel: {channelKey: section[]}}
+
+function getHotelSections(hotel, chKey) {
+  const ch = CHANNELS.find(c => c.key === chKey);
+  if (!ch) return [];
+  const defaults = ch._defaultSections || ch.sections;
+  const extras = (hotelExtraSections[hotel] || {})[chKey] || [];
+  return [...defaults, ...extras];
+}
+
 // ── BASE RATE COMPUTATION ────────────────────────────────────────────────────
 function getBaseRates(ch, input) {
   const pub = input * ch.factor;
@@ -2670,9 +2681,14 @@ function buildSectionCard(ch, sec, baseRates, hotel) {
     const newSec = JSON.parse(JSON.stringify(sec));
     newSec._id = 's'+(++_secIdCounter);
     newSec.title = sec.title + ' (Copia)';
+    newSec._origTitle = newSec.title;
     delete newSec._promoVals; // start with clean promo state
-    ch.sections.push(newSec);
+    if (!hotelExtraSections[currentHotel]) hotelExtraSections[currentHotel] = {};
+    if (!hotelExtraSections[currentHotel][ch.key]) hotelExtraSections[currentHotel][ch.key] = [];
+    hotelExtraSections[currentHotel][ch.key].push(newSec);
+    ch.sections = getHotelSections(currentHotel, ch.key);
     renderSections(ch);
+    scheduleRateSave();
     // Scroll to the last card (the copy)
     setTimeout(()=>{
       const grid = document.getElementById('grid-'+ch.key);
@@ -2833,6 +2849,8 @@ async function switchHotel(name) {
 
   // Load per-hotel config from MongoDB before rendering
   await loadHotelRateConfig(name);
+  // Rebuild sections for new hotel (defaults + hotel-specific extras)
+  CHANNELS.forEach(ch => { ch.sections = getHotelSections(name, ch.key); });
   applyNameOverrides(); // Apply this hotel's title/label overrides before render
 
   // Load saved inputs for this hotel+room, re-render active channel
@@ -2852,6 +2870,10 @@ async function switchHotel(name) {
     if (inp) inp.value = savedBase !== undefined ? savedBase : defaultBase;
     renderSections(ch);
   }
+
+  // Si el panel de histórico OTB está visible, recargar con el nuevo hotel
+  const histPanel = document.getElementById('otb-panel-history');
+  if (histPanel && histPanel.classList.contains('active')) otbRenderHistory();
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
@@ -2870,12 +2892,16 @@ function addTd(parent,text,cls){const td=document.createElement('td');td.textCon
 
 function init() {
   // Snapshot original section titles/row labels before any overrides are applied
-  CHANNELS.forEach(ch => ch.sections.forEach(sec => {
-    if (sec._origTitle === undefined) sec._origTitle = sec.title;
-    [['rows','rows'],['rowsSin','rowsSin'],['rowsCon','rowsCon']].forEach(([,prop]) => {
-      (sec[prop]||[]).forEach(row => { if (row._origLabel === undefined) row._origLabel = row.label; });
+  // Also store _defaultSections reference so hotel switches can reset to it
+  CHANNELS.forEach(ch => {
+    if (!ch._defaultSections) ch._defaultSections = ch.sections;
+    ch.sections.forEach(sec => {
+      if (sec._origTitle === undefined) sec._origTitle = sec.title;
+      [['rows','rows'],['rowsSin','rowsSin'],['rowsCon','rowsCon']].forEach(([,prop]) => {
+        (sec[prop]||[]).forEach(row => { if (row._origLabel === undefined) row._origLabel = row.label; });
+      });
     });
-  }));
+  });
   // Set initial room type for first hotel
   const initRooms = HOTEL_ROOM_TYPES[HOTELS[0]] || [];
   currentRoomType = initRooms.length > 0 ? initRooms[0].name : '';
@@ -2948,16 +2974,22 @@ function init() {
       renderSections(ch);
     });
     document.getElementById('add-promo-'+ch.key).addEventListener('click',()=>{
-      ch.sections.push({
-        title:'NUEVA PROMOCIÓN', promoDefault:30,
+      const newSec = {
+        _id: 's'+(++_secIdCounter),
+        title:'NUEVA PROMOCIÓN', _origTitle:'NUEVA PROMOCIÓN', promoDefault:30,
         colHeaders:ch.sections[0]?.colHeaders||['Plan','Base','Promo','Tarifa ▼'],
         pairGroup:ch.sections[0]?.pairGroup,
         ptMerged:ch.sections[0]?.ptMerged||false,
-        rows:ch.sections[0]?.ptMerged?undefined:[{label:'Nuevo Plan',base:ch.baseKeys[0],discounts:[0],planPct:0}],
-        rowsSin:ch.sections[0]?.ptMerged?[{label:'Nuevo Plan',base:'std',discounts:[0],planPct:0}]:undefined,
-        rowsCon:ch.sections[0]?.ptMerged?[{label:'Nuevo Plan',base:'stdC',discounts:[0],planPct:0}]:undefined,
-      });
+        rows:ch.sections[0]?.ptMerged?undefined:[{label:'Nuevo Plan',_origLabel:'Nuevo Plan',base:ch.baseKeys[0],discounts:[0],planPct:0}],
+        rowsSin:ch.sections[0]?.ptMerged?[{label:'Nuevo Plan',_origLabel:'Nuevo Plan',base:'std',discounts:[0],planPct:0}]:undefined,
+        rowsCon:ch.sections[0]?.ptMerged?[{label:'Nuevo Plan',_origLabel:'Nuevo Plan',base:'stdC',discounts:[0],planPct:0}]:undefined,
+      };
+      if (!hotelExtraSections[currentHotel]) hotelExtraSections[currentHotel] = {};
+      if (!hotelExtraSections[currentHotel][ch.key]) hotelExtraSections[currentHotel][ch.key] = [];
+      hotelExtraSections[currentHotel][ch.key].push(newSec);
+      ch.sections = getHotelSections(currentHotel, ch.key);
       renderSections(ch);
+      scheduleRateSave();
     });
   });
 
@@ -3020,7 +3052,8 @@ function getFullState() {
     hotelPaisPcts:   JSON.parse(JSON.stringify(hotelPaisPcts)),
     promoValsMap,
     labelOverrides:  JSON.parse(JSON.stringify(labelOverrides)),
-    titleOverrides:  JSON.parse(JSON.stringify(titleOverrides))
+    titleOverrides:  JSON.parse(JSON.stringify(titleOverrides)),
+    hotelExtraSections: JSON.parse(JSON.stringify(hotelExtraSections))
   });
 }
 
@@ -3038,6 +3071,23 @@ function restoreFullState(json) {
     // Restore name overrides
     Object.assign(labelOverrides, s.labelOverrides||{});
     Object.assign(titleOverrides, s.titleOverrides||{});
+    // Restore per-hotel extra sections
+    Object.keys(s.hotelExtraSections||{}).forEach(hotel => {
+      hotelExtraSections[hotel] = {};
+      Object.keys(s.hotelExtraSections[hotel]).forEach(chKey => {
+        hotelExtraSections[hotel][chKey] = s.hotelExtraSections[hotel][chKey].map(sec => {
+          if (!sec._id) sec._id = 's'+(++_secIdCounter);
+          else { const n=parseInt(sec._id.slice(1)); if(n>_secIdCounter) _secIdCounter=n; }
+          sec._origTitle = sec.title;
+          ['rows','rowsSin','rowsCon'].forEach(prop => {
+            if (sec[prop]) sec[prop].forEach(r => { r._origLabel = r.label; });
+          });
+          return sec;
+        });
+      });
+    });
+    // Rebuild ch.sections for current hotel
+    CHANNELS.forEach(ch => { ch.sections = getHotelSections(currentHotel, ch.key); });
     applyNameOverrides();
   } catch(e) { console.error('Restore error', e); }
 }
@@ -3074,7 +3124,20 @@ function getHotelStateSlice(hotel) {
   }));
   const hotelLabelOverrides = labelOverrides[hotel] ? JSON.parse(JSON.stringify(labelOverrides[hotel])) : {};
   const hotelTitleOverrides = titleOverrides[hotel] ? JSON.parse(JSON.stringify(titleOverrides[hotel])) : {};
-  return { rawBaseInputs, rawPlanPcts, rawPaisPcts, promoVals, labelOverrides: hotelLabelOverrides, titleOverrides: hotelTitleOverrides };
+  // Extra sections: strip runtime-only fields before saving
+  const rawExtras = (hotelExtraSections[hotel] || {});
+  const extraSections = {};
+  Object.keys(rawExtras).forEach(chKey => {
+    extraSections[chKey] = rawExtras[chKey].map(sec => {
+      const { _origTitle, _origLabel, _promoVals, ...rest } = sec;
+      // Strip _origLabel from rows
+      ['rows','rowsSin','rowsCon'].forEach(prop => {
+        if (rest[prop]) rest[prop] = rest[prop].map(({ _origLabel: _ol, ...r }) => r);
+      });
+      return rest;
+    });
+  });
+  return { rawBaseInputs, rawPlanPcts, rawPaisPcts, promoVals, labelOverrides: hotelLabelOverrides, titleOverrides: hotelTitleOverrides, extraSections };
 }
 
 function applyHotelConfig(hotel, config) {
@@ -3088,6 +3151,22 @@ function applyHotelConfig(hotel, config) {
   }));
   if (config.labelOverrides) labelOverrides[hotel] = config.labelOverrides;
   if (config.titleOverrides) titleOverrides[hotel] = config.titleOverrides;
+  if (config.extraSections) {
+    hotelExtraSections[hotel] = {};
+    Object.keys(config.extraSections).forEach(chKey => {
+      hotelExtraSections[hotel][chKey] = config.extraSections[chKey].map(sec => {
+        if (!sec._id) sec._id = 's'+(++_secIdCounter);
+        else { const n=parseInt(sec._id.slice(1)); if(n>_secIdCounter) _secIdCounter=n; }
+        sec._origTitle = sec.title;
+        ['rows','rowsSin','rowsCon'].forEach(prop => {
+          if (sec[prop]) sec[prop].forEach(r => { r._origLabel = r.label; });
+        });
+        return sec;
+      });
+    });
+    // Rebuild ch.sections for this hotel
+    CHANNELS.forEach(ch => { ch.sections = getHotelSections(hotel, ch.key); });
+  }
 }
 
 async function saveHotelRateConfig(hotel) {
@@ -6726,13 +6805,219 @@ async function otbRenderHistory() {
       + '<td>'+(e.avgRevpar!==null&&e.avgRevpar!==undefined?fmtCOP(e.avgRevpar):'N/D')+'</td>'
       + '<td style="color:'+stColor+';font-weight:700">'+e.general+'</td>'
       + '<td style="white-space:nowrap">'
+      + '<button class="otb-btn" style="padding:2px 8px;font-size:.65rem;margin-right:4px" id="otb-hist-chart-btn-'+e.id+'" onclick="otbToggleHistoryChart(\''+e.id+'\')">📊</button>'
       + '<button class="otb-btn" style="padding:2px 8px;font-size:.65rem;margin-right:4px" onclick="otbLoadFromHistory(\''+e.id+'\')">📂 Cargar</button>'
       + '<button class="otb-btn danger" style="padding:2px 8px;font-size:.65rem" onclick="otbDeleteHistory(\''+e.id+'\')">✕</button>'
       + '</td>'
-      + '</tr>';
+      + '</tr>'
+      + '<tr id="otb-hist-detail-'+e.id+'" style="display:none"><td colspan="12" style="padding:0 12px 16px 12px;background:#fafaf5">'
+      + '<div id="otb-hist-chart-'+e.id+'"></div>'
+      + '</td></tr>';
   });
   html += '</tbody></table></div></div>';
   area.innerHTML = html;
+}
+
+async function otbToggleHistoryChart(id) {
+  var detailRow = document.getElementById('otb-hist-detail-'+id);
+  var btn = document.getElementById('otb-hist-chart-btn-'+id);
+  if (!detailRow) return;
+  var isHidden = detailRow.style.display === 'none';
+  if (!isHidden) {
+    detailRow.style.display = 'none';
+    if (btn) btn.style.background = '';
+    return;
+  }
+  detailRow.style.display = '';
+  if (btn) btn.style.background = '#e8d88a';
+  var chartDiv = document.getElementById('otb-hist-chart-'+id);
+  if (!chartDiv) return;
+  if (chartDiv.dataset.rendered === '1') return;
+  chartDiv.innerHTML = '<p style="padding:16px 4px;color:#888;font-size:.8rem">⏳ Cargando datos de comparativa...</p>';
+  try {
+    var res = await fetch('/api/otb/analyses/'+encodeURIComponent(id));
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Error al cargar');
+    var rows = (data.analysis.comparison || []).filter(function(r){ return r.occAfter !== null && r.occAfter !== undefined; });
+    if (!rows.length) {
+      chartDiv.innerHTML = '<p style="padding:16px 4px;color:#888;font-size:.8rem">Sin datos de ocupación en esta comparativa.</p>';
+      return;
+    }
+    otbRenderPickupChartInto(rows, chartDiv, 'ch-hist-'+id.replace(/[^a-zA-Z0-9]/g,'_'));
+    chartDiv.dataset.rendered = '1';
+  } catch(err) {
+    chartDiv.innerHTML = '<p style="padding:16px 4px;color:#c00;font-size:.8rem">⚠ Error: '+err.message+'</p>';
+  }
+}
+
+function otbRenderPickupChartInto(rows, container, chartKey) {
+  var DAYS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+  function fmtDate(row) {
+    if (row.stayDate) {
+      var parts = row.stayDate.split('-');
+      if (parts.length === 3) return parts[2] + '/' + parts[1];
+      return row.stayDate;
+    }
+    return 'D' + row.day;
+  }
+
+  function dayName(row) {
+    if (row.stayDate) {
+      var parts = row.stayDate.split('-');
+      if (parts.length === 3) {
+        var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        return DAYS_ES[d.getDay()];
+      }
+    }
+    return '';
+  }
+
+  function barColor(pickup, alpha) {
+    alpha = alpha || 1;
+    if (pickup > 10)   return 'rgba(22,120,60,'+alpha+')';
+    if (pickup > 2)    return 'rgba(60,170,90,'+alpha+')';
+    if (pickup >= -2)  return 'rgba(150,150,150,'+alpha+')';
+    if (pickup >= -10) return 'rgba(210,90,20,'+alpha+')';
+    return 'rgba(195,0,0,'+alpha+')';
+  }
+
+  var hasRooms = rows.some(function(r){ return r.roomPickup !== null && r.roomPickup !== undefined; });
+  var labels = rows.map(fmtDate);
+  var canvasId = chartKey;
+
+  if (OTB_STATE.charts && OTB_STATE.charts[chartKey]) {
+    try { OTB_STATE.charts[chartKey].destroy(); } catch(e) {}
+    OTB_STATE.charts[chartKey] = null;
+  }
+
+  container.innerHTML = '<div style="background:#fff;border:1.5px solid #e8d88a;border-radius:12px;padding:18px 20px;margin:4px 0">'
+    + '<div style="font-size:.8rem;font-weight:800;color:#2c1a00;margin-bottom:4px;letter-spacing:.02em">📊 OCUPACIÓN ACTUAL VS BASE — COLOREADA POR PICKUP</div>'
+    + '<div style="font-size:.7rem;color:#888;margin-bottom:12px">Barras = Occ actual coloreadas por pickup · Línea azul = Occ base · Verde = ganó · Rojo = perdió · Gris = estable</div>'
+    + '<div style="position:relative;height:260px;"><canvas id="'+canvasId+'"></canvas></div>'
+    + '<div id="'+canvasId+'-legend" style="display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;justify-content:center;"></div>'
+    + '</div>';
+
+  var canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+
+  var chart = new Chart(canvas, {
+    type: 'bar',
+    plugins: [ChartDataLabels],
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Occ Actual',
+          data: rows.map(function(r){ return r.occAfter !== null ? parseFloat(r.occAfter.toFixed(1)) : null; }),
+          backgroundColor: rows.map(function(r){ return barColor(r.pickup != null ? r.pickup : 0, 0.78); }),
+          borderColor:     rows.map(function(r){ return barColor(r.pickup != null ? r.pickup : 0, 1); }),
+          borderWidth: 1,
+          borderRadius: 3,
+          yAxisID: 'y',
+          order: 2,
+          datalabels: {
+            display: true,
+            anchor: 'end', align: 'top',
+            formatter: function(v, ctx) {
+              var pu = rows[ctx.dataIndex].pickup;
+              if (pu === null || pu === undefined) return '';
+              return (pu > 0 ? '+' : '') + parseFloat(pu.toFixed(0));
+            },
+            font: { size: 9, weight: 'bold' },
+            color: function(ctx) {
+              var pu = rows[ctx.dataIndex].pickup;
+              return pu > 2 ? '#0e5a30' : pu < -2 ? '#a00' : '#555';
+            }
+          }
+        },
+        {
+          type: 'line',
+          label: 'Occ Base (referencia)',
+          data: rows.map(function(r){ return r.occBefore !== null && r.occBefore !== undefined ? parseFloat(r.occBefore.toFixed(1)) : null; }),
+          borderColor: 'rgba(30,80,180,0.75)',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          borderDash: [4, 3],
+          pointRadius: 2,
+          pointBackgroundColor: 'rgba(30,80,180,0.9)',
+          tension: 0.3,
+          yAxisID: 'y',
+          order: 1,
+          datalabels: { display: false }
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 14 } },
+        tooltip: {
+          backgroundColor: 'rgba(20,20,20,.9)',
+          titleFont: { size: 12 },
+          bodyFont: { size: 11 },
+          padding: 10,
+          callbacks: {
+            title: function(items) {
+              var row = rows[items[0].dataIndex];
+              return fmtDate(row) + (dayName(row) ? ' (' + dayName(row) + ')' : '');
+            },
+            label: function(item) {
+              var row = rows[item.dataIndex];
+              if (item.dataset.label === 'Occ Base (referencia)')
+                return '  OTB Base: ' + (row.occBefore !== null && row.occBefore !== undefined ? row.occBefore.toFixed(1) + '%' : 'N/D');
+              var lines = [
+                '  OTB Actual: ' + (row.occAfter !== null ? row.occAfter.toFixed(1) + '%' : 'N/D'),
+                '  Pickup: ' + (row.pickup > 0 ? '+' : '') + (row.pickup !== null ? row.pickup.toFixed(1) : '0') + ' pp  · ' + pickupLabel(row.status || pickupStatus(row.pickup))
+              ];
+              if (hasRooms && row.roomPickup !== null && row.roomPickup !== undefined) {
+                lines.push('  Habs: ' + Math.round(row.roomsBefore || 0) + ' → ' + Math.round(row.roomsAfter || 0) + ' (' + (row.roomPickup > 0 ? '+' : '') + Math.round(row.roomPickup) + ' habs)');
+              }
+              lines.push('  Acción: ' + pickupAction(row.status || pickupStatus(row.pickup)));
+              return lines;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { font: { size: rows.length > 20 ? 8 : 10 }, maxRotation: rows.length > 20 ? 45 : 0 },
+          grid: { display: false }
+        },
+        y: {
+          min: 0, max: 100,
+          title: { display: true, text: 'Ocupación (%)', font: { size: 10 }, color: '#666' },
+          ticks: { callback: function(v){ return v + '%'; }, font: { size: 10 } },
+          grid: { color: 'rgba(0,0,0,.06)' }
+        }
+      }
+    }
+  });
+
+  if (!OTB_STATE.charts) OTB_STATE.charts = {};
+  OTB_STATE.charts[chartKey] = chart;
+
+  var legendDiv = document.getElementById(canvasId+'-legend');
+  if (legendDiv) {
+    var legendItems = [
+      { color: 'rgba(22,120,60,0.85)',   label: '⬆ Pickup fuerte' },
+      { color: 'rgba(60,170,90,0.8)',    label: '↑ Pickup moderado' },
+      { color: 'rgba(150,150,150,0.75)', label: '→ Estable' },
+      { color: 'rgba(210,90,20,0.8)',    label: '↓ Caída moderada' },
+      { color: 'rgba(195,0,0,0.85)',     label: '⬇ Caída fuerte' },
+      { color: 'rgba(30,80,180,0.75)',   label: '— Occ Base' }
+    ];
+    var legHTML = '';
+    legendItems.forEach(function(li) {
+      legHTML += '<div style="display:flex;align-items:center;gap:5px;font-size:.7rem;color:#444;">'
+        + '<span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:'+li.color+';flex-shrink:0"></span>'
+        + '<span>'+li.label+'</span></div>';
+    });
+    legendDiv.innerHTML = legHTML;
+  }
 }
 
 async function otbDeleteHistory(id) {
