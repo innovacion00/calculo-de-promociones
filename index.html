@@ -3180,6 +3180,9 @@ function applyHotelConfig(hotel, config) {
         ['rows','rowsSin','rowsCon'].forEach(prop => {
           if (sec[prop]) sec[prop].forEach(r => { r._origLabel = r.label; });
         });
+        // Restaurar promoVals para esta sección extra (se stripea al guardar en DB)
+        const savedPromo = (config.promoVals || {})[sec._id];
+        if (savedPromo) { sec._promoVals = {...savedPromo}; }
         return sec;
       });
     });
@@ -3534,6 +3537,7 @@ function pcfgSaveHotel() {
   const rk = getRoomKey();
   pcfgSavedPerHotel[rk] = pcfgSnapshotHotel(rk);
   localStorage.setItem('rmd_state', getFullState());
+  saveHotelRateConfig(currentHotel); // también persiste en MongoDB
   if (pcfgActiveChannel) pcfgRenderChannel(pcfgActiveChannel);
   const ts = new Date().toLocaleTimeString('es-CO');
   document.getElementById('pcfg-foot-status').textContent = `✓ Guardado para ${currentHotel} — ${ts}`;
@@ -3566,6 +3570,7 @@ function pcfgRestoreHotel() {
 function pcfgGlobalSave() {
   HOTELS.forEach(h => { pcfgSavedPerHotel[h] = pcfgSnapshotHotel(h); });
   localStorage.setItem('rmd_state', getFullState());
+  saveHotelRateConfig(currentHotel); // persiste el hotel activo en MongoDB
   if (pcfgActiveChannel) pcfgRenderChannel(pcfgActiveChannel);
   const ts = new Date().toLocaleTimeString('es-CO');
   document.getElementById('pcfg-foot-status').textContent = `✓ Todos los hoteles guardados — ${ts}`;
