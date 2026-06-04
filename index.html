@@ -1900,14 +1900,9 @@ function authSyncHotel(hotelName) {
 // ═══════════════════════════════════════════════════════════════
 
 // ── HOTELS ──────────────────────────────────────────────────────────────────
-const HOTELS = [
-  'Hotel Madison Inn','Hotel Windsor House','Hotel Sansiraka',
-  'Hotel Playa Salguero','Hotel Axis Inn','Hotel Rodadero Inn',
-  'Hotel Aixo Suites','Hotel Abi Inn','Hotel Boquilla Suites',
-  'Hotel Marina Suites','Hotel Avexi Suites','Hotel Azuan Suites',
-  'Hotel El Marques'
-];
-let currentHotel = HOTELS[0];
+// Populated dynamically from /api/hoteles on bootstrap
+let HOTELS = [];
+let currentHotel = '';
 let currentRoomType = '';
 let currentChannelKey = '';
 const hotelBaseInputs = {};
@@ -3015,7 +3010,31 @@ function init() {
   }, 100);
 }
 
-init();
+// Bootstrap: carga hoteles desde MongoDB, luego inicia la app
+(async function bootstrap() {
+  try {
+    const res = await fetch('/api/hoteles');
+    const data = await res.json();
+    if (data.ok && Array.isArray(data.nombres) && data.nombres.length) {
+      HOTELS = data.nombres;
+    }
+  } catch(e) {
+    console.warn('[bootstrap] No se pudo cargar hoteles desde servidor:', e);
+  }
+  if (!HOTELS.length) {
+    // Fallback: usa los nombres hardcodeados si la API no responde
+    HOTELS = [
+      'Hotel Madison Inn','Hotel Windsor House','Hotel Sansiraka',
+      'Hotel Playa Salguero','Hotel Axis Inn','Hotel Rodadero Inn',
+      'Hotel Aixo Suites','Hotel Abi Inn','Hotel Boquilla Suites',
+      'Hotel Marina Suites','Hotel Avexi Suites','Hotel Azuan Suites',
+      'Hotel El Marques'
+    ];
+  }
+  currentHotel = HOTELS[0];
+  init();
+  loadOnStart();
+})();
 
 // Start auth after DOM is ready
 if (document.readyState === 'loading') {
@@ -3281,7 +3300,7 @@ function switchModule(mod) {
 // Priority: localStorage (most recent local state) > MongoDB (cross-device sync).
 // If localStorage has state, it is always newer or equal to MongoDB, so we skip MongoDB.
 // If no localStorage, load from MongoDB (first-time or different device).
-(function loadOnStart(){
+function loadOnStart() {
   const saved = localStorage.getItem('rmd_state');
 
   const finishRender = () => {
@@ -3306,7 +3325,7 @@ function switchModule(mod) {
       .catch(console.warn)
       .finally(finishRender);
   }
-})();
+}
 
 // ═══════════════════════════════════════════════════════════════
 // PROMO CONFIG MODULE
@@ -6768,7 +6787,7 @@ async function otbRenderHistory() {
         const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, 1);
         return {
           id:    a.id,
-          hotel: a.hotelId,
+          hotel: a.hotelNombre || a.hotelId,
           month: d.toLocaleDateString('es-CO',{year:'numeric',month:'long'}),
           date:  a.date,
           total: a.metrics.total, up: a.metrics.up, down: a.metrics.down, stable: a.metrics.stable,

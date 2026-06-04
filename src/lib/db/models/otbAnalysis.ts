@@ -46,7 +46,8 @@ export interface OtbAnalysis {
   id: string;
 
   // Context
-  hotelId: string;
+  hotelId: string;     // _id.toString() del documento en la colección hoteles
+  hotelNombre?: string; // nombre denormalizado para display sin join
   createdBy: string;
   createdAt: string;
 
@@ -86,10 +87,17 @@ export async function createOtbAnalysis(data: Omit<OtbAnalysis, '_id'>): Promise
 
 export async function listOtbAnalyses(
   hotelId?: string,
+  hotelNombre?: string,
   limit = 50
 ): Promise<OtbAnalysisSummary[]> {
   const col = await getCollection();
-  const filter = hotelId ? { hotelId } : {};
+  let filter: object = {};
+  if (hotelId && hotelNombre) {
+    // Busca por ObjectId (documentos nuevos) O por nombre en hotelId (documentos legacy)
+    filter = { $or: [{ hotelId }, { hotelId: hotelNombre }] };
+  } else if (hotelId) {
+    filter = { hotelId };
+  }
   const docs = await col
     .find(filter, { projection: { comparison: 0 } })
     .sort({ createdAt: -1 })
