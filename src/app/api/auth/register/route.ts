@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     passwordHash: hashPassword(password),
     role: userRole,
     status: 'active',
-    allowedProviders: allowedProviders ?? ['email'],
+    allowedProviders: allowedProviders ?? ['email', 'google'],
     authProvider: null,
     hotelAccess: hotelAccess ?? [],
     permissions: permissions ?? DEFAULT_ROLE_PERMISSIONS[userRole] ?? [],

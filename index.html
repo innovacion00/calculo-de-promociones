@@ -2004,9 +2004,9 @@ function getRoomKey() {
   return currentHotel + (currentRoomType ? '||' + currentRoomType : '');
 }
 
-// ── NAME OVERRIDES (persisted globally across all hotels) ────────────────────
-const labelOverrides = {}; // {`${secId}_rows_${ri}` | `${secId}_rowsSin_${ri}` | ...: string}
-const titleOverrides = {}; // {secId: string}
+// ── NAME OVERRIDES — per hotel ───────────────────────────────────────────────
+const labelOverrides = {}; // {hotel: {`${secId}_rows_${ri}` | ...: string}}
+const titleOverrides = {}; // {hotel: {secId: string}}
 
 // ── UTILS ───────────────────────────────────────────────────────────────────
 const fmt = n => '$ ' + Math.round(n).toLocaleString('es-CO');
@@ -2025,6 +2025,7 @@ function setPlanPct(sec, rowIdx, pct) {
   const k = getRoomKey();
   if (!hotelPlanPcts[k]) hotelPlanPcts[k] = {};
   hotelPlanPcts[k][sec._id+'_'+rowIdx] = pct;
+  scheduleRateSave();
 }
 
 function getPaisPct(sec) {
@@ -2035,6 +2036,7 @@ function setPaisPct(sec, pct) {
   const k = getRoomKey();
   if (!hotelPaisPcts[k]) hotelPaisPcts[k] = {};
   hotelPaisPcts[k][sec._id] = pct;
+  scheduleRateSave();
 }
 
 function effectiveDiscounts(row, promoDisc, sec, rowIdx) {
@@ -2070,6 +2072,7 @@ function getPromoVal(sec) {
 function setPromoVal(sec, v) {
   if (!sec._promoVals) sec._promoVals = {};
   sec._promoVals[getRoomKey()] = v;
+  scheduleRateSave();
 }
 
 // ── CHANNEL PLAN ROW HELPERS ─────────────────────────────────────────────────
@@ -2469,8 +2472,10 @@ function buildCfgPanel(sec, card, ch, baseRates, commission) {
       labelInp.type='text'; labelInp.value=row.label;
       labelInp.addEventListener('change', ()=>{
         row.label = labelInp.value;
-        labelOverrides[sec._id+'_'+(rowsKey||'rows')+'_'+ri] = labelInp.value;
+        if (!labelOverrides[currentHotel]) labelOverrides[currentHotel] = {};
+        labelOverrides[currentHotel][sec._id+'_'+(rowsKey||'rows')+'_'+ri] = labelInp.value;
         localStorage.setItem('rmd_state', getFullState());
+        scheduleRateSave();
         reRender(card,sec,baseRates,commission,ch);
       });
       labelWrap.appendChild(labelInp);
@@ -2607,8 +2612,10 @@ function buildSectionCard(ch, sec, baseRates, hotel) {
   titleEl.addEventListener('blur', ()=>{
     const t = titleEl.textContent.trim();
     sec.title = t;
-    titleOverrides[sec._id] = t;
+    if (!titleOverrides[currentHotel]) titleOverrides[currentHotel] = {};
+    titleOverrides[currentHotel][sec._id] = t;
     localStorage.setItem('rmd_state', getFullState());
+    scheduleRateSave();
   });
   hdr.appendChild(titleEl);
 
@@ -2812,7 +2819,7 @@ function closeSidebar() {
 }
 
 // ── SWITCH HOTEL ─────────────────────────────────────────────────────────────
-function switchHotel(name) {
+async function switchHotel(name) {
   const _prevHotel = currentHotel;
   currentHotel = name;
   // Reset to first room type for new hotel
@@ -2823,6 +2830,11 @@ function switchHotel(name) {
   document.querySelectorAll('.hotel-item').forEach(b=>b.classList.toggle('active', b.dataset.hotel===name));
   document.getElementById('hotel-badge').textContent = name;
   closeSidebar();
+
+  // Load per-hotel config from MongoDB before rendering
+  await loadHotelRateConfig(name);
+  applyNameOverrides(); // Apply this hotel's title/label overrides before render
+
   // Load saved inputs for this hotel+room, re-render active channel
   const ch = CHANNELS.find(c=>c.key===currentChannelKey);
   if (ch) {
@@ -2857,6 +2869,13 @@ function addTh(parent,text,style,colArr,colIdx){
 function addTd(parent,text,cls){const td=document.createElement('td');td.textContent=text;if(cls)td.className=cls;parent.appendChild(td);return td;}
 
 function init() {
+  // Snapshot original section titles/row labels before any overrides are applied
+  CHANNELS.forEach(ch => ch.sections.forEach(sec => {
+    if (sec._origTitle === undefined) sec._origTitle = sec.title;
+    [['rows','rows'],['rowsSin','rowsSin'],['rowsCon','rowsCon']].forEach(([,prop]) => {
+      (sec[prop]||[]).forEach(row => { if (row._origLabel === undefined) row._origLabel = row.label; });
+    });
+  }));
   // Set initial room type for first hotel
   const initRooms = HOTEL_ROOM_TYPES[HOTELS[0]] || [];
   currentRoomType = initRooms.length > 0 ? initRooms[0].name : '';
@@ -2903,7 +2922,7 @@ function init() {
     pagesEl.appendChild(page);
 
     // Wire inputs
-    document.getElementById('inp-'+ch.key).addEventListener('input',()=>renderSections(ch));
+    document.getElementById('inp-'+ch.key).addEventListener('input',()=>{ renderSections(ch); scheduleRateSave(); });
     const roomSelEl = document.getElementById('room-'+ch.key);
     if (roomSelEl && roomSelEl.tagName === 'SELECT') {
       roomSelEl.addEventListener('change', () => {
@@ -2921,6 +2940,7 @@ function init() {
           if (inp2) inp2.value = savedBase;
         }
         renderSections(ch);
+        scheduleRateSave();
       });
     }
     document.getElementById('com-'+ch.key).addEventListener('input',e=>{
@@ -2974,12 +2994,15 @@ if (document.readyState === 'loading') {
 
 // ── SAVE / RESTORE ───────────────────────────────────────────────────────────
 function applyNameOverrides() {
+  const ho = titleOverrides[currentHotel] || {};
+  const lo = labelOverrides[currentHotel] || {};
   CHANNELS.forEach(ch => ch.sections.forEach(sec => {
-    if (titleOverrides[sec._id] !== undefined) sec.title = titleOverrides[sec._id];
+    // Reset to original, then apply hotel-specific override
+    sec.title = ho[sec._id] !== undefined ? ho[sec._id] : (sec._origTitle !== undefined ? sec._origTitle : sec.title);
     [['rows','rows'],['rowsSin','rowsSin'],['rowsCon','rowsCon']].forEach(([key, prop]) => {
       (sec[prop]||[]).forEach((row, ri) => {
-        const over = labelOverrides[sec._id+'_'+key+'_'+ri];
-        if (over !== undefined) row.label = over;
+        const over = lo[sec._id+'_'+key+'_'+ri];
+        row.label = over !== undefined ? over : (row._origLabel !== undefined ? row._origLabel : row.label);
       });
     });
   }));
@@ -3020,25 +3043,113 @@ function restoreFullState(json) {
 }
 
 let savedSnapshot = null;
+let _rateSaveTimer = null;
+
+// ── PER-HOTEL RATE CONFIG ────────────────────────────────────────────────────
+
+function getHotelStateSlice(hotel) {
+  const rawBaseInputs = {};
+  Object.keys(hotelBaseInputs).forEach(k => {
+    if (k === hotel || k.startsWith(hotel + '||'))
+      rawBaseInputs[k] = JSON.parse(JSON.stringify(hotelBaseInputs[k]));
+  });
+  const rawPlanPcts = {};
+  Object.keys(hotelPlanPcts).forEach(k => {
+    if (k === hotel || k.startsWith(hotel + '||'))
+      rawPlanPcts[k] = JSON.parse(JSON.stringify(hotelPlanPcts[k]));
+  });
+  const rawPaisPcts = {};
+  Object.keys(hotelPaisPcts).forEach(k => {
+    if (k === hotel || k.startsWith(hotel + '||'))
+      rawPaisPcts[k] = JSON.parse(JSON.stringify(hotelPaisPcts[k]));
+  });
+  const promoVals = {};
+  CHANNELS.forEach(ch => ch.sections.forEach(sec => {
+    if (!sec._promoVals) return;
+    const hotelPromos = {};
+    Object.keys(sec._promoVals).forEach(k => {
+      if (k === hotel || k.startsWith(hotel + '||')) hotelPromos[k] = sec._promoVals[k];
+    });
+    if (Object.keys(hotelPromos).length) promoVals[sec._id] = hotelPromos;
+  }));
+  const hotelLabelOverrides = labelOverrides[hotel] ? JSON.parse(JSON.stringify(labelOverrides[hotel])) : {};
+  const hotelTitleOverrides = titleOverrides[hotel] ? JSON.parse(JSON.stringify(titleOverrides[hotel])) : {};
+  return { rawBaseInputs, rawPlanPcts, rawPaisPcts, promoVals, labelOverrides: hotelLabelOverrides, titleOverrides: hotelTitleOverrides };
+}
+
+function applyHotelConfig(hotel, config) {
+  if (!config) return;
+  Object.assign(hotelBaseInputs, config.rawBaseInputs || {});
+  Object.assign(hotelPlanPcts,   config.rawPlanPcts   || {});
+  Object.assign(hotelPaisPcts,   config.rawPaisPcts   || {});
+  CHANNELS.forEach(ch => ch.sections.forEach(sec => {
+    const saved = (config.promoVals || {})[sec._id];
+    if (saved) { if (!sec._promoVals) sec._promoVals = {}; Object.assign(sec._promoVals, saved); }
+  }));
+  if (config.labelOverrides) labelOverrides[hotel] = config.labelOverrides;
+  if (config.titleOverrides) titleOverrides[hotel] = config.titleOverrides;
+}
+
+async function saveHotelRateConfig(hotel) {
+  const slice = getHotelStateSlice(hotel);
+  const st = document.getElementById('save-status');
+  try {
+    const res = await fetch('/api/rate-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hotelId: hotel, ...slice })
+    });
+    let data;
+    try { data = await res.json(); } catch { data = { ok: false, error: 'HTTP ' + res.status }; }
+    if (!data.ok) throw new Error('(' + res.status + ') ' + (data.error || 'Error al guardar'));
+    if (st) st.textContent = '✓ Guardado a las ' + new Date().toLocaleTimeString('es-CO');
+  } catch (err) {
+    console.error('[rateConfig] Error guardando:', err);
+    if (st) st.textContent = '⚠ Error: ' + err.message;
+  }
+  localStorage.setItem('rmd_state', getFullState());
+}
+
+async function loadHotelRateConfig(hotel) {
+  try {
+    const res = await fetch('/api/rate-config?hotelId=' + encodeURIComponent(hotel));
+    const data = await res.json();
+    if (data.ok && data.config) applyHotelConfig(hotel, data.config);
+  } catch (err) {
+    console.warn('[rateConfig] No se pudo cargar config de hotel:', err);
+  }
+}
+
+function scheduleRateSave() {
+  localStorage.setItem('rmd_state', getFullState());
+  if (_rateSaveTimer) clearTimeout(_rateSaveTimer);
+  _rateSaveTimer = setTimeout(() => saveHotelRateConfig(currentHotel), 2000);
+  const st = document.getElementById('save-status');
+  if (st) st.textContent = 'Guardando...';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 document.getElementById('btn-global-save').addEventListener('click', ()=>{
   savedSnapshot = getFullState();
   localStorage.setItem('rmd_state', savedSnapshot);
-  const st = document.getElementById('save-status');
-  st.textContent = '✓ Guardado a las ' + new Date().toLocaleTimeString('es-CO');
-  // Re-render current channel
+  saveHotelRateConfig(currentHotel);
   const ch = CHANNELS.find(c=>c.key===currentChannelKey);
   if (ch) renderSections(ch);
 });
 
-document.getElementById('btn-restore').addEventListener('click', ()=>{
-  const snap = savedSnapshot || localStorage.getItem('rmd_state');
-  if (!snap) { alert('No hay estado guardado aún.'); return; }
-  restoreFullState(snap);
+document.getElementById('btn-restore').addEventListener('click', async ()=>{
   const st = document.getElementById('save-status');
-  st.textContent = '↩ Restaurado';
+  if (st) st.textContent = 'Restaurando...';
+  await loadHotelRateConfig(currentHotel);
   const ch = CHANNELS.find(c=>c.key===currentChannelKey);
-  if (ch) renderSections(ch);
+  if (ch) {
+    const rk = getRoomKey();
+    const inp = document.getElementById('inp-'+ch.key);
+    if (inp) inp.value = (hotelBaseInputs[rk]||{})[ch.key] || 240000;
+    renderSections(ch);
+  }
+  if (st) st.textContent = '↩ Restaurado desde servidor';
 });
 
 // ── MODULE SWITCH ─────────────────────────────────────────────
@@ -3087,11 +3198,35 @@ function switchModule(mod) {
   if (AUTH_SESSION) authWriteAudit('navigate_module', AUTH_SESSION.userId, AUTH_SESSION.userName, currentHotel, null, mod);
 }
 
-// Load from localStorage on startup
+// Load state on startup.
+// Priority: localStorage (most recent local state) > MongoDB (cross-device sync).
+// If localStorage has state, it is always newer or equal to MongoDB, so we skip MongoDB.
+// If no localStorage, load from MongoDB (first-time or different device).
 (function loadOnStart(){
   const saved = localStorage.getItem('rmd_state');
-  if (saved) { restoreFullState(saved); savedSnapshot = saved; }
-  applyNameOverrides();
+
+  const finishRender = () => {
+    applyNameOverrides();
+    const ch = CHANNELS.find(c => c.key === currentChannelKey);
+    if (ch) {
+      const rk = getRoomKey();
+      const inp = document.getElementById('inp-' + ch.key);
+      if (inp) inp.value = (hotelBaseInputs[rk] || {})[ch.key] || 240000;
+      renderSections(ch);
+    }
+  };
+
+  if (saved) {
+    // Use localStorage — don't override with MongoDB (it may be older)
+    restoreFullState(saved);
+    savedSnapshot = saved;
+    finishRender();
+  } else {
+    // No local state: load from MongoDB (different device or first visit)
+    loadHotelRateConfig(currentHotel)
+      .catch(console.warn)
+      .finally(finishRender);
+  }
 })();
 
 // ═══════════════════════════════════════════════════════════════
@@ -3921,6 +4056,10 @@ function initOTB(page) {
           var ca = document.getElementById('otb-charts-area');
           if (ca) ca.innerHTML = '<div style="padding:32px;text-align:center;color:#aaa;font-size:.85rem">Calcule la comparativa primero para ver los gráficos.</div>';
         }
+      }
+      if (btn.dataset.tab === 'comparison') {
+        // Re-render inline chart in case otbRenderCharts() destroyed it
+        if (OTB_STATE.comparison) setTimeout(otbRenderInlinePickupChart, 30);
       }
       if (btn.dataset.tab === 'history') otbRenderHistory();
     });
@@ -5340,19 +5479,13 @@ function otbRenderInlinePickupChart() {
   var areaDiv = document.getElementById('otb-inline-chart-area');
   if (!areaDiv) return;
   var rows = (OTB_STATE.comparison || []).filter(function(r) {
-    return r.pickup !== null && r.pickup !== undefined;
+    return r.occAfter !== null && r.occAfter !== undefined;
   });
   if (rows.length === 0) {
-    areaDiv.innerHTML = '<div style="text-align:center;color:#999;font-size:.78rem;padding:24px">Sin datos de pickup disponibles</div>';
+    areaDiv.innerHTML = '<div style="text-align:center;color:#999;font-size:.78rem;padding:24px">Sin datos de ocupación disponibles</div>';
     return;
   }
-  var STATUS_COLORS = {
-    'strong-up':    'rgba(22,120,60,0.85)',
-    'moderate-up':  'rgba(76,175,80,0.8)',
-    'stable':       'rgba(150,150,150,0.75)',
-    'moderate-down':'rgba(230,74,25,0.8)',
-    'strong-down':  'rgba(183,28,28,0.85)'
-  };
+
   var DAYS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
   function fmtDate(row) {
@@ -5375,15 +5508,17 @@ function otbRenderInlinePickupChart() {
     return '';
   }
 
-  var useRooms = rows.some(function(r) { return r.roomPickup !== null && r.roomPickup !== undefined; });
+  function barColor(pickup, alpha) {
+    alpha = alpha || 1;
+    if (pickup > 10)   return 'rgba(22,120,60,'+alpha+')';
+    if (pickup > 2)    return 'rgba(60,170,90,'+alpha+')';
+    if (pickup >= -2)  return 'rgba(150,150,150,'+alpha+')';
+    if (pickup >= -10) return 'rgba(210,90,20,'+alpha+')';
+    return 'rgba(195,0,0,'+alpha+')';
+  }
+
+  var hasRooms = rows.some(function(r) { return r.roomPickup !== null && r.roomPickup !== undefined; });
   var labels = rows.map(fmtDate);
-  var dataVals = rows.map(function(r) {
-    return useRooms ? (r.roomPickup !== null && r.roomPickup !== undefined ? r.roomPickup : r.pickup) : r.pickup;
-  });
-  var bgColors = rows.map(function(r) {
-    var st = r.status || pickupStatus(r.pickup);
-    return STATUS_COLORS[st] || STATUS_COLORS['stable'];
-  });
 
   if (OTB_STATE.charts && OTB_STATE.charts['ch-inline-pickup']) {
     try { OTB_STATE.charts['ch-inline-pickup'].destroy(); } catch(e) {}
@@ -5391,8 +5526,8 @@ function otbRenderInlinePickupChart() {
   }
 
   areaDiv.innerHTML = '<div style="background:#fff;border:1.5px solid #e8d88a;border-radius:12px;padding:18px 20px;margin:12px 0">'
-    + '<div style="font-size:.8rem;font-weight:800;color:#2c1a00;margin-bottom:4px;letter-spacing:.02em">📊 COMPORTAMIENTO DIARIO DEL PICKUP</div>'
-    + '<div style="font-size:.7rem;color:#888;margin-bottom:12px">Verde = ganó pickup · Rojo = perdió pickup · Gris = estable</div>'
+    + '<div style="font-size:.8rem;font-weight:800;color:#2c1a00;margin-bottom:4px;letter-spacing:.02em">📊 OCUPACIÓN ACTUAL VS BASE — COLOREADA POR PICKUP</div>'
+    + '<div style="font-size:.7rem;color:#888;margin-bottom:12px">Barras = Occ actual coloreadas por pickup · Línea azul = Occ base · Verde = ganó · Rojo = perdió · Gris = estable</div>'
     + '<div style="position:relative;height:300px;"><canvas id="ch-inline-pickup"></canvas></div>'
     + '<div id="ch-inline-pickup-legend" style="display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;justify-content:center;"></div>'
     + '</div>';
@@ -5405,69 +5540,92 @@ function otbRenderInlinePickupChart() {
     plugins: [ChartDataLabels],
     data: {
       labels: labels,
-      datasets: [{
-        label: useRooms ? 'Pickup Habitaciones' : 'Pickup pp',
-        data: dataVals,
-        backgroundColor: bgColors,
-        borderRadius: 4,
-        borderSkipped: false
-      }]
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Occ Actual',
+          data: rows.map(function(r) { return r.occAfter !== null ? parseFloat(r.occAfter.toFixed(1)) : null; }),
+          backgroundColor: rows.map(function(r) { return barColor(r.pickup != null ? r.pickup : 0, 0.78); }),
+          borderColor:     rows.map(function(r) { return barColor(r.pickup != null ? r.pickup : 0, 1); }),
+          borderWidth: 1,
+          borderRadius: 3,
+          yAxisID: 'y',
+          order: 2,
+          datalabels: {
+            display: true,
+            anchor: 'end', align: 'top',
+            formatter: function(v, ctx) {
+              var pu = rows[ctx.dataIndex].pickup;
+              if (pu === null || pu === undefined) return '';
+              return (pu > 0 ? '+' : '') + parseFloat(pu.toFixed(0));
+            },
+            font: { size: 9, weight: 'bold' },
+            color: function(ctx) {
+              var pu = rows[ctx.dataIndex].pickup;
+              return pu > 2 ? '#0e5a30' : pu < -2 ? '#a00' : '#555';
+            }
+          }
+        },
+        {
+          type: 'line',
+          label: 'Occ Base (referencia)',
+          data: rows.map(function(r) { return r.occBefore !== null && r.occBefore !== undefined ? parseFloat(r.occBefore.toFixed(1)) : null; }),
+          borderColor: 'rgba(30,80,180,0.75)',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          borderDash: [4, 3],
+          pointRadius: 2,
+          pointBackgroundColor: 'rgba(30,80,180,0.9)',
+          tension: 0.3,
+          yAxisID: 'y',
+          order: 1,
+          datalabels: { display: false }
+        }
+      ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { display: false },
-        title: {
-          display: true,
-          text: 'Comportamiento Diario del Pickup',
-          font: { size: 13, weight: 'bold' },
-          color: '#2c1a00',
-          padding: { bottom: 10 }
-        },
-        datalabels: {
-          anchor: function(ctx) { return ctx.dataset.data[ctx.dataIndex] >= 0 ? 'end' : 'start'; },
-          align: function(ctx) { return ctx.dataset.data[ctx.dataIndex] >= 0 ? 'top' : 'bottom'; },
-          formatter: function(val) { return val > 0 ? '+' + val : val; },
-          font: { size: 10, weight: 'bold' },
-          color: function(ctx) {
-            var v = ctx.dataset.data[ctx.dataIndex];
-            return v > 0 ? '#1b5e20' : v < 0 ? '#b71c1c' : '#555';
-          }
-        },
+        legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 14 } },
         tooltip: {
+          backgroundColor: 'rgba(20,20,20,.9)',
+          titleFont: { size: 12 },
+          bodyFont: { size: 11 },
+          padding: 10,
           callbacks: {
             title: function(items) {
-              var idx = items[0].dataIndex;
-              var row = rows[idx];
+              var row = rows[items[0].dataIndex];
               return fmtDate(row) + (dayName(row) ? ' (' + dayName(row) + ')' : '');
             },
             label: function(item) {
-              var idx = item.dataIndex;
-              var row = rows[idx];
-              var st = row.status || pickupStatus(row.pickup);
-              var lines = [];
-              if (row.roomsBefore !== null && row.roomsBefore !== undefined) lines.push('Habs base: ' + row.roomsBefore);
-              if (row.roomsAfter !== null && row.roomsAfter !== undefined) lines.push('Habs actual: ' + row.roomsAfter);
-              if (row.roomPickup !== null && row.roomPickup !== undefined) lines.push('Pickup habs: ' + (row.roomPickup > 0 ? '+' : '') + row.roomPickup);
-              if (row.occBefore !== null && row.occBefore !== undefined) lines.push('Occ base: ' + Math.round(row.occBefore * 100) + '%');
-              if (row.occAfter !== null && row.occAfter !== undefined) lines.push('Occ actual: ' + Math.round(row.occAfter * 100) + '%');
-              if (row.pickup !== null && row.pickup !== undefined) lines.push('Pickup pp: ' + (row.pickup > 0 ? '+' : '') + row.pickup);
-              if (row.velocityHabs !== null && row.velocityHabs !== undefined) lines.push('Velocidad habs: ' + (typeof row.velocityHabs === 'number' ? row.velocityHabs.toFixed(2) : row.velocityHabs));
-              else if (row.velocityPP !== null && row.velocityPP !== undefined) lines.push('Velocidad pp: ' + (typeof row.velocityPP === 'number' ? row.velocityPP.toFixed(2) : row.velocityPP));
-              lines.push('Estado: ' + pickupLabel(st));
-              lines.push('Acción: ' + pickupAction(st));
+              var row = rows[item.dataIndex];
+              if (item.dataset.label === 'Occ Base (referencia)')
+                return '  OTB Base: ' + (row.occBefore !== null && row.occBefore !== undefined ? row.occBefore.toFixed(1) + '%' : 'N/D');
+              var lines = [
+                '  OTB Actual: ' + (row.occAfter !== null ? row.occAfter.toFixed(1) + '%' : 'N/D'),
+                '  Pickup: ' + (row.pickup > 0 ? '+' : '') + (row.pickup !== null ? row.pickup.toFixed(1) : '0') + ' pp  · ' + pickupLabel(row.status)
+              ];
+              if (hasRooms && row.roomPickup !== null && row.roomPickup !== undefined) {
+                lines.push('  Habs: ' + Math.round(row.roomsBefore || 0) + ' → ' + Math.round(row.roomsAfter || 0) + ' (' + (row.roomPickup > 0 ? '+' : '') + Math.round(row.roomPickup) + ' habs)');
+              }
+              lines.push('  Acción: ' + pickupAction(row.status));
               return lines;
             }
           }
         }
       },
       scales: {
-        x: { ticks: { font: { size: 10 }, maxRotation: 45 }, grid: { display: false } },
+        x: {
+          ticks: { font: { size: rows.length > 20 ? 8 : 10 }, maxRotation: rows.length > 20 ? 45 : 0 },
+          grid: { display: false }
+        },
         y: {
-          title: { display: true, text: useRooms ? 'Pickup (Habitaciones)' : 'Pickup (pp)', font: { size: 10 }, color: '#666' },
-          grid: { color: 'rgba(0,0,0,.06)' },
-          ticks: { font: { size: 10 } }
+          min: 0, max: 100,
+          title: { display: true, text: 'Ocupación (%)', font: { size: 10 }, color: '#666' },
+          ticks: { callback: function(v) { return v + '%'; }, font: { size: 10 } },
+          grid: { color: 'rgba(0,0,0,.06)' }
         }
       }
     }
@@ -5480,10 +5638,11 @@ function otbRenderInlinePickupChart() {
   if (legendDiv) {
     var legendItems = [
       { color: 'rgba(22,120,60,0.85)',   label: '⬆ Pickup fuerte' },
-      { color: 'rgba(76,175,80,0.8)',    label: '↑ Pickup moderado' },
+      { color: 'rgba(60,170,90,0.8)',    label: '↑ Pickup moderado' },
       { color: 'rgba(150,150,150,0.75)', label: '→ Estable' },
-      { color: 'rgba(230,74,25,0.8)',    label: '↓ Caída moderada' },
-      { color: 'rgba(183,28,28,0.85)',   label: '⬇ Caída fuerte' }
+      { color: 'rgba(210,90,20,0.8)',    label: '↓ Caída moderada' },
+      { color: 'rgba(195,0,0,0.85)',     label: '⬇ Caída fuerte' },
+      { color: 'rgba(30,80,180,0.75)',   label: '— Occ Base' }
     ];
     var legHTML = '';
     legendItems.forEach(function(li) {
@@ -6446,28 +6605,105 @@ function otbRenderWeekly() {
   el.innerHTML = html;
 }
 
-function otbSaveToHistory() {
+async function otbSaveToHistory() {
   if (!OTB_STATE.metrics) { otbShowError('No hay comparativa activa para guardar'); return; }
   const m = OTB_STATE.metrics;
-  const entry = {
-    id: Date.now(),
-    hotel: currentHotel,
-    month: new Date().toLocaleDateString('es-CO',{year:'numeric',month:'long'}),
-    date: new Date().toLocaleDateString('es-CO'),
-    total: m.total, up: m.up, down: m.down, stable: m.stable,
-    avgOcc: m.avgOcc, avgAdr: m.avgAdr, avgRevpar: m.avgRevpar,
-    general: m.general,
-    weeklyMetrics: OTB_STATE.weeklyMetrics || null
+  const now = new Date();
+  const monthYM = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  const dateDisplay = now.toLocaleDateString('es-CO');
+  const monthDisplay = now.toLocaleDateString('es-CO',{year:'numeric',month:'long'});
+
+  const payload = {
+    hotelId:      currentHotel,
+    month:        monthYM,
+    cutoffBefore: OTB_STATE.beforeCutoff  || null,
+    cutoffAfter:  OTB_STATE.afterCutoff   || null,
+    mode:         OTB_STATE.comparisonMode || 'exactDate',
+    sourceBefore: OTB_STATE.beforeSource  || 'unknown',
+    sourceAfter:  OTB_STATE.afterSource   || 'unknown',
+    metrics: {
+      total: m.total, up: m.up, down: m.down, stable: m.stable,
+      avgPickup:       m.avgPickup       ?? null,
+      totalRoomPickup: m.totalRoomPickup ?? null,
+      general:  m.general,
+      avgOcc:   m.avgOcc   ?? null,
+      avgAdr:   m.avgAdr   ?? null,
+      avgRevpar: m.avgRevpar ?? null,
+      bestDay:  m.bestDay  || null,
+      worstDay: m.worstDay || null
+    },
+    weeklyMetrics: OTB_STATE.weeklyMetrics || null,
+    comparison:    OTB_STATE.comparison    || [],
+    date:          dateDisplay
   };
-  OTB_STATE.history.unshift(entry);
-  localStorage.setItem('otb_history', JSON.stringify(OTB_STATE.history.slice(0,50)));
-  otbRenderHistory();
-  alert('✓ Guardado en el histórico mensual');
+
+  try {
+    const res = await fetch('/api/otb/analyses', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    let data;
+    try { data = await res.json(); } catch(e) { throw new Error('Respuesta no válida del servidor (HTTP ' + res.status + ')'); }
+    if (!data.ok) throw new Error(data.error || 'Error al guardar (HTTP ' + res.status + ')');
+    const entry = {
+      id:    data.analysis.id,
+      hotel: currentHotel, month: monthDisplay, date: dateDisplay,
+      total: m.total, up: m.up, down: m.down, stable: m.stable,
+      avgOcc: m.avgOcc, avgAdr: m.avgAdr, avgRevpar: m.avgRevpar,
+      general: m.general, weeklyMetrics: OTB_STATE.weeklyMetrics || null
+    };
+    OTB_STATE.history.unshift(entry);
+    otbRenderHistory();
+    alert('✓ Guardado en MongoDB');
+  } catch(err) {
+    console.error('[OTB] Error guardando en servidor:', err);
+    alert('⚠️ No se pudo guardar en servidor: ' + err.message + '\n\nSe guardará localmente en este navegador.');
+    // Fallback localStorage
+    const entry = {
+      id:    Date.now(),
+      hotel: currentHotel, month: monthDisplay, date: dateDisplay,
+      total: m.total, up: m.up, down: m.down, stable: m.stable,
+      avgOcc: m.avgOcc, avgAdr: m.avgAdr, avgRevpar: m.avgRevpar,
+      general: m.general, weeklyMetrics: OTB_STATE.weeklyMetrics || null
+    };
+    OTB_STATE.history.unshift(entry);
+    localStorage.setItem('otb_history', JSON.stringify(OTB_STATE.history.slice(0,50)));
+    otbRenderHistory();
+  }
 }
 
-function otbRenderHistory() {
+async function otbRenderHistory() {
   const area = document.getElementById('otb-history-area');
   if (!area) return;
+
+  area.innerHTML = '<p style="color:var(--gray3);padding:20px">Cargando histórico...</p>';
+
+  try {
+    const params = currentHotel ? '?hotelId=' + encodeURIComponent(currentHotel) : '';
+    const res = await fetch('/api/otb/analyses' + params);
+    const data = await res.json();
+    if (data.ok) {
+      OTB_STATE.history = data.analyses.map(function(a) {
+        const parts = a.month.split('-');
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, 1);
+        return {
+          id:    a.id,
+          hotel: a.hotelId,
+          month: d.toLocaleDateString('es-CO',{year:'numeric',month:'long'}),
+          date:  a.date,
+          total: a.metrics.total, up: a.metrics.up, down: a.metrics.down, stable: a.metrics.stable,
+          avgOcc: a.metrics.avgOcc, avgAdr: a.metrics.avgAdr, avgRevpar: a.metrics.avgRevpar,
+          general: a.metrics.general, weeklyMetrics: a.weeklyMetrics
+        };
+      });
+    }
+  } catch(err) {
+    console.warn('[OTB] No se pudo cargar histórico desde servidor:', err);
+    const stored = localStorage.getItem('otb_history');
+    if (stored) { try { OTB_STATE.history = JSON.parse(stored); } catch(e){} }
+  }
+
   if (!OTB_STATE.history.length) {
     area.innerHTML = '<p style="color:var(--gray3);padding:20px">No hay comparativas guardadas aún. Ejecute una comparativa y presione "Guardar en histórico".</p>';
     return;
@@ -6489,17 +6725,84 @@ function otbRenderHistory() {
       + '<td>'+(e.avgAdr!==null&&e.avgAdr!==undefined?fmtCOP(e.avgAdr):'N/D')+'</td>'
       + '<td>'+(e.avgRevpar!==null&&e.avgRevpar!==undefined?fmtCOP(e.avgRevpar):'N/D')+'</td>'
       + '<td style="color:'+stColor+';font-weight:700">'+e.general+'</td>'
-      + '<td><button class="otb-btn danger" style="padding:2px 8px;font-size:.65rem" onclick="otbDeleteHistory('+e.id+')">✕</button></td>'
+      + '<td style="white-space:nowrap">'
+      + '<button class="otb-btn" style="padding:2px 8px;font-size:.65rem;margin-right:4px" onclick="otbLoadFromHistory(\''+e.id+'\')">📂 Cargar</button>'
+      + '<button class="otb-btn danger" style="padding:2px 8px;font-size:.65rem" onclick="otbDeleteHistory(\''+e.id+'\')">✕</button>'
+      + '</td>'
       + '</tr>';
   });
   html += '</tbody></table></div></div>';
   area.innerHTML = html;
 }
 
-function otbDeleteHistory(id) {
+async function otbDeleteHistory(id) {
+  if (!confirm('¿Eliminar este análisis del histórico?')) return;
+  try {
+    const res = await fetch('/api/otb/analyses/' + encodeURIComponent(id), { method: 'DELETE' });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Error al eliminar');
+  } catch(err) {
+    console.warn('[OTB] Error eliminando del servidor, eliminando localmente:', err);
+  }
   OTB_STATE.history = OTB_STATE.history.filter(function(e){ return e.id !== id; });
   localStorage.setItem('otb_history', JSON.stringify(OTB_STATE.history));
   otbRenderHistory();
+}
+
+async function otbLoadFromHistory(id) {
+  var area = document.getElementById('otb-history-area');
+  var prevHtml = area ? area.innerHTML : '';
+  if (area) area.innerHTML = '<p style="color:var(--gray3);padding:20px">⏳ Cargando análisis...</p>';
+
+  try {
+    var res = await fetch('/api/otb/analyses/' + encodeURIComponent(id));
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'No encontrado');
+    var a = data.analysis;
+    if (!a.comparison || !a.comparison.length) throw new Error('El análisis no tiene datos de comparativa guardados.');
+
+    // Restaurar estado OTB
+    OTB_STATE.comparison       = a.comparison;
+    OTB_STATE.comparisonMode   = a.mode         || 'exactDate';
+    OTB_STATE.beforeSource     = a.sourceBefore || 'unknown';
+    OTB_STATE.afterSource      = a.sourceAfter  || 'unknown';
+    OTB_STATE.beforeCutoff     = a.cutoffBefore || null;
+    OTB_STATE.afterCutoff      = a.cutoffAfter  || null;
+    OTB_STATE.weeklyMetrics    = a.weeklyMetrics || null;
+    OTB_STATE.weeklyComparison = null;
+    OTB_STATE.analysisStatus   = 'active';
+
+    if (a.cutoffBefore && a.cutoffAfter) {
+      var d1 = new Date(a.cutoffBefore), d2 = new Date(a.cutoffAfter);
+      OTB_STATE.daysBetweenCutoffs = Math.round((d2 - d1) / (1000*60*60*24));
+    } else {
+      OTB_STATE.daysBetweenCutoffs = null;
+    }
+
+    // Regenerar métricas y recomendaciones desde las filas guardadas
+    OTB_STATE.metrics = buildSummaryMetrics(OTB_STATE.comparison);
+    OTB_STATE.recs    = generateRecommendations(OTB_STATE.metrics, OTB_STATE.comparison);
+    OTB_STATE.rmRecs  = generateRMRecommendations(OTB_STATE.metrics, OTB_STATE.comparison, []);
+
+    // Cambiar a pestaña Comparativa y renderizar
+    otbSwitchToComparisonTab();
+    otbRenderComparison();
+    otbRenderWeekly();
+    setTimeout(otbRenderInlinePickupChart, 30);
+    otbRenderRMRecommendations('otb-recs-area', OTB_STATE.rmRecs, OTB_STATE.metrics);
+    OTB_STATE._chartsDirty = true;
+    otbRenderConsultant();
+
+    // Mostrar botones de acción
+    var clearBtn = document.getElementById('otb-clear-results-btn');
+    var newBtn   = document.getElementById('otb-new-analysis-top-btn');
+    if (clearBtn) clearBtn.style.display = '';
+    if (newBtn)   newBtn.style.display   = '';
+
+  } catch(err) {
+    if (area) area.innerHTML = prevHtml;
+    alert('⚠️ No se pudo cargar el análisis: ' + err.message);
+  }
 }
 
 function otbExportExcel() {
