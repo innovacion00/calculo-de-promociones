@@ -3,7 +3,8 @@ import { getDb } from '../mongodb';
 
 export interface RateConfig {
   _id?: ObjectId;
-  hotelId: string;
+  hotelId: string;      // _id.toString() del documento en la colección hoteles
+  hotelNombre?: string; // nombre denormalizado para display
   updatedAt: string;
   updatedBy: string;
   // All hotelBaseInputs entries matching this hotel (key = hotel or hotel||roomType)

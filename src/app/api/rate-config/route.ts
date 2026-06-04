@@ -1,23 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '../../../lib/auth/session';
 import { getRateConfig, upsertRateConfig } from '../../../lib/db/models/rateConfig';
+import { getHotelByNombre } from '../../../lib/db/models/hotel';
 
 // GET /api/rate-config?hotelId=X
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ ok: false, error: 'No autenticado.' }, { status: 401 });
 
-  const hotelId = new URL(req.url).searchParams.get('hotelId');
-  if (!hotelId) return NextResponse.json({ ok: false, error: 'hotelId es requerido.' }, { status: 400 });
+  const hotelNombreParam = new URL(req.url).searchParams.get('hotelId'); // frontend envía el nombre
+  if (!hotelNombreParam) return NextResponse.json({ ok: false, error: 'hotelId es requerido.' }, { status: 400 });
 
   // Users can only read configs for their accessible hotels
   const canAccess = session.role === 'master_admin'
     || session.hotelAccess.length === 0
-    || session.hotelAccess.includes(hotelId);
+    || session.hotelAccess.includes(hotelNombreParam);
   if (!canAccess) return NextResponse.json({ ok: false, error: 'Sin acceso a este hotel.' }, { status: 403 });
 
   try {
-    const config = await getRateConfig(hotelId);
+    // Resuelve nombre → ObjectId; si no existe en hoteles, cae al nombre (compat. legacy)
+    const hotelDoc = await getHotelByNombre(hotelNombreParam);
+    const objectId = hotelDoc?._id?.toString();
+
+    let config = objectId ? await getRateConfig(objectId) : null;
+    if (!config) config = await getRateConfig(hotelNombreParam); // legacy: hotelId era el nombre
+
     return NextResponse.json({ ok: true, config });
   } catch (e) {
     console.error('[api/rate-config GET]', e);
@@ -40,18 +47,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Cuerpo de solicitud inválido.' }, { status: 400 });
   }
 
-  const { hotelId, rawBaseInputs, rawPlanPcts, rawPaisPcts, promoVals, titleOverrides, labelOverrides, extraSections } = body;
-  if (!hotelId) return NextResponse.json({ ok: false, error: 'hotelId es requerido.' }, { status: 400 });
+  const { hotelId: hotelNombreBody, rawBaseInputs, rawPlanPcts, rawPaisPcts, promoVals, titleOverrides, labelOverrides, extraSections } = body;
+  if (!hotelNombreBody) return NextResponse.json({ ok: false, error: 'hotelId es requerido.' }, { status: 400 });
 
   // Users can only write configs for their accessible hotels
   const canAccess = session.role === 'master_admin'
     || session.hotelAccess.length === 0
-    || session.hotelAccess.includes(hotelId);
+    || session.hotelAccess.includes(hotelNombreBody);
   if (!canAccess) return NextResponse.json({ ok: false, error: 'Sin acceso a este hotel.' }, { status: 403 });
+
+  // Resuelve nombre → ObjectId; fallback al nombre si el hotel no existe en la colección
+  const hotelDoc = await getHotelByNombre(hotelNombreBody);
+  const resolvedHotelId = hotelDoc?._id?.toString() ?? hotelNombreBody;
 
   try {
     await upsertRateConfig({
-      hotelId,
+      hotelId:     resolvedHotelId,
+      hotelNombre: hotelNombreBody,
       updatedAt: new Date().toISOString(),
       updatedBy: session.userId,
       rawBaseInputs:  (rawBaseInputs  as Record<string, Record<string, number>>) ?? {},
