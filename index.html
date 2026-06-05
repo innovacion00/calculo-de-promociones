@@ -5654,20 +5654,31 @@ function otbRenderInlinePickupChart() {
           borderRadius: 3,
           yAxisID: 'y',
           order: 2,
-          datalabels: {
-            display: true,
-            anchor: 'end', align: 'top',
-            formatter: function(v, ctx) {
-              var pu = rows[ctx.dataIndex].pickup;
-              if (pu === null || pu === undefined) return '';
-              return (pu > 0 ? '+' : '') + parseFloat(pu.toFixed(0));
+          datalabels: [
+            {
+              display: true,
+              anchor: 'end', align: 'top',
+              formatter: function(v, ctx) {
+                var pu = rows[ctx.dataIndex].pickup;
+                if (pu === null || pu === undefined) return '';
+                return (pu > 0 ? '+' : '') + parseFloat(pu.toFixed(0));
+              },
+              font: { size: 9, weight: 'bold' },
+              color: function(ctx) {
+                var pu = rows[ctx.dataIndex].pickup;
+                return pu > 2 ? '#0e5a30' : pu < -2 ? '#a00' : '#555';
+              }
             },
-            font: { size: 9, weight: 'bold' },
-            color: function(ctx) {
-              var pu = rows[ctx.dataIndex].pickup;
-              return pu > 2 ? '#0e5a30' : pu < -2 ? '#a00' : '#555';
+            {
+              display: true,
+              anchor: 'start', align: 'end',
+              formatter: function(v) {
+                return v !== null && v !== undefined ? v + '%' : '';
+              },
+              font: { size: 8, weight: 'bold' },
+              color: '#fff'
             }
-          }
+          ]
         },
         {
           type: 'line',
@@ -6941,20 +6952,31 @@ function otbRenderPickupChartInto(rows, container, chartKey) {
           borderRadius: 3,
           yAxisID: 'y',
           order: 2,
-          datalabels: {
-            display: true,
-            anchor: 'end', align: 'top',
-            formatter: function(v, ctx) {
-              var pu = rows[ctx.dataIndex].pickup;
-              if (pu === null || pu === undefined) return '';
-              return (pu > 0 ? '+' : '') + parseFloat(pu.toFixed(0));
+          datalabels: [
+            {
+              display: true,
+              anchor: 'end', align: 'top',
+              formatter: function(v, ctx) {
+                var pu = rows[ctx.dataIndex].pickup;
+                if (pu === null || pu === undefined) return '';
+                return (pu > 0 ? '+' : '') + parseFloat(pu.toFixed(0));
+              },
+              font: { size: 9, weight: 'bold' },
+              color: function(ctx) {
+                var pu = rows[ctx.dataIndex].pickup;
+                return pu > 2 ? '#0e5a30' : pu < -2 ? '#a00' : '#555';
+              }
             },
-            font: { size: 9, weight: 'bold' },
-            color: function(ctx) {
-              var pu = rows[ctx.dataIndex].pickup;
-              return pu > 2 ? '#0e5a30' : pu < -2 ? '#a00' : '#555';
+            {
+              display: true,
+              anchor: 'start', align: 'end',
+              formatter: function(v) {
+                return v !== null && v !== undefined ? v + '%' : '';
+              },
+              font: { size: 8, weight: 'bold' },
+              color: '#fff'
             }
-          }
+          ]
         },
         {
           type: 'line',
