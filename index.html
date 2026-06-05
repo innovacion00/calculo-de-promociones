@@ -2385,10 +2385,13 @@ function renderTable(card, sec, baseRates, commission, promoDisc, ch) {
     if (isBooking) {
       const despPromo = vals.length >= 2 ? vals[vals.length - 2] : otaVal;
       const geniusPct = ch.geniusPct !== undefined ? ch.geniusPct : 20;
-      const geniusVal = despPromo * (1 - geniusPct / 100);
       const mobPct = ch.mobilePct || 0;
-      const mobVal = geniusVal * (1 - mobPct / 100);
-      const netVal = commission > 0 ? mobVal * (1 - commission) : null;
+      // Build chain: only apply discount steps for selected columns
+      let chainPrice = despPromo;
+      let geniusVal = null, mobVal = null, netVal = null;
+      if (showOta)    { geniusVal = chainPrice * (1 - geniusPct / 100); chainPrice = geniusVal; }
+      if (showMobile) { mobVal    = chainPrice * (1 - mobPct    / 100); chainPrice = mobVal;    }
+      if (commission > 0 && showNet) netVal = chainPrice * (1 - commission);
       if (showOta) {
         const geniusAlert = minRate > 0 && geniusVal <= minRate;
         const tdGenius = addTd(trow, fmt(geniusVal), 'td-ota' + (geniusAlert ? ' td-min-alert' : ''));
