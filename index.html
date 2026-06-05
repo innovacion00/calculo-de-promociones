@@ -3004,6 +3004,11 @@ async function switchHotel(name) {
       const mEl = document.getElementById('genius-mob-' + ch.key);
       if (mEl) mEl.value = ch.mobilePct;
     }
+    if (ch._defaultCommission !== undefined) {
+      ch._commission = ch._defaultCommission;
+      const cEl = document.getElementById('com-' + ch.key);
+      if (cEl) cEl.value = Math.round(ch._commission * 100);
+    }
   });
 
   // Load per-hotel config from MongoDB before rendering
@@ -3056,6 +3061,7 @@ function init() {
     if (!ch._defaultSections) ch._defaultSections = ch.sections;
     if (ch._defaultGeniusPct === undefined) ch._defaultGeniusPct = ch.geniusPct !== undefined ? ch.geniusPct : 20;
     if (ch._defaultMobilePct === undefined) ch._defaultMobilePct = ch.mobilePct || 0;
+    if (ch._defaultCommission === undefined) ch._defaultCommission = ch.commission !== undefined ? ch.commission : 0;
     ch.sections.forEach(sec => {
       if (sec._origTitle === undefined) sec._origTitle = sec.title;
       [['rows','rows'],['rowsSin','rowsSin'],['rowsCon','rowsCon']].forEach(([,prop]) => {
@@ -3132,7 +3138,11 @@ function init() {
     }
     document.getElementById('com-'+ch.key).addEventListener('input',e=>{
       ch._commission=(parseFloat(e.target.value)||0)/100;
+      if (!hotelChannelOverrides[currentHotel]) hotelChannelOverrides[currentHotel] = {};
+      if (!hotelChannelOverrides[currentHotel][ch.key]) hotelChannelOverrides[currentHotel][ch.key] = {};
+      hotelChannelOverrides[currentHotel][ch.key].commissionPct = ch._commission;
       renderSections(ch);
+      scheduleRateSave();
     });
     document.getElementById('add-promo-'+ch.key).addEventListener('click',()=>{ showAddPromoModal(ch); });
   });
@@ -3280,6 +3290,11 @@ function restoreFullState(json) {
           const el = document.getElementById('genius-mob-' + chKey);
           if (el) el.value = ov.mobilePct;
         }
+        if (ov.commissionPct !== undefined) {
+          ch._commission = ov.commissionPct;
+          const el = document.getElementById('com-' + chKey);
+          if (el) el.value = Math.round(ov.commissionPct * 100);
+        }
       });
     }
     // Rebuild ch.sections for current hotel
@@ -3338,12 +3353,14 @@ function getHotelStateSlice(hotel) {
     : {};
   const channelOverrides = {};
   CHANNELS.forEach(ch => {
+    const ov = {};
     if (ch.key === 'booking') {
-      channelOverrides[ch.key] = {
-        geniusPct: ch.geniusPct !== undefined ? ch.geniusPct : 20,
-        mobilePct: ch.mobilePct || 0
-      };
+      ov.geniusPct = ch.geniusPct !== undefined ? ch.geniusPct : 20;
+      ov.mobilePct = ch.mobilePct || 0;
     }
+    const comm = ch._commission !== undefined ? ch._commission : ch.commission;
+    if (comm !== undefined) ov.commissionPct = comm;
+    if (Object.keys(ov).length) channelOverrides[ch.key] = ov;
   });
   return { rawBaseInputs, rawPlanPcts, rawPaisPcts, promoVals, labelOverrides: hotelLabelOverrides, titleOverrides: hotelTitleOverrides, extraSections, deletedSectionIds, channelOverrides };
 }
@@ -3375,6 +3392,11 @@ function applyHotelConfig(hotel, config) {
         ch.mobilePct = ov.mobilePct;
         const el = document.getElementById('genius-mob-' + chKey);
         if (el) el.value = ov.mobilePct;
+      }
+      if (ov.commissionPct !== undefined) {
+        ch._commission = ov.commissionPct;
+        const el = document.getElementById('com-' + chKey);
+        if (el) el.value = Math.round(ov.commissionPct * 100);
       }
     });
   }
