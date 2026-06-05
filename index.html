@@ -1195,6 +1195,24 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- ADD PROMO COLUMN PICKER MODAL -->
+<div id="add-promo-modal-overlay" style="display:none;position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,.52);align-items:center;justify-content:center;" onclick="if(event.target===this)closeAddPromoModal()">
+  <div style="background:#fff;border-radius:14px;width:90%;max-width:420px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.22);border:2px solid var(--gold-border);">
+    <div style="padding:16px 22px 12px;border-bottom:1px solid var(--gold-border);display:flex;align-items:flex-start;justify-content:space-between;">
+      <div>
+        <div style="font-size:.88rem;font-weight:800;color:var(--gold-dark);text-transform:uppercase;letter-spacing:.7px">Nueva estrategia</div>
+        <div style="font-size:.73rem;color:#888;margin-top:3px" id="add-promo-modal-ch-label">Selecciona los descuentos a incluir</div>
+      </div>
+      <button onclick="closeAddPromoModal()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:#aaa;padding:2px 6px;border-radius:6px;line-height:1" onmouseover="this.style.color='#555'" onmouseout="this.style.color='#aaa'">✕</button>
+    </div>
+    <div id="add-promo-col-list" style="padding:14px 22px 18px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px;"></div>
+    <div style="padding:12px 22px 16px;border-top:1px solid var(--gold-border);display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="closeAddPromoModal()" style="padding:7px 18px;border-radius:8px;border:1.5px solid #ddd;background:#f5f5f5;color:#555;font-size:.8rem;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button onclick="confirmAddPromo()" style="padding:7px 20px;border-radius:8px;border:none;background:var(--gold);color:#fff;font-size:.8rem;font-weight:700;cursor:pointer;">Crear estrategia</button>
+    </div>
+  </div>
+</div>
+
 <!-- PROMO CONFIG MODAL -->
 <div class="pcfg-overlay" id="pcfg-overlay">
   <div class="pcfg-modal">
@@ -2287,6 +2305,7 @@ CHANNELS.forEach(ch => ch.sections.forEach(sec => sec._id = 's'+(++_secIdCounter
 // Per-hotel extra sections (added via add-promo / copy). Default sections live in ch._defaultSections.
 const hotelExtraSections = {}; // {hotel: {channelKey: section[]}}
 const hotelDeletedSections = {}; // {hotel: {channelKey: secId[]}}
+const hotelChannelOverrides = {}; // {hotel: {chKey: {geniusPct?, mobilePct?}}}
 
 function getHotelSections(hotel, chKey) {
   const ch = CHANNELS.find(c => c.key === chKey);
@@ -2320,6 +2339,12 @@ function renderTable(card, sec, baseRates, commission, promoDisc, ch) {
   const table = document.createElement('table');
   const colH = sec.colHeaders || [];
 
+  // colConfig: controls which result-columns show (default: all visible for backward compat)
+  const _cc = sec.colConfig || {};
+  const showOta    = _cc.showOta    !== false;
+  const showMobile = _cc.showMobile !== false;
+  const showNet    = _cc.showNet    !== false;
+
   // thead
   const thead = document.createElement('thead');
   const trh = document.createElement('tr');
@@ -2328,15 +2353,14 @@ function renderTable(card, sec, baseRates, commission, promoDisc, ch) {
   for (let i=1; i<maxDisc; i++) addTh(trh, colH[1+i]||`Paso ${i+1}`, '', colH, 1+i);
 
   if (isBooking) {
-    // Booking.com: GENIUS | MOBILE | INGRESO
     const geniusLabel = ch.geniusLabel || 'GENIUS ▼';
-    addTh(trh, geniusLabel, 'color:var(--green);font-weight:900', colH, colH.length-3);
-    addTh(trh, 'MOBILE ▼', 'color:#7c3aed;font-weight:900', colH, colH.length-2);
-    if (commission > 0) addTh(trh, colH[colH.length-1], 'color:var(--blue);font-weight:900', colH, colH.length-1);
+    if (showOta)    addTh(trh, geniusLabel,           'color:var(--green);font-weight:900', colH, colH.length-3);
+    if (showMobile) addTh(trh, 'MOBILE ▼',             'color:#7c3aed;font-weight:900',     colH, colH.length-2);
+    if (commission > 0 && showNet) addTh(trh, colH[colH.length-1], 'color:var(--blue);font-weight:900', colH, colH.length-1);
   } else {
     const otaIdx = colH.length-(commission>0?2:1);
-    addTh(trh, colH[otaIdx], 'color:var(--green);font-weight:900', colH, otaIdx);
-    if (commission>0) addTh(trh, colH[colH.length-1], 'color:var(--blue);font-weight:900', colH, colH.length-1);
+    if (showOta) addTh(trh, colH[otaIdx], 'color:var(--green);font-weight:900', colH, otaIdx);
+    if (commission>0 && showNet) addTh(trh, colH[colH.length-1], 'color:var(--blue);font-weight:900', colH, colH.length-1);
   }
   thead.appendChild(trh); table.appendChild(thead);
 
@@ -2359,29 +2383,33 @@ function renderTable(card, sec, baseRates, commission, promoDisc, ch) {
     const minRate = HOTEL_MIN_RATES[currentHotel] || 0;
 
     if (isBooking) {
-      // GENIUS = "Después promo" * (1 - geniusPct/100)
-      // "Después promo" is the penultimate value (last intermediate step before genius)
       const despPromo = vals.length >= 2 ? vals[vals.length - 2] : otaVal;
       const geniusPct = ch.geniusPct !== undefined ? ch.geniusPct : 20;
       const geniusVal = despPromo * (1 - geniusPct / 100);
-      const geniusAlert = minRate > 0 && geniusVal <= minRate;
-      const tdGenius = addTd(trow, fmt(geniusVal), 'td-ota' + (geniusAlert ? ' td-min-alert' : ''));
-      tdGenius.title = geniusAlert ? `⚠ Tarifa en mínimo permitido (${fmt(minRate)}) — Clic para copiar` : 'Clic para copiar';
-      tdGenius.addEventListener('click', ()=>copyValue(geniusVal));
       const mobPct = ch.mobilePct || 0;
       const mobVal = geniusVal * (1 - mobPct / 100);
       const netVal = commission > 0 ? mobVal * (1 - commission) : null;
-      const tdMob = addTd(trow, fmt(mobVal), 'td-mobile');
-      tdMob.title = 'Clic para copiar';
-      tdMob.addEventListener('click', ()=>copyValue(mobVal));
-      if (commission > 0 && netVal !== null) addTd(trow, fmt(netVal), 'td-net');
+      if (showOta) {
+        const geniusAlert = minRate > 0 && geniusVal <= minRate;
+        const tdGenius = addTd(trow, fmt(geniusVal), 'td-ota' + (geniusAlert ? ' td-min-alert' : ''));
+        tdGenius.title = geniusAlert ? `⚠ Tarifa en mínimo permitido (${fmt(minRate)}) — Clic para copiar` : 'Clic para copiar';
+        tdGenius.addEventListener('click', ()=>copyValue(geniusVal));
+      }
+      if (showMobile) {
+        const tdMob = addTd(trow, fmt(mobVal), 'td-mobile');
+        tdMob.title = 'Clic para copiar';
+        tdMob.addEventListener('click', ()=>copyValue(mobVal));
+      }
+      if (commission > 0 && netVal !== null && showNet) addTd(trow, fmt(netVal), 'td-net');
     } else {
-      const otaAlert = minRate > 0 && otaVal <= minRate;
-      const tdOta = addTd(trow, fmt(otaVal), 'td-ota' + (otaAlert ? ' td-min-alert' : ''));
-      tdOta.title = otaAlert ? `⚠ Tarifa en mínimo permitido (${fmt(minRate)}) — Clic para copiar` : 'Clic para copiar';
-      tdOta.addEventListener('click', ()=>copyValue(otaVal));
       const netVal = commission>0 ? otaVal*(1-commission) : null;
-      if (commission>0 && netVal!==null) addTd(trow, fmt(netVal), 'td-net');
+      if (showOta) {
+        const otaAlert = minRate > 0 && otaVal <= minRate;
+        const tdOta = addTd(trow, fmt(otaVal), 'td-ota' + (otaAlert ? ' td-min-alert' : ''));
+        tdOta.title = otaAlert ? `⚠ Tarifa en mínimo permitido (${fmt(minRate)}) — Clic para copiar` : 'Clic para copiar';
+        tdOta.addEventListener('click', ()=>copyValue(otaVal));
+      }
+      if (commission>0 && netVal!==null && showNet) addTd(trow, fmt(netVal), 'td-net');
     }
 
     tbody.appendChild(trow);
@@ -2820,17 +2848,118 @@ function renderSections(ch) {
     if (geniusEl) {
       geniusEl.addEventListener('input', () => {
         ch.geniusPct = Math.max(0, Math.min(100, parseFloat(geniusEl.value)||0));
+        if (!hotelChannelOverrides[currentHotel]) hotelChannelOverrides[currentHotel] = {};
+        if (!hotelChannelOverrides[currentHotel][ch.key]) hotelChannelOverrides[currentHotel][ch.key] = {};
+        hotelChannelOverrides[currentHotel][ch.key].geniusPct = ch.geniusPct;
         reRenderAllBooking();
+        scheduleRateSave();
       });
     }
     const mobEl = document.getElementById('genius-mob-'+ch.key);
     if (mobEl) {
       mobEl.addEventListener('input', () => {
         ch.mobilePct = Math.max(0, Math.min(100, parseFloat(mobEl.value)||0));
+        if (!hotelChannelOverrides[currentHotel]) hotelChannelOverrides[currentHotel] = {};
+        if (!hotelChannelOverrides[currentHotel][ch.key]) hotelChannelOverrides[currentHotel][ch.key] = {};
+        hotelChannelOverrides[currentHotel][ch.key].mobilePct = ch.mobilePct;
         reRenderAllBooking();
+        scheduleRateSave();
       });
     }
   }
+}
+
+// ── ADD PROMO COLUMN PICKER ───────────────────────────────────────────────────
+let _addPromoCh = null;
+
+function _addPromoColOptions(ch) {
+  // Returns the selectable result-columns for this channel
+  const defSec  = ch._defaultSections ? ch._defaultSections[0] : ch.sections[0];
+  const colH    = defSec?.colHeaders || [];
+  const comm    = ch._commission !== undefined ? ch._commission : ch.commission;
+  const isBk    = ch.key === 'booking';
+  const opts    = [];
+  if (isBk) {
+    opts.push({ key:'ota',    label: ch.geniusLabel || colH[colH.length-3] || 'GENIUS ▼',    color:'var(--green)' });
+    opts.push({ key:'mobile', label: colH[colH.length-2] || 'MOBILE ▼',                       color:'#7c3aed'      });
+    if (comm > 0) opts.push({ key:'net', label: colH[colH.length-1] || 'Ingreso ▼',           color:'var(--blue)'  });
+  } else {
+    const otaIdx = colH.length - (comm > 0 ? 2 : 1);
+    opts.push({ key:'ota', label: colH[otaIdx] || 'Sugerida OTA ▼', color:'var(--green)' });
+    if (comm > 0) opts.push({ key:'net', label: colH[colH.length-1] || 'Ingreso ▼',           color:'var(--blue)'  });
+  }
+  return opts;
+}
+
+function showAddPromoModal(ch) {
+  _addPromoCh = ch;
+  const isPt  = !!(ch._defaultSections ? ch._defaultSections[0]?.ptMerged : ch.sections[0]?.ptMerged);
+  // PriceTravel: solo una columna, crear directo sin modal
+  if (isPt) { _createNewSection(ch, { showOta:true, showMobile:false, showNet:false }); return; }
+
+  const opts = _addPromoColOptions(ch);
+  const lbl  = document.getElementById('add-promo-modal-ch-label');
+  if (lbl) lbl.textContent = 'Canal: ' + ch.name + ' — selecciona los descuentos a mostrar';
+
+  const list = document.getElementById('add-promo-col-list');
+  if (!list) return;
+  list.innerHTML = opts.map(function(o) {
+    return '<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;border-radius:8px;border:1.5px solid #eee;user-select:none"'
+      + ' onmouseover="this.style.borderColor=\'' + o.color + '\'" onmouseout="this.style.borderColor=\'#eee\'">'
+      + '<input type="checkbox" data-key="' + o.key + '" checked'
+      + ' style="width:16px;height:16px;accent-color:' + o.color + ';cursor:pointer;flex-shrink:0">'
+      + '<span style="font-size:.82rem;font-weight:700;color:' + o.color + '">' + o.label + '</span>'
+      + '</label>';
+  }).join('');
+
+  var overlay = document.getElementById('add-promo-modal-overlay');
+  if (overlay) overlay.style.display = 'flex';
+}
+
+function closeAddPromoModal() {
+  var overlay = document.getElementById('add-promo-modal-overlay');
+  if (overlay) overlay.style.display = 'none';
+  _addPromoCh = null;
+}
+
+function confirmAddPromo() {
+  var ch = _addPromoCh;
+  if (!ch) return;
+  var checks = document.querySelectorAll('#add-promo-col-list input[type=checkbox]');
+  var colConfig = { showOta:false, showMobile:false, showNet:false };
+  checks.forEach(function(cb) { colConfig['show' + cb.dataset.key.charAt(0).toUpperCase() + cb.dataset.key.slice(1)] = cb.checked; });
+  if (!colConfig.showOta && !colConfig.showMobile && !colConfig.showNet) {
+    alert('Selecciona al menos un descuento para continuar.');
+    return;
+  }
+  _createNewSection(ch, colConfig);
+  closeAddPromoModal();
+}
+
+function _createNewSection(ch, colConfig) {
+  var isPt = !!(ch._defaultSections ? ch._defaultSections[0]?.ptMerged : ch.sections[0]?.ptMerged);
+  function cloneRows(arr) {
+    return (arr||[]).map(function(r){ var row=JSON.parse(JSON.stringify(r)); row._origLabel=row.label; return row; });
+  }
+  var defSec = ch._defaultSections ? ch._defaultSections[0] : ch.sections[0];
+  var newSec = {
+    _id: 's'+(++_secIdCounter),
+    title:'NUEVA PROMOCIÓN', _origTitle:'NUEVA PROMOCIÓN',
+    promoDefault: defSec?.promoDefault || 30,
+    colHeaders: defSec?.colHeaders || ['Plan','Base','Promo','Tarifa ▼'],
+    pairGroup: defSec?.pairGroup,
+    ptMerged: isPt,
+    colConfig: colConfig,
+    rows:    isPt ? undefined : cloneRows(defSec?.rows),
+    rowsSin: isPt ? cloneRows(defSec?.rowsSin) : undefined,
+    rowsCon: isPt ? cloneRows(defSec?.rowsCon) : undefined,
+  };
+  if (!hotelExtraSections[currentHotel]) hotelExtraSections[currentHotel] = {};
+  if (!hotelExtraSections[currentHotel][ch.key]) hotelExtraSections[currentHotel][ch.key] = [];
+  hotelExtraSections[currentHotel][ch.key].push(newSec);
+  ch.sections = getHotelSections(currentHotel, ch.key);
+  renderSections(ch);
+  scheduleRateSave();
 }
 
 // ── SIDEBAR ──────────────────────────────────────────────────────────────────
@@ -2862,6 +2991,20 @@ async function switchHotel(name) {
   document.querySelectorAll('.hotel-item').forEach(b=>b.classList.toggle('active', b.dataset.hotel===name));
   document.getElementById('hotel-badge').textContent = name;
   closeSidebar();
+
+  // Reset per-channel overrides to defaults before loading hotel-specific config
+  CHANNELS.forEach(ch => {
+    if (ch._defaultGeniusPct !== undefined) {
+      ch.geniusPct = ch._defaultGeniusPct;
+      const gEl = document.getElementById('genius-pct-' + ch.key);
+      if (gEl) gEl.value = ch.geniusPct;
+    }
+    if (ch._defaultMobilePct !== undefined) {
+      ch.mobilePct = ch._defaultMobilePct;
+      const mEl = document.getElementById('genius-mob-' + ch.key);
+      if (mEl) mEl.value = ch.mobilePct;
+    }
+  });
 
   // Load per-hotel config from MongoDB before rendering
   await loadHotelRateConfig(name);
@@ -2911,6 +3054,8 @@ function init() {
   // Also store _defaultSections reference so hotel switches can reset to it
   CHANNELS.forEach(ch => {
     if (!ch._defaultSections) ch._defaultSections = ch.sections;
+    if (ch._defaultGeniusPct === undefined) ch._defaultGeniusPct = ch.geniusPct !== undefined ? ch.geniusPct : 20;
+    if (ch._defaultMobilePct === undefined) ch._defaultMobilePct = ch.mobilePct || 0;
     ch.sections.forEach(sec => {
       if (sec._origTitle === undefined) sec._origTitle = sec.title;
       [['rows','rows'],['rowsSin','rowsSin'],['rowsCon','rowsCon']].forEach(([,prop]) => {
@@ -2989,24 +3134,7 @@ function init() {
       ch._commission=(parseFloat(e.target.value)||0)/100;
       renderSections(ch);
     });
-    document.getElementById('add-promo-'+ch.key).addEventListener('click',()=>{
-      const newSec = {
-        _id: 's'+(++_secIdCounter),
-        title:'NUEVA PROMOCIÓN', _origTitle:'NUEVA PROMOCIÓN', promoDefault:30,
-        colHeaders:ch.sections[0]?.colHeaders||['Plan','Base','Promo','Tarifa ▼'],
-        pairGroup:ch.sections[0]?.pairGroup,
-        ptMerged:ch.sections[0]?.ptMerged||false,
-        rows:ch.sections[0]?.ptMerged?undefined:[{label:'Nuevo Plan',_origLabel:'Nuevo Plan',base:ch.baseKeys[0],discounts:[0],planPct:0}],
-        rowsSin:ch.sections[0]?.ptMerged?[{label:'Nuevo Plan',_origLabel:'Nuevo Plan',base:'std',discounts:[0],planPct:0}]:undefined,
-        rowsCon:ch.sections[0]?.ptMerged?[{label:'Nuevo Plan',_origLabel:'Nuevo Plan',base:'stdC',discounts:[0],planPct:0}]:undefined,
-      };
-      if (!hotelExtraSections[currentHotel]) hotelExtraSections[currentHotel] = {};
-      if (!hotelExtraSections[currentHotel][ch.key]) hotelExtraSections[currentHotel][ch.key] = [];
-      hotelExtraSections[currentHotel][ch.key].push(newSec);
-      ch.sections = getHotelSections(currentHotel, ch.key);
-      renderSections(ch);
-      scheduleRateSave();
-    });
+    document.getElementById('add-promo-'+ch.key).addEventListener('click',()=>{ showAddPromoModal(ch); });
   });
 
   currentChannelKey = CHANNELS[0].key;
@@ -3093,8 +3221,9 @@ function getFullState() {
     promoValsMap,
     labelOverrides:  JSON.parse(JSON.stringify(labelOverrides)),
     titleOverrides:  JSON.parse(JSON.stringify(titleOverrides)),
-    hotelExtraSections:   JSON.parse(JSON.stringify(hotelExtraSections)),
-    hotelDeletedSections: JSON.parse(JSON.stringify(hotelDeletedSections))
+    hotelExtraSections:    JSON.parse(JSON.stringify(hotelExtraSections)),
+    hotelDeletedSections:  JSON.parse(JSON.stringify(hotelDeletedSections)),
+    hotelChannelOverrides: JSON.parse(JSON.stringify(hotelChannelOverrides))
   });
 }
 
@@ -3131,6 +3260,28 @@ function restoreFullState(json) {
     Object.keys(s.hotelDeletedSections||{}).forEach(hotel => {
       hotelDeletedSections[hotel] = JSON.parse(JSON.stringify(s.hotelDeletedSections[hotel]));
     });
+    // Restore channel overrides (genius/mobile pcts) and apply to current hotel
+    Object.keys(s.hotelChannelOverrides||{}).forEach(hotel => {
+      hotelChannelOverrides[hotel] = JSON.parse(JSON.stringify(s.hotelChannelOverrides[hotel]));
+    });
+    const curChanOv = hotelChannelOverrides[currentHotel];
+    if (curChanOv) {
+      Object.keys(curChanOv).forEach(chKey => {
+        const ch = CHANNELS.find(c => c.key === chKey);
+        if (!ch) return;
+        const ov = curChanOv[chKey];
+        if (ov.geniusPct !== undefined) {
+          ch.geniusPct = ov.geniusPct;
+          const el = document.getElementById('genius-pct-' + chKey);
+          if (el) el.value = ov.geniusPct;
+        }
+        if (ov.mobilePct !== undefined) {
+          ch.mobilePct = ov.mobilePct;
+          const el = document.getElementById('genius-mob-' + chKey);
+          if (el) el.value = ov.mobilePct;
+        }
+      });
+    }
     // Rebuild ch.sections for current hotel
     CHANNELS.forEach(ch => { ch.sections = getHotelSections(currentHotel, ch.key); });
     applyNameOverrides();
@@ -3185,7 +3336,16 @@ function getHotelStateSlice(hotel) {
   const deletedSectionIds = hotelDeletedSections[hotel]
     ? JSON.parse(JSON.stringify(hotelDeletedSections[hotel]))
     : {};
-  return { rawBaseInputs, rawPlanPcts, rawPaisPcts, promoVals, labelOverrides: hotelLabelOverrides, titleOverrides: hotelTitleOverrides, extraSections, deletedSectionIds };
+  const channelOverrides = {};
+  CHANNELS.forEach(ch => {
+    if (ch.key === 'booking') {
+      channelOverrides[ch.key] = {
+        geniusPct: ch.geniusPct !== undefined ? ch.geniusPct : 20,
+        mobilePct: ch.mobilePct || 0
+      };
+    }
+  });
+  return { rawBaseInputs, rawPlanPcts, rawPaisPcts, promoVals, labelOverrides: hotelLabelOverrides, titleOverrides: hotelTitleOverrides, extraSections, deletedSectionIds, channelOverrides };
 }
 
 function applyHotelConfig(hotel, config) {
@@ -3200,6 +3360,24 @@ function applyHotelConfig(hotel, config) {
   if (config.labelOverrides) labelOverrides[hotel] = config.labelOverrides;
   if (config.titleOverrides) titleOverrides[hotel] = config.titleOverrides;
   if (config.deletedSectionIds) hotelDeletedSections[hotel] = JSON.parse(JSON.stringify(config.deletedSectionIds));
+  if (config.channelOverrides) {
+    hotelChannelOverrides[hotel] = JSON.parse(JSON.stringify(config.channelOverrides));
+    Object.keys(config.channelOverrides).forEach(chKey => {
+      const ch = CHANNELS.find(c => c.key === chKey);
+      if (!ch) return;
+      const ov = config.channelOverrides[chKey];
+      if (ov.geniusPct !== undefined) {
+        ch.geniusPct = ov.geniusPct;
+        const el = document.getElementById('genius-pct-' + chKey);
+        if (el) el.value = ov.geniusPct;
+      }
+      if (ov.mobilePct !== undefined) {
+        ch.mobilePct = ov.mobilePct;
+        const el = document.getElementById('genius-mob-' + chKey);
+        if (el) el.value = ov.mobilePct;
+      }
+    });
+  }
   if (config.extraSections) {
     hotelExtraSections[hotel] = {};
     Object.keys(config.extraSections).forEach(chKey => {

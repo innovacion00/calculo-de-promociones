@@ -23,6 +23,8 @@ export interface RateConfig {
   extraSections: Record<string, unknown[]>;
   // Section IDs explicitly deleted per channel: {channelKey: secId[]}
   deletedSectionIds: Record<string, string[]>;
+  // Per-channel config overrides: {channelKey: {geniusPct?, mobilePct?}}
+  channelOverrides: Record<string, Record<string, number>>;
 }
 
 async function getCollection(): Promise<Collection<RateConfig>> {
@@ -40,11 +42,20 @@ export async function getRateConfig(hotelId: string): Promise<RateConfig | null>
 
 export async function upsertRateConfig(data: Omit<RateConfig, '_id'>): Promise<void> {
   const col = await getCollection();
-  await col.updateOne(
-    { hotelId: data.hotelId },
-    { $set: data },
-    { upsert: true }
-  );
+
+  // Look for existing record by ObjectId OR by hotel name (covers legacy records stored with name as hotelId)
+  const nameFilter = data.hotelNombre && data.hotelNombre !== data.hotelId
+    ? { $or: [{ hotelId: data.hotelId }, { hotelId: data.hotelNombre }] }
+    : { hotelId: data.hotelId };
+
+  const existing = await col.findOne(nameFilter as Parameters<typeof col.findOne>[0], { projection: { _id: 1 } });
+
+  if (existing) {
+    // Update the existing record by _id to avoid hotelId key mismatches
+    await col.updateOne({ _id: existing._id }, { $set: data });
+  } else {
+    await col.insertOne(data as RateConfig);
+  }
 }
 
 export async function listRateConfigs(): Promise<Pick<RateConfig, 'hotelId' | 'updatedAt'>[]> {
