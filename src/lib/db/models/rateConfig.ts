@@ -21,6 +21,8 @@ export interface RateConfig {
   labelOverrides: Record<string, string>;
   // Extra sections created via add-promo: {channelKey: sectionData[]}
   extraSections: Record<string, unknown[]>;
+  // Section IDs explicitly deleted per channel: {channelKey: secId[]}
+  deletedSectionIds: Record<string, string[]>;
 }
 
 async function getCollection(): Promise<Collection<RateConfig>> {

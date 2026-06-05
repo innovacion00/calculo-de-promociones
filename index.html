@@ -2285,12 +2285,14 @@ CHANNELS.forEach(ch => ch.sections.forEach(sec => sec._id = 's'+(++_secIdCounter
 
 // Per-hotel extra sections (added via add-promo / copy). Default sections live in ch._defaultSections.
 const hotelExtraSections = {}; // {hotel: {channelKey: section[]}}
+const hotelDeletedSections = {}; // {hotel: {channelKey: secId[]}}
 
 function getHotelSections(hotel, chKey) {
   const ch = CHANNELS.find(c => c.key === chKey);
   if (!ch) return [];
-  const defaults = ch._defaultSections || ch.sections;
-  const extras = (hotelExtraSections[hotel] || {})[chKey] || [];
+  const deleted = new Set(((hotelDeletedSections[hotel] || {})[chKey]) || []);
+  const defaults = (ch._defaultSections || ch.sections).filter(s => !deleted.has(s._id));
+  const extras = ((hotelExtraSections[hotel] || {})[chKey] || []).filter(s => !deleted.has(s._id));
   return [...defaults, ...extras];
 }
 
@@ -2699,11 +2701,14 @@ function buildSectionCard(ch, sec, baseRates, hotel) {
     const idx = ch.sections.indexOf(sec);
     if (idx>=0) {
       ch.sections.splice(idx, 1);
+      // Remove from extras if present
       const extras = (hotelExtraSections[currentHotel] || {})[ch.key];
-      if (extras) {
-        const ei = extras.indexOf(sec);
-        if (ei >= 0) extras.splice(ei, 1);
-      }
+      if (extras) { const ei = extras.indexOf(sec); if (ei >= 0) extras.splice(ei, 1); }
+      // Track deleted section ID so it stays gone after hotel reload
+      if (!hotelDeletedSections[currentHotel]) hotelDeletedSections[currentHotel] = {};
+      if (!hotelDeletedSections[currentHotel][ch.key]) hotelDeletedSections[currentHotel][ch.key] = [];
+      if (!hotelDeletedSections[currentHotel][ch.key].includes(sec._id))
+        hotelDeletedSections[currentHotel][ch.key].push(sec._id);
       scheduleRateSave();
     }
     card.remove();
@@ -3087,7 +3092,8 @@ function getFullState() {
     promoValsMap,
     labelOverrides:  JSON.parse(JSON.stringify(labelOverrides)),
     titleOverrides:  JSON.parse(JSON.stringify(titleOverrides)),
-    hotelExtraSections: JSON.parse(JSON.stringify(hotelExtraSections))
+    hotelExtraSections:   JSON.parse(JSON.stringify(hotelExtraSections)),
+    hotelDeletedSections: JSON.parse(JSON.stringify(hotelDeletedSections))
   });
 }
 
@@ -3119,6 +3125,10 @@ function restoreFullState(json) {
           return sec;
         });
       });
+    });
+    // Restore deleted section IDs
+    Object.keys(s.hotelDeletedSections||{}).forEach(hotel => {
+      hotelDeletedSections[hotel] = JSON.parse(JSON.stringify(s.hotelDeletedSections[hotel]));
     });
     // Rebuild ch.sections for current hotel
     CHANNELS.forEach(ch => { ch.sections = getHotelSections(currentHotel, ch.key); });
@@ -3171,7 +3181,10 @@ function getHotelStateSlice(hotel) {
       return rest;
     });
   });
-  return { rawBaseInputs, rawPlanPcts, rawPaisPcts, promoVals, labelOverrides: hotelLabelOverrides, titleOverrides: hotelTitleOverrides, extraSections };
+  const deletedSectionIds = hotelDeletedSections[hotel]
+    ? JSON.parse(JSON.stringify(hotelDeletedSections[hotel]))
+    : {};
+  return { rawBaseInputs, rawPlanPcts, rawPaisPcts, promoVals, labelOverrides: hotelLabelOverrides, titleOverrides: hotelTitleOverrides, extraSections, deletedSectionIds };
 }
 
 function applyHotelConfig(hotel, config) {
@@ -3185,6 +3198,7 @@ function applyHotelConfig(hotel, config) {
   }));
   if (config.labelOverrides) labelOverrides[hotel] = config.labelOverrides;
   if (config.titleOverrides) titleOverrides[hotel] = config.titleOverrides;
+  if (config.deletedSectionIds) hotelDeletedSections[hotel] = JSON.parse(JSON.stringify(config.deletedSectionIds));
   if (config.extraSections) {
     hotelExtraSections[hotel] = {};
     Object.keys(config.extraSections).forEach(chKey => {
