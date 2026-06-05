@@ -3013,6 +3013,14 @@ async function switchHotel(name) {
 
   // Load per-hotel config from MongoDB before rendering
   await loadHotelRateConfig(name);
+  // Apply commission from per-hotel store (hotelChannelOverrides) to each channel
+  CHANNELS.forEach(ch => {
+    const ov = (hotelChannelOverrides[name] || {})[ch.key] || {};
+    const commPct = ov.commissionPct !== undefined ? ov.commissionPct : ch.commission;
+    ch._commission = commPct;
+    const el = document.getElementById('com-' + ch.key);
+    if (el) el.value = Math.round(commPct * 100);
+  });
   // Rebuild sections for new hotel (defaults + hotel-specific extras)
   CHANNELS.forEach(ch => { ch.sections = getHotelSections(name, ch.key); });
   applyNameOverrides(); // Apply this hotel's title/label overrides before render
@@ -3274,29 +3282,24 @@ function restoreFullState(json) {
     Object.keys(s.hotelChannelOverrides||{}).forEach(hotel => {
       hotelChannelOverrides[hotel] = JSON.parse(JSON.stringify(s.hotelChannelOverrides[hotel]));
     });
-    const curChanOv = hotelChannelOverrides[currentHotel];
-    if (curChanOv) {
-      Object.keys(curChanOv).forEach(chKey => {
-        const ch = CHANNELS.find(c => c.key === chKey);
-        if (!ch) return;
-        const ov = curChanOv[chKey];
-        if (ov.geniusPct !== undefined) {
-          ch.geniusPct = ov.geniusPct;
-          const el = document.getElementById('genius-pct-' + chKey);
-          if (el) el.value = ov.geniusPct;
-        }
-        if (ov.mobilePct !== undefined) {
-          ch.mobilePct = ov.mobilePct;
-          const el = document.getElementById('genius-mob-' + chKey);
-          if (el) el.value = ov.mobilePct;
-        }
-        if (ov.commissionPct !== undefined) {
-          ch._commission = ov.commissionPct;
-          const el = document.getElementById('com-' + chKey);
-          if (el) el.value = Math.round(ov.commissionPct * 100);
-        }
-      });
-    }
+    const curChanOv = hotelChannelOverrides[currentHotel] || {};
+    CHANNELS.forEach(ch => {
+      const ov = curChanOv[ch.key] || {};
+      if (ov.geniusPct !== undefined) {
+        ch.geniusPct = ov.geniusPct;
+        const el = document.getElementById('genius-pct-' + ch.key);
+        if (el) el.value = ov.geniusPct;
+      }
+      if (ov.mobilePct !== undefined) {
+        ch.mobilePct = ov.mobilePct;
+        const el = document.getElementById('genius-mob-' + ch.key);
+        if (el) el.value = ov.mobilePct;
+      }
+      const commPct = ov.commissionPct !== undefined ? ov.commissionPct : ch.commission;
+      ch._commission = commPct !== undefined ? commPct : 0;
+      const el = document.getElementById('com-' + ch.key);
+      if (el) el.value = Math.round(ch._commission * 100);
+    });
     // Rebuild ch.sections for current hotel
     CHANNELS.forEach(ch => { ch.sections = getHotelSections(currentHotel, ch.key); });
     applyNameOverrides();
@@ -3352,13 +3355,15 @@ function getHotelStateSlice(hotel) {
     ? JSON.parse(JSON.stringify(hotelDeletedSections[hotel]))
     : {};
   const channelOverrides = {};
+  const hotelOv = hotelChannelOverrides[hotel] || {};
   CHANNELS.forEach(ch => {
     const ov = {};
+    const chOv = hotelOv[ch.key] || {};
     if (ch.key === 'booking') {
-      ov.geniusPct = ch.geniusPct !== undefined ? ch.geniusPct : 20;
-      ov.mobilePct = ch.mobilePct || 0;
+      ov.geniusPct = chOv.geniusPct !== undefined ? chOv.geniusPct : (ch.geniusPct !== undefined ? ch.geniusPct : 20);
+      ov.mobilePct = chOv.mobilePct !== undefined ? chOv.mobilePct : (ch.mobilePct || 0);
     }
-    const comm = ch._commission !== undefined ? ch._commission : ch.commission;
+    const comm = chOv.commissionPct !== undefined ? chOv.commissionPct : ch.commission;
     if (comm !== undefined) ov.commissionPct = comm;
     if (Object.keys(ov).length) channelOverrides[ch.key] = ov;
   });
@@ -3377,8 +3382,9 @@ function applyHotelConfig(hotel, config) {
   if (config.labelOverrides) labelOverrides[hotel] = config.labelOverrides;
   if (config.titleOverrides) titleOverrides[hotel] = config.titleOverrides;
   if (config.deletedSectionIds) hotelDeletedSections[hotel] = JSON.parse(JSON.stringify(config.deletedSectionIds));
+  if (!hotelChannelOverrides[hotel]) hotelChannelOverrides[hotel] = {};
   if (config.channelOverrides) {
-    hotelChannelOverrides[hotel] = JSON.parse(JSON.stringify(config.channelOverrides));
+    Object.assign(hotelChannelOverrides[hotel], JSON.parse(JSON.stringify(config.channelOverrides)));
     Object.keys(config.channelOverrides).forEach(chKey => {
       const ch = CHANNELS.find(c => c.key === chKey);
       if (!ch) return;
@@ -3400,6 +3406,13 @@ function applyHotelConfig(hotel, config) {
       }
     });
   }
+  // Ensure all channels have a commissionPct entry (fills gaps in old configs)
+  CHANNELS.forEach(ch => {
+    if (!hotelChannelOverrides[hotel][ch.key]) hotelChannelOverrides[hotel][ch.key] = {};
+    if (hotelChannelOverrides[hotel][ch.key].commissionPct === undefined) {
+      hotelChannelOverrides[hotel][ch.key].commissionPct = ch.commission !== undefined ? ch.commission : 0;
+    }
+  });
   if (config.extraSections) {
     hotelExtraSections[hotel] = {};
     Object.keys(config.extraSections).forEach(chKey => {
