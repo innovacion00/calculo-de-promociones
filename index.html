@@ -2840,6 +2840,13 @@ function closeSidebar() {
 // ── SWITCH HOTEL ─────────────────────────────────────────────────────────────
 async function switchHotel(name) {
   const _prevHotel = currentHotel;
+  // Flush any pending debounced save so the current hotel's state
+  // (e.g. a deleted section) reaches MongoDB before we reload the new hotel
+  if (_rateSaveTimer) {
+    clearTimeout(_rateSaveTimer);
+    _rateSaveTimer = null;
+    await saveHotelRateConfig(_prevHotel);
+  }
   currentHotel = name;
   // Reset to first room type for new hotel
   const rooms = HOTEL_ROOM_TYPES[name] || [];
