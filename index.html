@@ -2697,7 +2697,15 @@ function buildSectionCard(ch, sec, baseRates, hotel) {
 
   delBtn.addEventListener('click', ()=>{
     const idx = ch.sections.indexOf(sec);
-    if (idx>=0) ch.sections.splice(idx,1);
+    if (idx>=0) {
+      ch.sections.splice(idx, 1);
+      const extras = (hotelExtraSections[currentHotel] || {})[ch.key];
+      if (extras) {
+        const ei = extras.indexOf(sec);
+        if (ei >= 0) extras.splice(ei, 1);
+      }
+      scheduleRateSave();
+    }
     card.remove();
   });
 
