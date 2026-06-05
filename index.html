@@ -4174,6 +4174,8 @@ function initOTB(page) {
     + '<span style="font-size:.77rem;font-weight:700;color:var(--gray3)">Filtrar por fecha de análisis:</span>'
     + '<label style="font-size:.77rem;color:var(--gray3);display:flex;align-items:center;gap:5px">Desde:<input type="date" id="otb-hist-from" style="padding:3px 7px;border-radius:5px;border:1.5px solid var(--gold-border);font-size:.8rem" onchange="otbApplyHistoryFilter()"></label>'
     + '<label style="font-size:.77rem;color:var(--gray3);display:flex;align-items:center;gap:5px">Hasta:<input type="date" id="otb-hist-to" style="padding:3px 7px;border-radius:5px;border:1.5px solid var(--gold-border);font-size:.8rem" onchange="otbApplyHistoryFilter()"></label>'
+    + '<span style="color:var(--gold-border);font-size:1rem;margin:0 2px">|</span>'
+    + '<label style="font-size:.77rem;color:var(--gray3);display:flex;align-items:center;gap:5px">Mes:<input type="month" id="otb-hist-month" style="padding:3px 7px;border-radius:5px;border:1.5px solid var(--gold-border);font-size:.8rem" onchange="otbApplyHistoryFilter()"></label>'
     + '<button class="otb-btn" onclick="otbClearHistoryFilter()" style="font-size:.74rem;padding:3px 9px">✕ Limpiar</button>'
     + '</div>'
     + '<div id="otb-history-area"></div>'
@@ -6876,10 +6878,12 @@ function otbParseDisplayDate(str) {
 function otbApplyHistoryFilter() { otbRenderHistoryTable(); }
 
 function otbClearHistoryFilter() {
-  var from = document.getElementById('otb-hist-from');
-  var to   = document.getElementById('otb-hist-to');
-  if (from) from.value = '';
-  if (to)   to.value   = '';
+  var from  = document.getElementById('otb-hist-from');
+  var to    = document.getElementById('otb-hist-to');
+  var month = document.getElementById('otb-hist-month');
+  if (from)  from.value  = '';
+  if (to)    to.value    = '';
+  if (month) month.value = '';
   otbRenderHistoryTable();
 }
 
@@ -6889,17 +6893,23 @@ function otbRenderHistoryTable() {
 
   const all = (OTB_STATE.historyAll && OTB_STATE.historyAll.length) ? OTB_STATE.historyAll : OTB_STATE.history;
 
-  const fromEl = document.getElementById('otb-hist-from');
-  const toEl   = document.getElementById('otb-hist-to');
+  const fromEl  = document.getElementById('otb-hist-from');
+  const toEl    = document.getElementById('otb-hist-to');
+  const monthEl = document.getElementById('otb-hist-month');
   function parseInput(v) { var p = v.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
-  const fromDate = fromEl && fromEl.value ? parseInput(fromEl.value) : null;
-  const toDate   = toEl   && toEl.value   ? parseInput(toEl.value)   : null;
+  const fromDate    = fromEl  && fromEl.value  ? parseInput(fromEl.value)  : null;
+  const toDate      = toEl    && toEl.value    ? parseInput(toEl.value)    : null;
+  const monthFilter = monthEl && monthEl.value ? monthEl.value : null; // "YYYY-MM"
 
   const entries = all.filter(function(e) {
     var d = otbParseDisplayDate(e.date);
     if (!d) return true;
     if (fromDate && d < fromDate) return false;
     if (toDate   && d > toDate)   return false;
+    if (monthFilter) {
+      var ym = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+      if (ym !== monthFilter) return false;
+    }
     return true;
   });
 
