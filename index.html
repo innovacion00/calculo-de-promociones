@@ -5578,6 +5578,10 @@ function otbRenderRMRecommendations(containerId, recs, metrics) {
   container.innerHTML = html;
 }
 
+function approxOtb(v) {
+  return v !== null && v !== undefined ? Math.round(v) : null;
+}
+
 function otbRenderInlinePickupChart() {
   var areaDiv = document.getElementById('otb-inline-chart-area');
   if (!areaDiv) return;
@@ -5647,7 +5651,7 @@ function otbRenderInlinePickupChart() {
         {
           type: 'bar',
           label: 'Occ Actual',
-          data: rows.map(function(r) { return r.occAfter !== null ? parseFloat(r.occAfter.toFixed(1)) : null; }),
+          data: rows.map(function(r) { return approxOtb(r.occAfter); }),
           backgroundColor: rows.map(function(r) { return barColor(r.pickup != null ? r.pickup : 0, 0.78); }),
           borderColor:     rows.map(function(r) { return barColor(r.pickup != null ? r.pickup : 0, 1); }),
           borderWidth: 1,
@@ -5683,7 +5687,7 @@ function otbRenderInlinePickupChart() {
         {
           type: 'line',
           label: 'Occ Base (referencia)',
-          data: rows.map(function(r) { return r.occBefore !== null && r.occBefore !== undefined ? parseFloat(r.occBefore.toFixed(1)) : null; }),
+          data: rows.map(function(r) { return approxOtb(r.occBefore); }),
           borderColor: 'rgba(30,80,180,0.75)',
           backgroundColor: 'transparent',
           borderWidth: 2,
@@ -5716,9 +5720,9 @@ function otbRenderInlinePickupChart() {
             label: function(item) {
               var row = rows[item.dataIndex];
               if (item.dataset.label === 'Occ Base (referencia)')
-                return '  OTB Base: ' + (row.occBefore !== null && row.occBefore !== undefined ? row.occBefore.toFixed(1) + '%' : 'N/D');
+                return '  OTB Base: ' + (approxOtb(row.occBefore) !== null ? approxOtb(row.occBefore) + '%' : 'N/D');
               var lines = [
-                '  OTB Actual: ' + (row.occAfter !== null ? row.occAfter.toFixed(1) + '%' : 'N/D'),
+                '  OTB Actual: ' + (approxOtb(row.occAfter) !== null ? approxOtb(row.occAfter) + '%' : 'N/D'),
                 '  Pickup: ' + (row.pickup > 0 ? '+' : '') + (row.pickup !== null ? row.pickup.toFixed(1) : '0') + ' pp  · ' + pickupLabel(row.status)
               ];
               if (hasRooms && row.roomPickup !== null && row.roomPickup !== undefined) {
@@ -6945,7 +6949,7 @@ function otbRenderPickupChartInto(rows, container, chartKey) {
         {
           type: 'bar',
           label: 'Occ Actual',
-          data: rows.map(function(r){ return r.occAfter !== null ? parseFloat(r.occAfter.toFixed(1)) : null; }),
+          data: rows.map(function(r){ return approxOtb(r.occAfter); }),
           backgroundColor: rows.map(function(r){ return barColor(r.pickup != null ? r.pickup : 0, 0.78); }),
           borderColor:     rows.map(function(r){ return barColor(r.pickup != null ? r.pickup : 0, 1); }),
           borderWidth: 1,
@@ -6981,7 +6985,7 @@ function otbRenderPickupChartInto(rows, container, chartKey) {
         {
           type: 'line',
           label: 'Occ Base (referencia)',
-          data: rows.map(function(r){ return r.occBefore !== null && r.occBefore !== undefined ? parseFloat(r.occBefore.toFixed(1)) : null; }),
+          data: rows.map(function(r){ return approxOtb(r.occBefore); }),
           borderColor: 'rgba(30,80,180,0.75)',
           backgroundColor: 'transparent',
           borderWidth: 2,
@@ -7014,9 +7018,9 @@ function otbRenderPickupChartInto(rows, container, chartKey) {
             label: function(item) {
               var row = rows[item.dataIndex];
               if (item.dataset.label === 'Occ Base (referencia)')
-                return '  OTB Base: ' + (row.occBefore !== null && row.occBefore !== undefined ? row.occBefore.toFixed(1) + '%' : 'N/D');
+                return '  OTB Base: ' + (approxOtb(row.occBefore) !== null ? approxOtb(row.occBefore) + '%' : 'N/D');
               var lines = [
-                '  OTB Actual: ' + (row.occAfter !== null ? row.occAfter.toFixed(1) + '%' : 'N/D'),
+                '  OTB Actual: ' + (approxOtb(row.occAfter) !== null ? approxOtb(row.occAfter) + '%' : 'N/D'),
                 '  Pickup: ' + (row.pickup > 0 ? '+' : '') + (row.pickup !== null ? row.pickup.toFixed(1) : '0') + ' pp  · ' + pickupLabel(row.status || pickupStatus(row.pickup))
               ];
               if (hasRooms && row.roomPickup !== null && row.roomPickup !== undefined) {
