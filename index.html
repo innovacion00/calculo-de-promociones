@@ -3673,6 +3673,7 @@ const OTB_STATE = {
   inventory: null,                           // hotel room count (overridden by excel Totales)
   charts: {},
   history: JSON.parse(localStorage.getItem('otb_history')||'[]'),
+  historyAll: [],
   analysisStatus: 'empty' // 'empty'|'loaded'|'processing'|'active'|'stale'|'pending'
 };
 
@@ -4169,6 +4170,12 @@ function initOTB(page) {
     + '<div id="otb-consultant-area"></div>'
     + '</div>'
     + '<div id="otb-panel-history" class="otb-sub-panel">'
+    + '<div id="otb-hist-filter" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 4px 10px;border-bottom:1px solid var(--gold-border);margin-bottom:10px">'
+    + '<span style="font-size:.77rem;font-weight:700;color:var(--gray3)">Filtrar por fecha de análisis:</span>'
+    + '<label style="font-size:.77rem;color:var(--gray3);display:flex;align-items:center;gap:5px">Desde:<input type="date" id="otb-hist-from" style="padding:3px 7px;border-radius:5px;border:1.5px solid var(--gold-border);font-size:.8rem" onchange="otbApplyHistoryFilter()"></label>'
+    + '<label style="font-size:.77rem;color:var(--gray3);display:flex;align-items:center;gap:5px">Hasta:<input type="date" id="otb-hist-to" style="padding:3px 7px;border-radius:5px;border:1.5px solid var(--gold-border);font-size:.8rem" onchange="otbApplyHistoryFilter()"></label>'
+    + '<button class="otb-btn" onclick="otbClearHistoryFilter()" style="font-size:.74rem;padding:3px 9px">✕ Limpiar</button>'
+    + '</div>'
     + '<div id="otb-history-area"></div>'
     + '</div>'
     + '</div>';
@@ -6852,16 +6859,64 @@ async function otbRenderHistory() {
     if (stored) { try { OTB_STATE.history = JSON.parse(stored); } catch(e){} }
   }
 
-  if (!OTB_STATE.history.length) {
-    area.innerHTML = '<p style="color:var(--gray3);padding:20px">No hay comparativas guardadas aún. Ejecute una comparativa y presione "Guardar en histórico".</p>';
+  OTB_STATE.historyAll = OTB_STATE.history.slice();
+  otbRenderHistoryTable();
+}
+
+function otbParseDisplayDate(str) {
+  if (!str) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    var p = str.split('-'); return new Date(+p[0], +p[1]-1, +p[2]);
+  }
+  var p = str.split('/');
+  if (p.length === 3) return new Date(+p[2], +p[1]-1, +p[0]);
+  return null;
+}
+
+function otbApplyHistoryFilter() { otbRenderHistoryTable(); }
+
+function otbClearHistoryFilter() {
+  var from = document.getElementById('otb-hist-from');
+  var to   = document.getElementById('otb-hist-to');
+  if (from) from.value = '';
+  if (to)   to.value   = '';
+  otbRenderHistoryTable();
+}
+
+function otbRenderHistoryTable() {
+  const area = document.getElementById('otb-history-area');
+  if (!area) return;
+
+  const all = (OTB_STATE.historyAll && OTB_STATE.historyAll.length) ? OTB_STATE.historyAll : OTB_STATE.history;
+
+  const fromEl = document.getElementById('otb-hist-from');
+  const toEl   = document.getElementById('otb-hist-to');
+  function parseInput(v) { var p = v.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
+  const fromDate = fromEl && fromEl.value ? parseInput(fromEl.value) : null;
+  const toDate   = toEl   && toEl.value   ? parseInput(toEl.value)   : null;
+
+  const entries = all.filter(function(e) {
+    var d = otbParseDisplayDate(e.date);
+    if (!d) return true;
+    if (fromDate && d < fromDate) return false;
+    if (toDate   && d > toDate)   return false;
+    return true;
+  });
+
+  if (!entries.length) {
+    area.innerHTML = all.length
+      ? '<p style="color:var(--gray3);padding:20px">No hay análisis en el rango de fechas seleccionado.</p>'
+      : '<p style="color:var(--gray3);padding:20px">No hay comparativas guardadas aún. Ejecute una comparativa y presione "Guardar en histórico".</p>';
     return;
   }
-  let html = '<div class="otb-card"><div class="otb-card-title">Histórico de comparativas OTB ('+OTB_STATE.history.length+')</div>'
+
+  const totalLabel = entries.length + (all.length !== entries.length ? ' de ' + all.length : '');
+  let html = '<div class="otb-card"><div class="otb-card-title">Histórico de comparativas OTB (' + totalLabel + ')</div>'
     + '<div class="otb-table-wrap"><table class="otb-hist-table"><thead><tr>'
     + '<th>Fecha análisis</th><th>Hotel</th><th>Mes</th><th>Fechas</th><th>Subieron</th><th>Bajaron</th><th>Estables</th>'
     + '<th>Var. Ocup</th><th>Var. ADR</th><th>Var. RevPAR</th><th>Estado</th><th></th>'
     + '</tr></thead><tbody>';
-  OTB_STATE.history.forEach(function(e) {
+  entries.forEach(function(e) {
     const stColor = e.general==='Positivo'?'#1a6e3c':e.general==='Negativo'?'#c00':'#856404';
     html += '<tr>'
       + '<td>'+e.date+'</td><td>'+e.hotel+'</td><td>'+e.month+'</td>'
