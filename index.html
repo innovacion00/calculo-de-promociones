@@ -4419,7 +4419,18 @@ function initOTB(page) {
         // Re-render inline chart in case otbRenderCharts() destroyed it
         if (OTB_STATE.comparison) setTimeout(otbRenderInlinePickupChart, 30);
       }
-      if (btn.dataset.tab === 'history') otbRenderHistory();
+      if (btn.dataset.tab === 'history') {
+        // Pre-fill month filter from cutoff dates if not already set
+        var mEl = document.getElementById('otb-hist-month');
+        if (mEl && !mEl.value) {
+          var cutRef = OTB_STATE.afterCutoff || OTB_STATE.beforeCutoff;
+          if (cutRef) {
+            var d = new Date(cutRef + 'T00:00:00');
+            mEl.value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+          }
+        }
+        otbRenderHistory();
+      }
     });
   });
 
@@ -6982,9 +6993,12 @@ async function otbSaveToHistory() {
   if (!OTB_STATE.metrics) { otbShowError('No hay comparativa activa para guardar'); return; }
   const m = OTB_STATE.metrics;
   const now = new Date();
-  const monthYM = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
   const dateDisplay = now.toLocaleDateString('es-CO');
-  const monthDisplay = now.toLocaleDateString('es-CO',{year:'numeric',month:'long'});
+  // Month comes from cutoff dates (afterCutoff preferred, then beforeCutoff, then today)
+  const cutoffRef = OTB_STATE.afterCutoff || OTB_STATE.beforeCutoff;
+  const monthRef  = cutoffRef ? new Date(cutoffRef + 'T00:00:00') : now;
+  const monthYM      = monthRef.getFullYear() + '-' + String(monthRef.getMonth()+1).padStart(2,'0');
+  const monthDisplay = monthRef.toLocaleDateString('es-CO', {year:'numeric', month:'long'});
 
   const payload = {
     hotelId:      currentHotel,
