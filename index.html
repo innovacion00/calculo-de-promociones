@@ -2763,6 +2763,7 @@ function buildSectionCard(ch, sec, baseRates, hotel) {
   });
 
   delBtn.addEventListener('click', ()=>{
+    if (!confirm('¿Está seguro de eliminar la promoción "' + sec.title + '"?')) return;
     const idx = ch.sections.indexOf(sec);
     if (idx>=0) {
       ch.sections.splice(idx, 1);
