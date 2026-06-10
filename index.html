@@ -5883,11 +5883,9 @@ function otbRenderInlinePickupChart() {
 
   function barColor(pickup, alpha) {
     alpha = alpha || 1;
-    if (pickup > 10)   return 'rgba(22,120,60,'+alpha+')';
-    if (pickup > 2)    return 'rgba(60,170,90,'+alpha+')';
-    if (pickup >= -2)  return 'rgba(150,150,150,'+alpha+')';
-    if (pickup >= -10) return 'rgba(210,90,20,'+alpha+')';
-    return 'rgba(195,0,0,'+alpha+')';
+    if (pickup > 1)   return 'rgba(60,170,90,'+alpha+')';
+    if (pickup < -1)  return 'rgba(195,0,0,'+alpha+')';
+    return 'rgba(150,150,150,'+alpha+')';
   }
 
   var hasRooms = rows.some(function(r) { return r.roomPickup !== null && r.roomPickup !== undefined; });
@@ -5936,7 +5934,7 @@ function otbRenderInlinePickupChart() {
               font: { size: 9, weight: 'bold' },
               color: function(ctx) {
                 var pu = rows[ctx.dataIndex].pickup;
-                return pu > 2 ? '#0e5a30' : pu < -2 ? '#a00' : '#555';
+                return pu > 1 ? '#0e5a30' : pu < -1 ? '#a00' : '#555';
               }
             },
             {
@@ -6021,11 +6019,9 @@ function otbRenderInlinePickupChart() {
   var legendDiv = document.getElementById('ch-inline-pickup-legend');
   if (legendDiv) {
     var legendItems = [
-      { color: 'rgba(22,120,60,0.85)',   label: '⬆ Pickup fuerte' },
-      { color: 'rgba(60,170,90,0.8)',    label: '↑ Pickup moderado' },
-      { color: 'rgba(150,150,150,0.75)', label: '→ Estable' },
-      { color: 'rgba(210,90,20,0.8)',    label: '↓ Caída moderada' },
-      { color: 'rgba(195,0,0,0.85)',     label: '⬇ Caída fuerte' },
+      { color: 'rgba(60,170,90,0.8)',    label: '↑ Pickup subió (> +1.0pp)' },
+      { color: 'rgba(150,150,150,0.75)', label: '→ Estable (entre -1.0pp y +1.0pp)' },
+      { color: 'rgba(195,0,0,0.85)',     label: '↓ Pickup bajó (< -1.0pp)' },
       { color: 'rgba(30,80,180,0.75)',   label: '— Occ Base' }
     ];
     var legHTML = '';
@@ -7246,11 +7242,9 @@ function otbRenderPickupChartInto(rows, container, chartKey) {
 
   function barColor(pickup, alpha) {
     alpha = alpha || 1;
-    if (pickup > 10)   return 'rgba(22,120,60,'+alpha+')';
-    if (pickup > 2)    return 'rgba(60,170,90,'+alpha+')';
-    if (pickup >= -2)  return 'rgba(150,150,150,'+alpha+')';
-    if (pickup >= -10) return 'rgba(210,90,20,'+alpha+')';
-    return 'rgba(195,0,0,'+alpha+')';
+    if (pickup > 1)   return 'rgba(60,170,90,'+alpha+')';
+    if (pickup < -1)  return 'rgba(195,0,0,'+alpha+')';
+    return 'rgba(150,150,150,'+alpha+')';
   }
 
   var hasRooms = rows.some(function(r){ return r.roomPickup !== null && r.roomPickup !== undefined; });
@@ -7300,7 +7294,7 @@ function otbRenderPickupChartInto(rows, container, chartKey) {
               font: { size: 9, weight: 'bold' },
               color: function(ctx) {
                 var pu = rows[ctx.dataIndex].pickup;
-                return pu > 2 ? '#0e5a30' : pu < -2 ? '#a00' : '#555';
+                return pu > 1 ? '#0e5a30' : pu < -1 ? '#a00' : '#555';
               }
             },
             {
@@ -7385,11 +7379,9 @@ function otbRenderPickupChartInto(rows, container, chartKey) {
   var legendDiv = document.getElementById(canvasId+'-legend');
   if (legendDiv) {
     var legendItems = [
-      { color: 'rgba(22,120,60,0.85)',   label: '⬆ Pickup fuerte' },
-      { color: 'rgba(60,170,90,0.8)',    label: '↑ Pickup moderado' },
-      { color: 'rgba(150,150,150,0.75)', label: '→ Estable' },
-      { color: 'rgba(210,90,20,0.8)',    label: '↓ Caída moderada' },
-      { color: 'rgba(195,0,0,0.85)',     label: '⬇ Caída fuerte' },
+      { color: 'rgba(60,170,90,0.8)',    label: '↑ Pickup subió (> +1.0pp)' },
+      { color: 'rgba(150,150,150,0.75)', label: '→ Estable (entre -1.0pp y +1.0pp)' },
+      { color: 'rgba(195,0,0,0.85)',     label: '↓ Pickup bajó (< -1.0pp)' },
       { color: 'rgba(30,80,180,0.75)',   label: '— Occ Base' }
     ];
     var legHTML = '';
