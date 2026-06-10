@@ -40,14 +40,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Sin permisos para editar el simulador.' }, { status: 403 });
   }
 
-  let body: { hotelId?: string; rawBaseInputs?: unknown; rawPlanPcts?: unknown; rawPaisPcts?: unknown; promoVals?: unknown; titleOverrides?: unknown; labelOverrides?: unknown; extraSections?: unknown; deletedSectionIds?: unknown; channelOverrides?: unknown };
+  let body: { hotelId?: string; rawBaseInputs?: unknown; rawPlanPcts?: unknown; rawPaisPcts?: unknown; promoVals?: unknown; titleOverrides?: unknown; labelOverrides?: unknown; extraSections?: unknown; deletedSectionIds?: unknown; channelOverrides?: unknown; sectionOrder?: unknown };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ ok: false, error: 'Cuerpo de solicitud inválido.' }, { status: 400 });
   }
 
-  const { hotelId: hotelNombreBody, rawBaseInputs, rawPlanPcts, rawPaisPcts, promoVals, titleOverrides, labelOverrides, extraSections, deletedSectionIds, channelOverrides } = body;
+  const { hotelId: hotelNombreBody, rawBaseInputs, rawPlanPcts, rawPaisPcts, promoVals, titleOverrides, labelOverrides, extraSections, deletedSectionIds, channelOverrides, sectionOrder } = body;
   if (!hotelNombreBody) return NextResponse.json({ ok: false, error: 'hotelId es requerido.' }, { status: 400 });
 
   // Users can only write configs for their accessible hotels
@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
       extraSections:      (extraSections      as Record<string, unknown[]>)          ?? {},
       deletedSectionIds:  (deletedSectionIds  as Record<string, string[]>)            ?? {},
       channelOverrides:   (channelOverrides   as Record<string, Record<string, number>>) ?? {},
+      sectionOrder:       (sectionOrder       as Record<string, string[]>)            ?? {},
     });
     return NextResponse.json({ ok: true });
   } catch (e) {

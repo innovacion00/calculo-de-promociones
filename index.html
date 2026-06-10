@@ -110,6 +110,13 @@
   .icon-btn.del:hover{background:#fde;color:#c00;}
   .icon-btn.copy:hover{background:#d4edda;color:#1a6e3c;}
 
+  /* DRAG TO REORDER */
+  .drag-handle{cursor:grab;color:var(--gray4);font-size:.85rem;line-height:1;padding:2px 4px;flex-shrink:0;user-select:none;border-radius:4px;}
+  .drag-handle:hover{background:var(--gold-border);color:var(--gold-dark);}
+  .drag-handle:active{cursor:grabbing;}
+  .section-card.dragging{opacity:.4;}
+  .section-card.drag-over{outline:2px dashed var(--gold);outline-offset:-2px;}
+
   /* GENIUS & MOBILE SUB-TABLE */
   .genius-panel{border-top:2px dashed var(--gold-border);background:#f8f5ff;padding:10px 14px;}
   .genius-panel-title{font-size:.62rem;font-weight:800;color:#5a3fa0;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
@@ -2298,6 +2305,10 @@ const CHANNELS = [
   },
 ];
 
+// Drag-and-drop reorder state (section-card being dragged)
+let _dragSec = null;
+let _dragCh = null;
+
 // Assign unique _id to each section
 let _secIdCounter = 0;
 CHANNELS.forEach(ch => ch.sections.forEach(sec => sec._id = 's'+(++_secIdCounter)));
@@ -2306,6 +2317,7 @@ CHANNELS.forEach(ch => ch.sections.forEach(sec => sec._id = 's'+(++_secIdCounter
 const hotelExtraSections = {}; // {hotel: {channelKey: section[]}}
 const hotelDeletedSections = {}; // {hotel: {channelKey: secId[]}}
 const hotelChannelOverrides = {}; // {hotel: {chKey: {geniusPct?, mobilePct?}}}
+const hotelSectionOrder = {}; // {hotel: {channelKey: secId[]}} — custom drag-and-drop order
 
 function getHotelSections(hotel, chKey) {
   const ch = CHANNELS.find(c => c.key === chKey);
@@ -2313,7 +2325,20 @@ function getHotelSections(hotel, chKey) {
   const deleted = new Set(((hotelDeletedSections[hotel] || {})[chKey]) || []);
   const defaults = (ch._defaultSections || ch.sections).filter(s => !deleted.has(s._id));
   const extras = ((hotelExtraSections[hotel] || {})[chKey] || []).filter(s => !deleted.has(s._id));
-  return [...defaults, ...extras];
+  const all = [...defaults, ...extras];
+  const order = ((hotelSectionOrder[hotel] || {})[chKey]) || null;
+  if (!order) return all;
+  const byId = new Map(all.map(s => [s._id, s]));
+  const ordered = [];
+  order.forEach(id => { if (byId.has(id)) { ordered.push(byId.get(id)); byId.delete(id); } });
+  byId.forEach(s => ordered.push(s)); // append any sections not present in saved order
+  return ordered;
+}
+
+function persistSectionOrder(ch) {
+  if (!hotelSectionOrder[currentHotel]) hotelSectionOrder[currentHotel] = {};
+  hotelSectionOrder[currentHotel][ch.key] = ch.sections.map(s => s._id);
+  localStorage.setItem('rmd_state', getFullState());
 }
 
 // ── BASE RATE COMPUTATION ────────────────────────────────────────────────────
@@ -2642,6 +2667,14 @@ function buildSectionCard(ch, sec, baseRates, hotel) {
   const hdr = document.createElement('div');
   hdr.className = 'section-header';
 
+  const dragHandle = document.createElement('div');
+  dragHandle.className = 'drag-handle';
+  dragHandle.textContent = '⠿';
+  dragHandle.title = 'Arrastrar para reordenar';
+  dragHandle.addEventListener('mousedown', () => { card.draggable = true; });
+  dragHandle.addEventListener('mouseup', () => { card.draggable = false; });
+  hdr.appendChild(dragHandle);
+
   const bar = document.createElement('div'); bar.style.cssText='width:4px;height:13px;background:var(--gold);border-radius:2px;flex-shrink:0;';
   hdr.appendChild(bar);
 
@@ -2744,6 +2777,42 @@ function buildSectionCard(ch, sec, baseRates, hotel) {
       scheduleRateSave();
     }
     card.remove();
+  });
+
+  // Drag & drop reordering
+  card.addEventListener('dragstart', (e) => {
+    _dragSec = sec; _dragCh = ch;
+    card.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', sec._id); } catch(err) {}
+  });
+  card.addEventListener('dragend', () => {
+    card.draggable = false;
+    card.classList.remove('dragging');
+    document.querySelectorAll('.section-card.drag-over').forEach(c=>c.classList.remove('drag-over'));
+    _dragSec = null; _dragCh = null;
+  });
+  card.addEventListener('dragover', (e) => {
+    if (!_dragSec || _dragSec === sec || _dragCh !== ch) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    card.classList.add('drag-over');
+  });
+  card.addEventListener('dragleave', () => {
+    card.classList.remove('drag-over');
+  });
+  card.addEventListener('drop', (e) => {
+    e.preventDefault();
+    card.classList.remove('drag-over');
+    if (!_dragSec || _dragSec === sec || _dragCh !== ch) return;
+    const fromIdx = ch.sections.indexOf(_dragSec);
+    if (fromIdx === -1 || ch.sections.indexOf(sec) === -1) return;
+    ch.sections.splice(fromIdx, 1);
+    const toIdx = ch.sections.indexOf(sec);
+    ch.sections.splice(toIdx, 0, _dragSec);
+    persistSectionOrder(ch);
+    renderSections(ch);
+    scheduleRateSave();
   });
 
   return card;
@@ -3244,7 +3313,8 @@ function getFullState() {
     titleOverrides:  JSON.parse(JSON.stringify(titleOverrides)),
     hotelExtraSections:    JSON.parse(JSON.stringify(hotelExtraSections)),
     hotelDeletedSections:  JSON.parse(JSON.stringify(hotelDeletedSections)),
-    hotelChannelOverrides: JSON.parse(JSON.stringify(hotelChannelOverrides))
+    hotelChannelOverrides: JSON.parse(JSON.stringify(hotelChannelOverrides)),
+    hotelSectionOrder:     JSON.parse(JSON.stringify(hotelSectionOrder))
   });
 }
 
@@ -3284,6 +3354,10 @@ function restoreFullState(json) {
     // Restore channel overrides (genius/mobile pcts) and apply to current hotel
     Object.keys(s.hotelChannelOverrides||{}).forEach(hotel => {
       hotelChannelOverrides[hotel] = JSON.parse(JSON.stringify(s.hotelChannelOverrides[hotel]));
+    });
+    // Restore custom section order
+    Object.keys(s.hotelSectionOrder||{}).forEach(hotel => {
+      hotelSectionOrder[hotel] = JSON.parse(JSON.stringify(s.hotelSectionOrder[hotel]));
     });
     const curChanOv = hotelChannelOverrides[currentHotel] || {};
     CHANNELS.forEach(ch => {
@@ -3370,7 +3444,10 @@ function getHotelStateSlice(hotel) {
     if (comm !== undefined) ov.commissionPct = comm;
     if (Object.keys(ov).length) channelOverrides[ch.key] = ov;
   });
-  return { rawBaseInputs, rawPlanPcts, rawPaisPcts, promoVals, labelOverrides: hotelLabelOverrides, titleOverrides: hotelTitleOverrides, extraSections, deletedSectionIds, channelOverrides };
+  const sectionOrder = hotelSectionOrder[hotel]
+    ? JSON.parse(JSON.stringify(hotelSectionOrder[hotel]))
+    : {};
+  return { rawBaseInputs, rawPlanPcts, rawPaisPcts, promoVals, labelOverrides: hotelLabelOverrides, titleOverrides: hotelTitleOverrides, extraSections, deletedSectionIds, channelOverrides, sectionOrder };
 }
 
 function applyHotelConfig(hotel, config) {
@@ -3385,6 +3462,7 @@ function applyHotelConfig(hotel, config) {
   if (config.labelOverrides) labelOverrides[hotel] = config.labelOverrides;
   if (config.titleOverrides) titleOverrides[hotel] = config.titleOverrides;
   if (config.deletedSectionIds) hotelDeletedSections[hotel] = JSON.parse(JSON.stringify(config.deletedSectionIds));
+  if (config.sectionOrder) hotelSectionOrder[hotel] = JSON.parse(JSON.stringify(config.sectionOrder));
   if (!hotelChannelOverrides[hotel]) hotelChannelOverrides[hotel] = {};
   if (config.channelOverrides) {
     Object.assign(hotelChannelOverrides[hotel], JSON.parse(JSON.stringify(config.channelOverrides)));
@@ -3432,9 +3510,9 @@ function applyHotelConfig(hotel, config) {
         return sec;
       });
     });
-    // Rebuild ch.sections for this hotel
-    CHANNELS.forEach(ch => { ch.sections = getHotelSections(hotel, ch.key); });
   }
+  // Rebuild ch.sections for this hotel (applies extra sections + custom order)
+  CHANNELS.forEach(ch => { ch.sections = getHotelSections(hotel, ch.key); });
 }
 
 async function saveHotelRateConfig(hotel) {

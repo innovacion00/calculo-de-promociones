@@ -25,6 +25,8 @@ export interface RateConfig {
   deletedSectionIds: Record<string, string[]>;
   // Per-channel config overrides: {channelKey: {geniusPct?, mobilePct?}}
   channelOverrides: Record<string, Record<string, number>>;
+  // Custom section order per channel (drag-and-drop): {channelKey: secId[]}
+  sectionOrder?: Record<string, string[]>;
 }
 
 async function getCollection(): Promise<Collection<RateConfig>> {
