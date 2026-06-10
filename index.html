@@ -4315,10 +4315,27 @@ function buildSummaryMetrics(rows) {
   var bestRoomDay  = roomRows.length ? roomRows.reduce(function(a,b){ return b.roomPickup > a.roomPickup ? b : a; }) : null;
   var worstRoomDay = roomRows.length ? roomRows.reduce(function(a,b){ return b.roomPickup < a.roomPickup ? b : a; }) : null;
 
+  // Ocupación / ADR / RevPAR del corte actual (archivo "después")
+  // Se toman del resumen de cabecera del Excel (celdas A4, E4, J4) si está disponible;
+  // si no, se promedian los valores diarios del corte actual.
+  function avgAfter(key) {
+    var vals = rows.map(function(r){ return r[key]; }).filter(function(v){ return v !== null && v !== undefined; });
+    return vals.length ? vals.reduce(function(s,v){ return s+v; }, 0) / vals.length : null;
+  }
+  var afterSummary = OTB_STATE.afterSummary;
+  function pick(summaryKey, rowKey) {
+    if (afterSummary && afterSummary[summaryKey] !== null && afterSummary[summaryKey] !== undefined) return afterSummary[summaryKey];
+    return avgAfter(rowKey);
+  }
+  var avgOcc    = pick('occ', 'occAfter');
+  var avgAdr    = pick('adr', 'adrAfter');
+  var avgRevpar = pick('revpar', 'revparAfter');
+
   return { total: rows.length, up, down, stable, strongUp, modUp, modDown, strongDown,
     avgPickup, bestDay, worstDay, totalRoomPickup, criticalDays, oppDays,
     hasRooms: rows.some(function(r){ return r.roomPickup !== null; }),
     avgVelocityHabs, bestRoomDay, worstRoomDay,
+    avgOcc, avgAdr, avgRevpar,
     general };
 }
 
@@ -4549,6 +4566,7 @@ function otbClearFile(side) {
   OTB_STATE[side+'Cols'] = null;
   OTB_STATE[side+'Meta'] = null;
   OTB_STATE[side+'Source'] = null;
+  OTB_STATE[side+'Summary'] = null;
   const fnEl = document.getElementById('otb-fname-'+side);
   const dropEl = document.getElementById('otb-drop-'+side);
   const replBtn = document.getElementById('otb-replace-'+side+'-btn');
@@ -4827,6 +4845,19 @@ function parseForecastExcel(file, side) {
       var ws = wb.Sheets[sheetName];
       if (!ws) throw new Error('No se encontró ninguna hoja en el archivo');
 
+      // ── Resumen de cabecera del reporte (Ocupación, ADR, RevPAR) ──────────
+      // Tomados directamente de las celdas A4 (Ocupación), E4 (ADR) y J4 (RevPAR)
+      function cellNum(addr) {
+        var cell = ws[addr];
+        if (!cell) return null;
+        return typeof cell.v === 'number' ? cell.v : num(cell.v);
+      }
+      var hOcc = cellNum('A4'), hAdr = cellNum('E4'), hRevpar = cellNum('J4');
+      var headerSummary = (hOcc !== null || hAdr !== null || hRevpar !== null)
+        ? { label: 'Corte ' + (side === 'before' ? 'Base' : 'Actual'),
+            occ: hOcc !== null ? normalizeOcc(hOcc) : null, adr: hAdr, revpar: hRevpar }
+        : null;
+
       // Convert sheet to array of arrays
       var aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
@@ -4995,6 +5026,7 @@ function parseForecastExcel(file, side) {
       OTB_STATE[side+'Meta']    = meta;
       OTB_STATE[side+'Headers'] = null; // not needed for Excel
       OTB_STATE[side+'Mapping'] = null;
+      OTB_STATE[side+'Summary'] = headerSummary;
 
       // Use hotel capacity from HOTEL_CAPACITIES if available (more reliable than Excel Totales)
       var hotelCap = typeof HOTEL_CAPACITIES !== 'undefined' ? (HOTEL_CAPACITIES[currentHotel] || 0) : 0;
