@@ -2526,7 +2526,7 @@ function buildCfgPanel(sec, card, ch, baseRates, commission) {
   const panel = document.createElement('div');
   panel.className = 'cfg-panel';
 
-  function buildRowList(rows, label, rowsKey) {
+  function buildRowList(rows, label, rowsKey, pairedRows, pairedKey) {
     if (label) { const h=document.createElement('div'); h.style.cssText='font-size:.68rem;font-weight:700;color:var(--gold-dark);text-transform:uppercase;letter-spacing:.8px;margin:6px 0 4px;'; h.textContent=label; panel.appendChild(h); }
     rows.forEach((row, ri) => {
       const rowEl = document.createElement('div');
@@ -2539,9 +2539,15 @@ function buildCfgPanel(sec, card, ch, baseRates, commission) {
         row.label = labelInp.value;
         if (!labelOverrides[currentHotel]) labelOverrides[currentHotel] = {};
         labelOverrides[currentHotel][sec._id+'_'+(rowsKey||'rows')+'_'+ri] = labelInp.value;
+        // Keep the paired SIN/CON row label in sync (same plan, two tables)
+        if (pairedRows && pairedRows[ri]) {
+          pairedRows[ri].label = labelInp.value;
+          labelOverrides[currentHotel][sec._id+'_'+pairedKey+'_'+ri] = labelInp.value;
+        }
         localStorage.setItem('rmd_state', getFullState());
         scheduleRateSave();
         reRender(card,sec,baseRates,commission,ch);
+        rebuildCfgPanel(panel,sec,card,ch,baseRates,commission);
       });
       labelWrap.appendChild(labelInp);
       rowEl.appendChild(labelWrap);
@@ -2558,17 +2564,25 @@ function buildCfgPanel(sec, card, ch, baseRates, commission) {
         pp.appendChild(pIn); pp.appendChild(sp); rowEl.appendChild(pp);
       }
       const del=document.createElement('button'); del.className='icon-btn del'; del.textContent='✕';
-      del.addEventListener('click',()=>{ rows.splice(ri,1); rebuildCfgPanel(panel,sec,card,ch,baseRates,commission); reRender(card,sec,baseRates,commission,ch); });
+      del.addEventListener('click',()=>{
+        rows.splice(ri,1);
+        // Remove the paired SIN/CON row too, so both tables stay in sync
+        if (pairedRows && pairedRows[ri] !== undefined) pairedRows.splice(ri,1);
+        rebuildCfgPanel(panel,sec,card,ch,baseRates,commission);
+        reRender(card,sec,baseRates,commission,ch);
+        scheduleRateSave();
+      });
       rowEl.appendChild(del);
       panel.appendChild(rowEl);
     });
   }
 
   if (sec.ptMerged) {
-    buildRowList(sec.rowsSin,'SIN COMISIÓN','rowsSin');
+    buildRowList(sec.rowsSin,'SIN COMISIÓN','rowsSin', sec.rowsCon,'rowsCon');
     const addSin=document.createElement('button'); addSin.className='cfg-add-btn'; addSin.textContent='+ Añadir plan SIN COMI';
     addSin.addEventListener('click',()=>{ sec.rowsSin.push({label:'Nuevo Plan',base:'std',discounts:[0],planPct:0}); sec.rowsCon.push({label:'Nuevo Plan',base:'stdC',discounts:[0],planPct:0}); rebuildCfgPanel(panel,sec,card,ch,baseRates,commission); reRender(card,sec,baseRates,commission,ch); });
     panel.appendChild(addSin);
+    buildRowList(sec.rowsCon,'CON COMISIÓN','rowsCon', sec.rowsSin,'rowsSin');
   } else {
     buildRowList(sec.rows,'','rows');
     const addBtn=document.createElement('button'); addBtn.className='cfg-add-btn'; addBtn.textContent='+ Añadir plan tarifario';
@@ -2581,7 +2595,7 @@ function buildCfgPanel(sec, card, ch, baseRates, commission) {
 function rebuildCfgPanel(panel, sec, card, ch, baseRates, commission) {
   panel.innerHTML='';
   const newP = buildCfgPanel(sec, card, ch, baseRates, commission);
-  panel.appendChild(...newP.childNodes);
+  while (newP.firstChild) panel.appendChild(newP.firstChild);
 }
 
 function reRender(card, sec, baseRates, commission, ch) {
