@@ -7049,7 +7049,7 @@ async function otbSaveToHistory() {
     // Fallback localStorage
     const entry = {
       id:    Date.now(),
-      hotel: currentHotel, month: monthDisplay, date: dateDisplay,
+      hotel: currentHotel, month: monthDisplay, monthYM: monthYM, date: dateDisplay,
       total: m.total, up: m.up, down: m.down, stable: m.stable,
       avgOcc: m.avgOcc, avgAdr: m.avgAdr, avgRevpar: m.avgRevpar,
       general: m.general, weeklyMetrics: OTB_STATE.weeklyMetrics || null
@@ -7078,6 +7078,7 @@ async function otbRenderHistory() {
           id:    a.id,
           hotel: a.hotelNombre || a.hotelId,
           month: d.toLocaleDateString('es-CO',{year:'numeric',month:'long'}),
+          monthYM: a.month,
           date:  a.date,
           total: a.metrics.total, up: a.metrics.up, down: a.metrics.down, stable: a.metrics.stable,
           avgOcc: a.metrics.avgOcc, avgAdr: a.metrics.avgAdr, avgRevpar: a.metrics.avgRevpar,
@@ -7132,14 +7133,20 @@ function otbRenderHistoryTable() {
   const monthFilter = monthEl && monthEl.value ? monthEl.value : null; // "YYYY-MM"
 
   const entries = all.filter(function(e) {
+    if (monthFilter) {
+      // Filter by the analysis 'mes' (cutoff-derived), not the 'fecha análisis'
+      if (e.monthYM) {
+        if (e.monthYM !== monthFilter) return false;
+      } else {
+        var dm = otbParseDisplayDate(e.date);
+        var ym = dm ? (dm.getFullYear() + '-' + String(dm.getMonth()+1).padStart(2,'0')) : null;
+        if (ym !== monthFilter) return false;
+      }
+    }
     var d = otbParseDisplayDate(e.date);
     if (!d) return true;
     if (fromDate && d < fromDate) return false;
     if (toDate   && d > toDate)   return false;
-    if (monthFilter) {
-      var ym = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-      if (ym !== monthFilter) return false;
-    }
     return true;
   });
 
