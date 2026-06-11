@@ -31,8 +31,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   const { id } = await params;
   try {
-    const isMaster = session.role === 'master_admin';
-    const deleted = await deleteOtbAnalysis(id, session.userId, isMaster);
+    const deleted = await deleteOtbAnalysis(id);
     if (!deleted) return NextResponse.json({ ok: false, error: 'No encontrado o sin permisos para eliminarlo.' }, { status: 404 });
     return NextResponse.json({ ok: true });
   } catch (e) {

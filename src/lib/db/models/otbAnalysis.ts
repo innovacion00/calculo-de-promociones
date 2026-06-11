@@ -93,10 +93,15 @@ export async function listOtbAnalyses(
   const col = await getCollection();
   let filter: object = {};
   if (hotelId && hotelNombre) {
-    // Busca por ObjectId (documentos nuevos) O por nombre en hotelId (documentos legacy)
-    filter = { $or: [{ hotelId }, { hotelId: hotelNombre }] };
+    // Busca por ObjectId (documentos nuevos) O por nombre en hotelId/hotelNombre (documentos legacy)
+    filter = { $or: [{ hotelId }, { hotelId: hotelNombre }, { hotelNombre }] };
   } else if (hotelId) {
     filter = { hotelId };
+  } else if (hotelNombre) {
+    // No se pudo resolver el ObjectId del hotel (p.ej. nombre no encontrado en
+    // la colección "hoteles"): filtrar igual por nombre para no devolver el
+    // histórico de TODOS los hoteles.
+    filter = { $or: [{ hotelId: hotelNombre }, { hotelNombre }] };
   }
   const docs = await col
     .find(filter, { projection: { comparison: 0 } })
@@ -114,10 +119,8 @@ export async function getOtbAnalysis(id: string): Promise<OtbAnalysis | null> {
   return rest as OtbAnalysis;
 }
 
-export async function deleteOtbAnalysis(id: string, userId: string, isMaster: boolean): Promise<boolean> {
+export async function deleteOtbAnalysis(id: string): Promise<boolean> {
   const col = await getCollection();
-  // Regular users can only delete their own; master_admin can delete any
-  const filter = isMaster ? { id } : { id, createdBy: userId };
-  const result = await col.deleteOne(filter);
+  const result = await col.deleteOne({ id });
   return result.deletedCount === 1;
 }

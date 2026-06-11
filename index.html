@@ -4882,13 +4882,17 @@ function parseForecastExcel(file, side) {
       var colIdx = {}; // { fecha, name, totales, reservadas, disponibles, ... }
 
       var candidateKeys = ['fecha','name','nombre','totales','reservadas','disponibles','ocupacion','occ','adr','revpar'];
-      for (var i = 0; i < Math.min(aoa.length, 20); i++) {
+      var bestHits = 0;
+      for (var i = 0; i < Math.min(aoa.length, 25); i++) {
         var row = aoa[i].map(function(c){ return String(c).toLowerCase().trim(); });
         var hits = row.filter(function(c){ return candidateKeys.some(function(k){ return c.indexOf(k) !== -1; }); }).length;
-        if (hits >= 2) {
+        // Prefer the row with the most header-like matches: avoids mistaking a
+        // report metadata/summary row (e.g. "Ocupación ... ADR ... RevPAR" near
+        // the top of the sheet) for the real column-header row of the data table.
+        if (hits >= 2 && hits >= bestHits) {
+          bestHits = hits;
           headerIdx = i;
           headerRow = row;
-          break;
         }
       }
       if (headerIdx === -1) throw new Error('No se encontró una fila de encabezados. Verifique que el archivo sea rptForecastNew.xlsx');
@@ -4897,6 +4901,7 @@ function parseForecastExcel(file, side) {
       headerRow.forEach(function(h, ci) {
         if (!colIdx.fecha    && (h.indexOf('fecha') !== -1 || h === 'date'))              colIdx.fecha       = ci;
         if (!colIdx.name     && (h.indexOf('name') !== -1 || h.indexOf('nombre') !== -1)) colIdx.name        = ci;
+        if (!colIdx.ocupacion && (h.indexOf('ocup') !== -1 || h.indexOf('occ') !== -1))   colIdx.ocupacion   = ci;
         if (!colIdx.totales  && h.indexOf('total') !== -1 && h.indexOf('fecha') === -1)   colIdx.totales     = ci;
         if (!colIdx.reservadas && h.indexOf('reservada') !== -1)                           colIdx.reservadas  = ci;
         if (!colIdx.disponibles && h.indexOf('disponible') !== -1)                        colIdx.disponibles = ci;
@@ -4960,9 +4965,13 @@ function parseForecastExcel(file, side) {
         if (!isTotalFecha && rawName) roomTypes[rawName] = (roomTypes[rawName] || 0) + 1;
         if (isTotalFecha) totalFechaCount++;
 
-        // Compute occupancy
+        // Compute occupancy: prefer the value reported directly by the file
+        // (column "% Ocupación"/"Occ"), fall back to Reservadas/Totales.
+        var occFromFile = colIdx.ocupacion !== undefined ? num(r[colIdx.ocupacion]) : null;
         var occ = null;
-        if (totales && reservadas !== null) {
+        if (occFromFile !== null) {
+          occ = Math.min(100, Math.max(0, normalizeOcc(occFromFile)));
+        } else if (totales && reservadas !== null) {
           occ = Math.min(100, Math.max(0, (reservadas / totales) * 100));
         }
 
@@ -4990,9 +4999,12 @@ function parseForecastExcel(file, side) {
         }
       }
 
-      // If no "Total Fecha" rows found, fall back to using all rows
+      // If no "Total Fecha" rows found, the report lists one row per room type
+      // per date (no grand-total row) — sum across room types for each date
+      // to get the hotel's overall occupancy.
       if (!rows.length) {
-        warnings.push('No se encontraron filas "Total Fecha". Se usarán todas las filas con fecha y datos válidos.');
+        warnings.push('No se encontraron filas "Total Fecha". Se sumó la ocupación de todos los tipos de habitación por fecha.');
+        var byDate = {}; var dateOrder = [];
         for (var ri2 = headerIdx + 1; ri2 < aoa.length; ri2++) {
           var r2 = aoa[ri2];
           if (!r2 || !r2.length) continue;
@@ -5008,18 +5020,35 @@ function parseForecastExcel(file, side) {
           var tot2 = num(r2[colIdx.totales]);
           var res2 = num(r2[colIdx.reservadas]);
           if (res2 === null && tot2 === null) continue;
-          var occ2 = (tot2 && res2 !== null) ? Math.min(100, Math.max(0,(res2/tot2)*100)) : null;
-          rows.push({ date:dateStr2, dayOfMonth:new Date(dateStr2+'T12:00:00').getDate(),
-            name:'Fila', occ:occ2, rooms:res2, totales:tot2, disponibles:null,
-            adr: colIdx.adr!==undefined?num(r2[colIdx.adr]):null,
-            revpar: colIdx.revpar!==undefined?num(r2[colIdx.revpar]):null,
-            revenue: colIdx.ingresos!==undefined?num(r2[colIdx.ingresos]):null,
-            confidence:'excel' });
+          var disp2 = colIdx.disponibles !== undefined ? num(r2[colIdx.disponibles]) : null;
+          var rev2  = colIdx.ingresos !== undefined ? num(r2[colIdx.ingresos]) : null;
+
+          if (!byDate[dateStr2]) {
+            byDate[dateStr2] = { totales: 0, rooms: 0, disponibles: 0, hasDisp: false, revenue: 0, hasRev: false };
+            dateOrder.push(dateStr2);
+          }
+          var acc = byDate[dateStr2];
+          if (tot2 !== null) acc.totales += tot2;
+          if (res2 !== null) acc.rooms += res2;
+          if (disp2 !== null) { acc.disponibles += disp2; acc.hasDisp = true; }
+          if (rev2 !== null)  { acc.revenue += rev2; acc.hasRev = true; }
           if (!minDate || dateStr2 < minDate) minDate = dateStr2;
           if (!maxDate || dateStr2 > maxDate) maxDate = dateStr2;
         }
-        // Deduplicate by date (keep last)
-        var seen = {}; rows = rows.filter(function(r){ if(seen[r.date]) return false; seen[r.date]=true; return true; });
+        rows = dateOrder.map(function(d) {
+          var acc = byDate[d];
+          var occ2 = acc.totales ? Math.min(100, Math.max(0, (acc.rooms / acc.totales) * 100)) : null;
+          var revenue2 = acc.hasRev ? acc.revenue : null;
+          return {
+            date: d, dayOfMonth: new Date(d+'T12:00:00').getDate(),
+            name: 'Total', occ: occ2, rooms: acc.rooms, totales: acc.totales,
+            disponibles: acc.hasDisp ? acc.disponibles : null,
+            adr: (revenue2 !== null && acc.rooms)   ? revenue2 / acc.rooms   : null,
+            revpar: (revenue2 !== null && acc.totales) ? revenue2 / acc.totales : null,
+            revenue: revenue2,
+            confidence: 'excel'
+          };
+        });
       }
 
       rows.sort(function(a,b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
@@ -7524,7 +7553,10 @@ async function otbDeleteHistory(id) {
   try {
     const res = await fetch('/api/otb/analyses/' + encodeURIComponent(id), { method: 'DELETE' });
     const data = await res.json();
-    if (!data.ok) throw new Error(data.error || 'Error al eliminar');
+    if (!data.ok) {
+      alert(data.error || 'No se pudo eliminar el análisis.');
+      return;
+    }
   } catch(err) {
     console.warn('[OTB] Error eliminando del servidor, eliminando localmente:', err);
   }
