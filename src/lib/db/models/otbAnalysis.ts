@@ -37,6 +37,9 @@ export interface OtbMetrics {
   avgOcc: number | null;
   avgAdr: number | null;
   avgRevpar: number | null;
+  avgOccBefore?: number | null;
+  avgAdrBefore?: number | null;
+  avgRevparBefore?: number | null;
   bestDay: OtbPickupRow | null;
   worstDay: OtbPickupRow | null;
 }

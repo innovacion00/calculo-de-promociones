@@ -4346,11 +4346,27 @@ function buildSummaryMetrics(rows) {
   var avgAdr    = pick('adr', 'adrAfter');
   var avgRevpar = pick('revpar', 'revparAfter');
 
+  // Ocupación / ADR / RevPAR del corte base (archivo "antes"), para calcular
+  // la variación (Var.Ocup, Var.ADR, Var.RevPAR) frente al corte actual.
+  function avgBefore(key) {
+    var vals = rows.map(function(r){ return r[key]; }).filter(function(v){ return v !== null && v !== undefined; });
+    return vals.length ? vals.reduce(function(s,v){ return s+v; }, 0) / vals.length : null;
+  }
+  var beforeSummary = OTB_STATE.beforeSummary;
+  function pickBefore(summaryKey, rowKey) {
+    if (beforeSummary && beforeSummary[summaryKey] !== null && beforeSummary[summaryKey] !== undefined) return beforeSummary[summaryKey];
+    return avgBefore(rowKey);
+  }
+  var avgOccBefore    = pickBefore('occ', 'occBefore');
+  var avgAdrBefore    = pickBefore('adr', 'adrBefore');
+  var avgRevparBefore = pickBefore('revpar', 'revparBefore');
+
   return { total: rows.length, up, down, stable, strongUp, modUp, modDown, strongDown,
     avgPickup, bestDay, worstDay, totalRoomPickup, criticalDays, oppDays,
     hasRooms: rows.some(function(r){ return r.roomPickup !== null; }),
     avgVelocityHabs, bestRoomDay, worstRoomDay,
     avgOcc, avgAdr, avgRevpar,
+    avgOccBefore, avgAdrBefore, avgRevparBefore,
     general };
 }
 
@@ -7166,6 +7182,9 @@ async function otbSaveToHistory() {
       avgOcc:   m.avgOcc   ?? null,
       avgAdr:   m.avgAdr   ?? null,
       avgRevpar: m.avgRevpar ?? null,
+      avgOccBefore:    m.avgOccBefore    ?? null,
+      avgAdrBefore:    m.avgAdrBefore    ?? null,
+      avgRevparBefore: m.avgRevparBefore ?? null,
       bestDay:  m.bestDay  || null,
       worstDay: m.worstDay || null
     },
@@ -7188,6 +7207,7 @@ async function otbSaveToHistory() {
       hotel: currentHotel, month: monthDisplay, date: dateDisplay,
       total: m.total, up: m.up, down: m.down, stable: m.stable,
       avgOcc: m.avgOcc, avgAdr: m.avgAdr, avgRevpar: m.avgRevpar,
+      avgOccBefore: m.avgOccBefore ?? null, avgAdrBefore: m.avgAdrBefore ?? null, avgRevparBefore: m.avgRevparBefore ?? null,
       general: m.general, weeklyMetrics: OTB_STATE.weeklyMetrics || null
     };
     OTB_STATE.history.unshift(entry);
@@ -7202,6 +7222,7 @@ async function otbSaveToHistory() {
       hotel: currentHotel, month: monthDisplay, monthYM: monthYM, date: dateDisplay,
       total: m.total, up: m.up, down: m.down, stable: m.stable,
       avgOcc: m.avgOcc, avgAdr: m.avgAdr, avgRevpar: m.avgRevpar,
+      avgOccBefore: m.avgOccBefore ?? null, avgAdrBefore: m.avgAdrBefore ?? null, avgRevparBefore: m.avgRevparBefore ?? null,
       general: m.general, weeklyMetrics: OTB_STATE.weeklyMetrics || null
     };
     OTB_STATE.history.unshift(entry);
@@ -7232,6 +7253,7 @@ async function otbRenderHistory() {
           date:  a.date,
           total: a.metrics.total, up: a.metrics.up, down: a.metrics.down, stable: a.metrics.stable,
           avgOcc: a.metrics.avgOcc, avgAdr: a.metrics.avgAdr, avgRevpar: a.metrics.avgRevpar,
+          avgOccBefore: a.metrics.avgOccBefore ?? null, avgAdrBefore: a.metrics.avgAdrBefore ?? null, avgRevparBefore: a.metrics.avgRevparBefore ?? null,
           general: a.metrics.general, weeklyMetrics: a.weeklyMetrics
         };
       });
@@ -7307,6 +7329,17 @@ function otbRenderHistoryTable() {
     return;
   }
 
+  // Var.Ocup/Var.ADR/Var.RevPAR muestran el valor del corte actual; se colorean
+  // comparándolos contra su semejante del corte base (avgOccBefore/avgAdrBefore/avgRevparBefore)
+  // guardado en la misma comparativa.
+  function otbVarColor(e, field, baseField) {
+    var cur = e[field], baseVal = e[baseField];
+    if (cur === null || cur === undefined || baseVal === null || baseVal === undefined) return '';
+    if (cur > baseVal) return 'color:#1a6e3c;font-weight:700';
+    if (cur < baseVal) return 'color:#c00;font-weight:700';
+    return '';
+  }
+
   const totalLabel = entries.length + (all.length !== entries.length ? ' de ' + all.length : '');
   let html = '<div class="otb-card"><div class="otb-card-title">Histórico de comparativas OTB (' + totalLabel + ')</div>'
     + '<div class="otb-table-wrap"><table class="otb-hist-table"><thead><tr>'
@@ -7321,9 +7354,9 @@ function otbRenderHistoryTable() {
       + '<td style="color:#1a6e3c;font-weight:700">'+e.up+'</td>'
       + '<td style="color:#c00;font-weight:700">'+e.down+'</td>'
       + '<td>'+e.stable+'</td>'
-      + '<td>'+(e.avgOcc!==null&&e.avgOcc!==undefined?fmtPct(e.avgOcc):'N/D')+'</td>'
-      + '<td>'+(e.avgAdr!==null&&e.avgAdr!==undefined?fmtCOP(e.avgAdr):'N/D')+'</td>'
-      + '<td>'+(e.avgRevpar!==null&&e.avgRevpar!==undefined?fmtCOP(e.avgRevpar):'N/D')+'</td>'
+      + '<td style="'+otbVarColor(e,'avgOcc','avgOccBefore')+'">'+(e.avgOcc!==null&&e.avgOcc!==undefined?fmtPct(e.avgOcc):'N/D')+'</td>'
+      + '<td style="'+otbVarColor(e,'avgAdr','avgAdrBefore')+'">'+(e.avgAdr!==null&&e.avgAdr!==undefined?fmtCOP(e.avgAdr):'N/D')+'</td>'
+      + '<td style="'+otbVarColor(e,'avgRevpar','avgRevparBefore')+'">'+(e.avgRevpar!==null&&e.avgRevpar!==undefined?fmtCOP(e.avgRevpar):'N/D')+'</td>'
       + '<td style="color:'+stColor+';font-weight:700">'+e.general+'</td>'
       + '<td style="white-space:nowrap">'
       + '<button class="otb-btn" style="padding:2px 8px;font-size:.65rem;margin-right:4px" id="otb-hist-chart-btn-'+e.id+'" onclick="otbToggleHistoryChart(\''+e.id+'\')">📊</button>'
