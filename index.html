@@ -94,6 +94,7 @@
   .section-card .section-header{border-radius:var(--radius) var(--radius) 0 0;}
   .section-card .table-wrap{border-radius:0 0 var(--radius) var(--radius);}
   .section-card.pt-full{grid-column:1/-1;}
+  .section-card:not(.pt-full):has(.pt-tables){min-width:40px;}
 
   /* SECTION HEADER */
   .section-header{background:var(--white);border-bottom:2px solid var(--gold-border);padding:9px 14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
@@ -155,7 +156,7 @@
 
   /* TABLE */
   .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  table{width:100%;min-width:360px;border-collapse:collapse;font-size:.76rem;}
+  table{width:100%;min-width:40px;border-collapse:collapse;font-size:.76rem;}
   thead th{background:var(--gold-pale);padding:5px 7px;text-align:right;font-size:.63rem;font-weight:800;color:var(--gold-dark);border-bottom:1.5px solid var(--gold-border);white-space:nowrap;letter-spacing:.3px;text-transform:uppercase;}
   thead th:first-child{text-align:left;}
   tbody tr:nth-child(even){background:#fdfaf6;}
@@ -2323,7 +2324,8 @@ function getHotelSections(hotel, chKey) {
   const ch = CHANNELS.find(c => c.key === chKey);
   if (!ch) return [];
   const deleted = new Set(((hotelDeletedSections[hotel] || {})[chKey]) || []);
-  const defaults = (ch._defaultSections || ch.sections).filter(s => !deleted.has(s._id));
+  const baseDefaults = ch._defaultSections || ch.sections;
+  const defaults = baseDefaults.filter(s => !deleted.has(s._id));
   const extras = ((hotelExtraSections[hotel] || {})[chKey] || []).filter(s => !deleted.has(s._id));
   const all = [...defaults, ...extras];
   const order = ((hotelSectionOrder[hotel] || {})[chKey]) || null;
@@ -2671,11 +2673,17 @@ function renderGeniusMobile(card, sec, baseRates, commission, promoDisc, ch) {
   card.appendChild(panel);
 }
 
+// Hoteles cuyas secciones ptMerged de Price Travel (SIN/CON COMISIÓN) se muestran
+// en una tarjeta normal (section-card) en vez de ancho completo (pt-full).
+const PT_NON_FULL_HOTELS = new Set([
+  'Hotel Madison Inn', 'Hotel Aixo Suites', 'Hotel Axis Inn', 'Hotel Rodadero Inn'
+]);
+
 // ── BUILD SECTION CARD ───────────────────────────────────────────────────────
 function buildSectionCard(ch, sec, baseRates, hotel) {
   const commission = ch._commission !== undefined ? ch._commission : ch.commission;
   const card = document.createElement('div');
-  card.className = 'section-card' + (sec.ptMerged?' pt-full':'');
+  card.className = 'section-card' + (sec.ptMerged && !PT_NON_FULL_HOTELS.has(hotel) ? ' pt-full' : '');
 
   // Header
   const hdr = document.createElement('div');
@@ -3340,10 +3348,6 @@ function restoreFullState(json) {
     Object.assign(hotelBaseInputs, s.hotelBaseInputs||{});
     Object.keys(s.hotelPlanPcts||{}).forEach(h => hotelPlanPcts[h] = s.hotelPlanPcts[h]);
     Object.keys(s.hotelPaisPcts||{}).forEach(h => hotelPaisPcts[h] = s.hotelPaisPcts[h]);
-    // Restore promoVals
-    CHANNELS.forEach(ch => ch.sections.forEach(sec => {
-      if (s.promoValsMap[sec._id]) sec._promoVals = {...s.promoValsMap[sec._id]};
-    }));
     // Restore name overrides
     Object.assign(labelOverrides, s.labelOverrides||{});
     Object.assign(titleOverrides, s.titleOverrides||{});
@@ -3394,6 +3398,10 @@ function restoreFullState(json) {
     });
     // Rebuild ch.sections for current hotel
     CHANNELS.forEach(ch => { ch.sections = getHotelSections(currentHotel, ch.key); });
+    // Restore promoVals onto the resolved sections
+    CHANNELS.forEach(ch => ch.sections.forEach(sec => {
+      if (s.promoValsMap[sec._id]) sec._promoVals = {...s.promoValsMap[sec._id]};
+    }));
     applyNameOverrides();
   } catch(e) { console.error('Restore error', e); }
 }
@@ -3470,10 +3478,6 @@ function applyHotelConfig(hotel, config) {
   Object.assign(hotelBaseInputs, config.rawBaseInputs || {});
   Object.assign(hotelPlanPcts,   config.rawPlanPcts   || {});
   Object.assign(hotelPaisPcts,   config.rawPaisPcts   || {});
-  CHANNELS.forEach(ch => ch.sections.forEach(sec => {
-    const saved = (config.promoVals || {})[sec._id];
-    if (saved) { if (!sec._promoVals) sec._promoVals = {}; Object.assign(sec._promoVals, saved); }
-  }));
   if (config.labelOverrides) labelOverrides[hotel] = config.labelOverrides;
   if (config.titleOverrides) titleOverrides[hotel] = config.titleOverrides;
   if (config.deletedSectionIds) hotelDeletedSections[hotel] = JSON.parse(JSON.stringify(config.deletedSectionIds));
@@ -3528,6 +3532,12 @@ function applyHotelConfig(hotel, config) {
   }
   // Rebuild ch.sections for this hotel (applies extra sections + custom order)
   CHANNELS.forEach(ch => { ch.sections = getHotelSections(hotel, ch.key); });
+  // Restore promoVals onto the resolved default sections.
+  // Las secciones extra ya recibieron su _promoVals arriba.
+  CHANNELS.forEach(ch => ch.sections.forEach(sec => {
+    const saved = (config.promoVals || {})[sec._id];
+    if (saved) { if (!sec._promoVals) sec._promoVals = {}; Object.assign(sec._promoVals, saved); }
+  }));
 }
 
 async function saveHotelRateConfig(hotel) {
