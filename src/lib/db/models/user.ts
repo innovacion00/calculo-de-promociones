@@ -7,7 +7,8 @@ export type UserRole =
   | 'revenue_manager'
   | 'revenue_assistant'
   | 'operations'
-  | 'viewer';
+  | 'viewer'
+  | 'reservas';
 
 export type UserStatus = 'active' | 'inactive';
 
@@ -61,6 +62,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     'canViewDashboard', 'canViewAllHotels', 'canCreateNotes', 'canEditOwnNotes', 'canManageAgenda',
   ],
   viewer: ['canViewDashboard', 'canViewAllHotels'],
+  reservas: ['canViewMonitoreo'],
 };
 
 async function getCollection(): Promise<Collection<User>> {

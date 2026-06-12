@@ -538,6 +538,7 @@
 .badge-role.revenue_assistant { background:#fff3cd;color:#856404; }
 .badge-role.operations { background:#ede8ff;color:#5a3fa0; }
 .badge-role.viewer { background:#e2e3e5;color:#41464b; }
+.badge-role.reservas { background:#cfe8f3;color:#0b5e75; }
 .badge-active { background:#d1e7dd;color:#0a3622;padding:2px 8px;border-radius:10px;font-size:.6rem;font-weight:800; }
 .badge-inactive { background:#f8d7da;color:#842029;padding:2px 8px;border-radius:10px;font-size:.6rem;font-weight:800; }
 /* Audit */
@@ -1369,7 +1370,7 @@ const MASTER_USER = {
 const ROLE_LABELS = {
   master_admin:'Master Admin', admin:'Admin',
   revenue_manager:'Revenue Manager', revenue_assistant:'Revenue Auxiliar',
-  operations:'Operaciones', viewer:'Solo Lectura'
+  operations:'Operaciones', viewer:'Solo Lectura', reservas:'Reservas'
 };
 
 const DEFAULT_ROLE_PERMISSIONS = {
@@ -1378,7 +1379,8 @@ const DEFAULT_ROLE_PERMISSIONS = {
   revenue_manager: ['canViewDashboard','canViewAllHotels','canEditRateSimulator','canEditPromotions','canEditBookingConfig','canEditOtb','canUploadOtbFiles','canCreateNotes','canEditOwnNotes','canExportReports','canManageAgenda','canViewGoogleBusinessReviews'],
   revenue_assistant: ['canViewDashboard','canViewAllHotels','canCreateNotes','canEditOwnNotes','canEditOtb','canManageAgenda'],
   operations: ['canViewDashboard','canViewAllHotels','canCreateNotes','canEditOwnNotes','canManageAgenda'],
-  viewer: ['canViewDashboard','canViewAllHotels']
+  viewer: ['canViewDashboard','canViewAllHotels'],
+  reservas: ['canViewMonitoreo']
 };
 
 // ── SESSION ────────────────────────────────────────────────────
@@ -1678,6 +1680,8 @@ function showDashboard() {
   const usersNav = document.getElementById('nav-users');
   if (usersNav) usersNav.style.display = (AUTH_SESSION && (AUTH_SESSION.role === 'master_admin' || hasPermission('canManageUsers'))) ? '' : 'none';
   setupAppLayout();
+  // El rol "reservas" solo tiene acceso al módulo de Monitoreo
+  if (AUTH_SESSION && AUTH_SESSION.role === 'reservas') switchModule('monitoreo');
   // Handle GBP OAuth callback params at startup regardless of active module
   _gbpHandleCallbackParams();
 }
@@ -1706,6 +1710,13 @@ function _gbpHandleCallbackParams() {
 
 // ── SIDEBAR NAVIGATION ────────────────────────────────────────
 function getAvailableModulesForUser() {
+  if (AUTH_SESSION && AUTH_SESSION.role === 'reservas') {
+    return [
+      { group:'Monitoreo', items:[
+        { id:'monitoreo', icon:'🖥️', label:'Monitoreo' },
+      ]},
+    ];
+  }
   const modules = [
     { group:'Revenue Management', items:[
       { id:'simulator', icon:'📊', label:'Simulador de Tarifas' },
@@ -8782,6 +8793,7 @@ async function usersToggleStatus(id, newStatus) {
             <option value="revenue_assistant">Revenue Auxiliar</option>
             <option value="operations">Operaciones</option>
             <option value="viewer">Solo Lectura</option>
+            <option value="reservas">Reservas</option>
           </select>
         </div>
       </div>

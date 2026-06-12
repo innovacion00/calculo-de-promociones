@@ -1,7 +1,7 @@
 /**
  * Crea un usuario en MongoDB.
  * Uso: node scripts/create-user.mjs "Nombre" "email@dominio.com" "contraseña" "rol"
- * Roles: master_admin | admin | revenue_manager | revenue_assistant | operations | viewer
+ * Roles: master_admin | admin | revenue_manager | revenue_assistant | operations | viewer | reservas
  * Ejemplo: node scripts/create-user.mjs "Maria" "maria@gehsuites.com" "Clave2024" "admin"
  */
 import { MongoClient } from 'mongodb';
@@ -63,6 +63,7 @@ const ROLE_PERMISSIONS = {
   revenue_assistant: ['canViewDashboard','canViewAllHotels','canCreateNotes','canEditOwnNotes','canEditOtb','canManageAgenda'],
   operations: ['canViewDashboard','canViewAllHotels','canCreateNotes','canEditOwnNotes','canManageAgenda'],
   viewer: ['canViewDashboard','canViewAllHotels'],
+  reservas: ['canViewMonitoreo'],
 };
 
 const VALID_ROLES = Object.keys(ROLE_PERMISSIONS);

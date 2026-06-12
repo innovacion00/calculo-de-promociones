@@ -3,7 +3,7 @@ import { findByEmail, createUser, DEFAULT_ROLE_PERMISSIONS, toPublicUser, UserRo
 import { hashPassword } from '../../../../lib/auth/password';
 import { getSession } from '../../../../lib/auth/session';
 
-const VALID_ROLES: UserRole[] = ['master_admin', 'admin', 'revenue_manager', 'revenue_assistant', 'operations', 'viewer'];
+const VALID_ROLES: UserRole[] = ['master_admin', 'admin', 'revenue_manager', 'revenue_assistant', 'operations', 'viewer', 'reservas'];
 
 export async function POST(req: NextRequest) {
   // Only authenticated users with canManageUsers or canCreateUsers can register new users
