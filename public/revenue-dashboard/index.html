@@ -1620,6 +1620,7 @@ function _gbpHandleCallbackParams() {
 
 // ââ SIDEBAR NAVIGATION ââââââââââââââââââââââââââââââââââââââââ
 function getAvailableModulesForUser() {
+  const isRevenueManager = AUTH_SESSION && AUTH_SESSION.role === 'revenue_manager';
   const modules = [
     { group:'Revenue Management', items:[
       { id:'simulator', icon:'ð', label:'Simulador de Tarifas' },
@@ -1629,6 +1630,11 @@ function getAvailableModulesForUser() {
       { id:'agenda', icon:'ð', label:'Agenda Revenue' },
       { id:'reputation', icon:'ð', label:'ReputaciÃ³n IA' },
     ]},
+    ...(!isRevenueManager ? [
+      { group:'Monitoreo', items:[
+        { id:'monitoreo', icon:'🖥️', label:'Monitoreo' },
+      ]},
+    ] : []),
     ...(() => {
       const gbpItems = [];
       if (hasPermission('canManageGoogleBusiness') || hasPermission('canViewGoogleBusinessReviews')) {

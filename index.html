@@ -1717,6 +1717,7 @@ function getAvailableModulesForUser() {
       ]},
     ];
   }
+  const isRevenueManager = AUTH_SESSION && AUTH_SESSION.role === 'revenue_manager';
   const modules = [
     { group:'Revenue Management', items:[
       { id:'simulator', icon:'📊', label:'Simulador de Tarifas' },
@@ -1726,9 +1727,11 @@ function getAvailableModulesForUser() {
       { id:'agenda', icon:'📋', label:'Agenda Revenue' },
       { id:'reputation', icon:'🏆', label:'Reputación IA' },
     ]},
-    { group:'Monitoreo', items:[
-      { id:'monitoreo', icon:'🖥️', label:'Monitoreo' },
-    ]},
+    ...(!isRevenueManager ? [
+      { group:'Monitoreo', items:[
+        { id:'monitoreo', icon:'🖥️', label:'Monitoreo' },
+      ]},
+    ] : []),
     ...(() => {
       const gbpItems = [];
       if (hasPermission('canManageGoogleBusiness') || hasPermission('canViewGoogleBusinessReviews')) {
@@ -2592,6 +2595,13 @@ function buildCfgPanel(sec, card, ch, baseRates, commission) {
   const panel = document.createElement('div');
   panel.className = 'cfg-panel';
 
+  function makeNewRow(baseKey, fallbackDiscounts) {
+    const discounts = Array.isArray(fallbackDiscounts) && fallbackDiscounts.length > 1
+      ? [...fallbackDiscounts]
+      : [0, 0];
+    return { label: 'Nuevo Plan', base: baseKey, discounts, planPct: 0 };
+  }
+
   function buildRowList(rows, label, rowsKey, pairedRows, pairedKey) {
     if (label) { const h=document.createElement('div'); h.style.cssText='font-size:.68rem;font-weight:700;color:var(--gold-dark);text-transform:uppercase;letter-spacing:.8px;margin:6px 0 4px;'; h.textContent=label; panel.appendChild(h); }
     rows.forEach((row, ri) => {
@@ -2646,13 +2656,23 @@ function buildCfgPanel(sec, card, ch, baseRates, commission) {
   if (sec.ptMerged) {
     buildRowList(sec.rowsSin,'SIN COMISIÓN','rowsSin', sec.rowsCon,'rowsCon');
     const addSin=document.createElement('button'); addSin.className='cfg-add-btn'; addSin.textContent='+ Añadir plan SIN COMI';
-    addSin.addEventListener('click',()=>{ sec.rowsSin.push({label:'Nuevo Plan',base:'std',discounts:[0],planPct:0}); sec.rowsCon.push({label:'Nuevo Plan',base:'stdC',discounts:[0],planPct:0}); rebuildCfgPanel(panel,sec,card,ch,baseRates,commission); reRender(card,sec,baseRates,commission,ch); });
+    addSin.addEventListener('click',()=>{
+      const fallbackSin = (sec.rowsSin && sec.rowsSin[0]?.discounts) || [0, 0];
+      const fallbackCon = (sec.rowsCon && sec.rowsCon[0]?.discounts) || [0, 0];
+      sec.rowsSin.push(makeNewRow('std', fallbackSin));
+      sec.rowsCon.push(makeNewRow('stdC', fallbackCon));
+      rebuildCfgPanel(panel,sec,card,ch,baseRates,commission); reRender(card,sec,baseRates,commission,ch);
+    });
     panel.appendChild(addSin);
     buildRowList(sec.rowsCon,'CON COMISIÓN','rowsCon', sec.rowsSin,'rowsSin');
   } else {
     buildRowList(sec.rows,'','rows');
     const addBtn=document.createElement('button'); addBtn.className='cfg-add-btn'; addBtn.textContent='+ Añadir plan tarifario';
-    addBtn.addEventListener('click',()=>{ sec.rows.push({label:'Nuevo Plan',base:ch.baseKeys[0],discounts:[0],planPct:0}); rebuildCfgPanel(panel,sec,card,ch,baseRates,commission); reRender(card,sec,baseRates,commission,ch); });
+    addBtn.addEventListener('click',()=>{
+      const fallbackDiscounts = (sec.rows && sec.rows[0]?.discounts) || [0, 0];
+      sec.rows.push(makeNewRow(ch.baseKeys[0], fallbackDiscounts));
+      rebuildCfgPanel(panel,sec,card,ch,baseRates,commission); reRender(card,sec,baseRates,commission,ch);
+    });
     panel.appendChild(addBtn);
   }
   return panel;
