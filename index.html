@@ -724,6 +724,36 @@
 .gbp-diag-error { color:#c62828; }
 /* ── END GOOGLE BUSINESS MODULE ───────────────────────────────────────────── */
 
+/* ── MONITOREO MODULE ─────────────────────────────────────────────────────── */
+#module-monitoreo { display:flex;flex-direction:column;overflow:hidden; }
+.mon-module-header { display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-bottom:1.5px solid var(--gold-border);background:var(--gold-pale);flex-shrink:0; }
+.mon-module-title { font-size:.9rem;font-weight:900;color:var(--gold-dark);text-transform:uppercase;letter-spacing:.8px; }
+.mon-module-subtitle { font-size:.75rem;color:var(--gray3); }
+.mon-refresh-btn { padding:5px 12px;background:none;border:1.5px solid var(--gold-border);border-radius:6px;cursor:pointer;font-size:.8rem;color:var(--gold-dark);transition:background .15s; }
+.mon-refresh-btn:hover { background:var(--gold-pale); }
+.mon-body { display:flex;flex-direction:column;flex:1;overflow-y:auto;gap:18px;padding:18px 20px; }
+.mon-stats-grid { display:flex;gap:16px;flex-wrap:wrap; }
+.mon-stat-card { min-width:140px;background:var(--gold-subtle);border:1px solid var(--gold-border);border-radius:12px;padding:14px 16px; }
+.mon-stat-label { font-size:.7rem;color:var(--gold-dark);text-transform:uppercase;letter-spacing:1px;font-weight:700; }
+.mon-stat-value { font-size:1.6rem;font-weight:800;color:var(--gold-dark);margin-top:4px; }
+.mon-msg { font-size:.8rem;color:var(--gray3);min-height:18px; }
+.mon-msg.error { color:#c62828; }
+.mon-users-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px; }
+.mon-user-card { background:#fff;border:1px solid var(--gold-border);border-radius:12px;padding:14px 16px; }
+.mon-user-head { display:flex;align-items:center;gap:10px; }
+.mon-user-avatar { width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;flex-shrink:0; }
+.mon-user-name { font-size:.88rem;font-weight:800;color:#2b2b2b; }
+.mon-user-id { font-size:.7rem;color:var(--gray3);margin-top:2px; }
+.mon-user-status { margin-top:10px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px; }
+.mon-user-status.opened { background:#e8f4ff;color:#1d4ed8; }
+.mon-user-status.paused { background:#fff7db;color:#a16207; }
+.mon-user-status.closed { background:#ffeaea;color:#b91c1c; }
+.mon-user-status .mon-dot { width:7px;height:7px;border-radius:50%; }
+.mon-user-status.opened .mon-dot { background:#22c55e; }
+.mon-user-status.paused .mon-dot { background:#fbbf24; }
+.mon-user-status.closed .mon-dot { background:#ef4444; }
+/* ── END MONITOREO MODULE ─────────────────────────────────────────────────── */
+
 #module-reputation { display:flex;flex-direction:column;overflow:hidden; }
 .rep-module-header { display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-bottom:1.5px solid var(--gold-border);background:var(--gold-pale);flex-shrink:0; }
 .rep-module-title { font-size:.9rem;font-weight:900;color:var(--gold-dark);text-transform:uppercase;letter-spacing:.8px; }
@@ -1163,6 +1193,22 @@
       <h4>Diagnóstico de conexión</h4>
       <table class="gbp-diag-table" id="gbp-diag-table"></table>
     </div>
+  </div>
+</div>
+
+<!-- MONITOREO MODULE -->
+<div id="module-monitoreo" style="display:none;flex-direction:column;overflow:hidden;flex:1;">
+  <div class="mon-module-header">
+    <div>
+      <span class="mon-module-title">🖥️ Monitoreo Bitrix24</span>
+      <span class="mon-module-subtitle"> — Estado en tiempo real de usuarios</span>
+    </div>
+    <button class="mon-refresh-btn" onclick="monLoadUsers()" title="Actualizar">↺ Actualizar</button>
+  </div>
+  <div class="mon-body">
+    <div class="mon-stats-grid" id="mon-stats-grid"></div>
+    <div class="mon-msg" id="mon-msg"></div>
+    <div class="mon-users-grid" id="mon-users-grid"></div>
   </div>
 </div>
 
@@ -1669,6 +1715,9 @@ function getAvailableModulesForUser() {
       { id:'agenda', icon:'📋', label:'Agenda Revenue' },
       { id:'reputation', icon:'🏆', label:'Reputación IA' },
     ]},
+    { group:'Monitoreo', items:[
+      { id:'monitoreo', icon:'🖥️', label:'Monitoreo' },
+    ]},
     ...(() => {
       const gbpItems = [];
       if (hasPermission('canManageGoogleBusiness') || hasPermission('canViewGoogleBusinessReviews')) {
@@ -1727,7 +1776,7 @@ function setupAppLayout() {
   const toMove = [
     'action-bar-simulator','action-bar-otb','action-bar-agenda','action-bar-users',
     'module-simulator','module-otb','module-agenda','module-users','module-reputation',
-    'module-google-business',
+    'module-google-business','module-monitoreo',
     'rep-import-modal',
     'toast',
   ];
@@ -1778,7 +1827,11 @@ function sidebarRebuild() {
       btn.className = 'sb-item' + (item.future ? ' sb-item-future' : '');
       btn.setAttribute('data-mod', item.id);
       btn.setAttribute('data-tooltip', item.label);
-      if (!item.future) btn.addEventListener('click', () => { switchModule(item.id); sbMobileClose(); });
+      if (item.href) {
+        btn.addEventListener('click', () => { window.location.href = item.href; });
+      } else if (!item.future) {
+        btn.addEventListener('click', () => { switchModule(item.id); sbMobileClose(); });
+      }
       btn.innerHTML = `<span class="sb-item-icon">${item.icon}</span><span class="sb-item-label">${item.label}</span>`;
       groupDiv.appendChild(btn);
     });
@@ -3609,7 +3662,8 @@ function switchModule(mod) {
   const isUsers  = mod === 'users';
   const isRep    = mod === 'reputation';
   const isGBP    = mod === 'google-business';
-  const isSim    = !isOTB && !isAgenda && !isUsers && !isRep && !isGBP;
+  const isMon    = mod === 'monitoreo';
+  const isSim    = !isOTB && !isAgenda && !isUsers && !isRep && !isGBP && !isMon;
   // Nav buttons
   document.getElementById('nav-simulator').classList.toggle('active', isSim);
   document.getElementById('nav-otb').classList.toggle('active', isOTB);
@@ -3635,6 +3689,8 @@ function switchModule(mod) {
   if (modRep) modRep.style.display = isRep ? '' : 'none';
   const modGBP = document.getElementById('module-google-business');
   if (modGBP) modGBP.style.display = isGBP ? '' : 'none';
+  const modMon = document.getElementById('module-monitoreo');
+  if (modMon) modMon.style.display = isMon ? 'flex' : 'none';
   // Init modules on first open
   const otbPage = document.getElementById('page-otb');
   if (isOTB && !otbPage._initialized) { initOTB(otbPage); otbPage._initialized = true; }
@@ -3642,6 +3698,7 @@ function switchModule(mod) {
   if (isUsers)  initUsersModule();
   if (isRep)    repInit();
   if (isGBP)    gbpInit();
+  if (isMon)    monInit();
   // Sidebar active state
   sidebarNavSetActive(mod);
   // Audit
@@ -10167,6 +10224,77 @@ function gbpAuditLocal(action, status, metadata) {
 
 // ═══════════════════════════════════════════════════════════════
 // END GOOGLE BUSINESS PROFILE MODULE
+// ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// MONITOREO MODULE (Bitrix24 - estado de usuarios en tiempo real)
+// ═══════════════════════════════════════════════════════════════
+const MON_STATUS_LABEL = { OPENED: 'Activo', PAUSED: 'En pausa', CLOSED: 'Cerrado' };
+let _monInterval = null;
+
+function monInit() {
+  monLoadUsers();
+  if (!_monInterval) _monInterval = setInterval(monLoadUsers, 30000);
+}
+
+async function monLoadUsers() {
+  const msgEl = document.getElementById('mon-msg');
+  try {
+    msgEl.textContent = '';
+    msgEl.className = 'mon-msg';
+    const res = await fetch('/api/status/users-status');
+    if (!res.ok) throw new Error('No se pudo cargar el estado de usuarios');
+    const data = await res.json();
+    monRender(data);
+  } catch (err) {
+    console.error(err);
+    msgEl.textContent = 'No fue posible cargar los usuarios en tiempo real.';
+    msgEl.className = 'mon-msg error';
+  }
+}
+
+function monEsc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function monRender(users) {
+  const statsGrid = document.getElementById('mon-stats-grid');
+  const usersGrid = document.getElementById('mon-users-grid');
+  const total  = users.length;
+  const opened = users.filter(u => u.status === 'OPENED').length;
+  const paused = users.filter(u => u.status === 'PAUSED').length;
+  const closed = users.filter(u => u.status === 'CLOSED').length;
+
+  statsGrid.innerHTML = [
+    ['Total', total], ['Activos', opened], ['En pausa', paused], ['Cerrados', closed],
+  ].map(([label, value]) =>
+    `<div class="mon-stat-card"><div class="mon-stat-label">${label}</div><div class="mon-stat-value">${value}</div></div>`
+  ).join('');
+
+  usersGrid.innerHTML = users.map(u => {
+    const initials = (u.nombre || '')
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+    const statusClass = (u.status || '').toLowerCase();
+    const statusLabel = MON_STATUS_LABEL[u.status] || u.status;
+    return `<div class="mon-user-card">
+      <div class="mon-user-head">
+        <div class="mon-user-avatar">${monEsc(initials)}</div>
+        <div>
+          <div class="mon-user-name">${monEsc(u.nombre)}</div>
+          <div class="mon-user-id">ID de usuario: ${u.id}</div>
+        </div>
+      </div>
+      <div class="mon-user-status ${statusClass}"><span class="mon-dot"></span>${monEsc(statusLabel)}</div>
+    </div>`;
+  }).join('');
+}
+// ═══════════════════════════════════════════════════════════════
+// END MONITOREO MODULE
 // ═══════════════════════════════════════════════════════════════
 </script>
 
