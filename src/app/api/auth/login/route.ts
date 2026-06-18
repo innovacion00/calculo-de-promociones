@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     userName: user.name,
     email: user.email,
     role: user.role,
-    permissions: user.permissions.length > 0 ? user.permissions : (DEFAULT_ROLE_PERMISSIONS[user.role] ?? []),
+    permissions: [...new Set([...(DEFAULT_ROLE_PERMISSIONS[user.role] ?? []), ...user.permissions])],
     hotelAccess: user.hotelAccess,
     activeHotelId: null,
     authProvider: 'email',
