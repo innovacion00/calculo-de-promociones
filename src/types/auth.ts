@@ -43,7 +43,18 @@ export type Permission =
   | 'canManageAgenda'
   | 'canViewAllActivity'
   | 'canManageGoogleBusiness'
-  | 'canViewGoogleBusinessReviews';
+  | 'canViewGoogleBusinessReviews'
+  | 'canViewFinancialModule'
+  | 'canImportReconciliations'
+  | 'canEditReconciliations'
+  | 'canMarkReconciled'
+  | 'canViewCheckoutBalances'
+  | 'canEditCheckoutBalances'
+  | 'canViewAccountsReceivable'
+  | 'canUploadReceivableProof'
+  | 'canMarkReceivablePaid'
+  | 'canExportFinancialReports'
+  | 'canViewFinancialAudit';
 
 export type NoteVisibility = 'private' | 'hotel' | 'team' | 'admin';
 
