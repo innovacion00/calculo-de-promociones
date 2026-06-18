@@ -31,24 +31,24 @@ export async function GET(req: NextRequest) {
 }
 
 const COL_ALIASES: Record<string, string[]> = {
-  hotel:              ['Hotel', 'Establecimiento', 'Propiedad'],
-  companyName:        ['Razón social', 'Razon Social', 'Empresa'],
-  movementDate:       ['Fecha del movimiento', 'Fecha Movimiento', 'Fecha'],
-  netAmount:          ['Neto abonar', 'Valor Neto', 'Valor'],
-  reconciledStatus:   ['Conciliado', 'Estado Conciliación', 'Estado'],
-  bank:               ['Banco', 'Entidad bancaria'],
-  confirmationNumber: ['Número de confirmación', 'Referencia', 'Confirmación'],
-  movementName:       ['Nombre del movimiento', 'Nombre Movimiento', 'Nombre', 'Descripción'],
-  operationType:      ['Tipo de operación', 'Tipo Operación', 'Tipo'],
-  cardBrand:          ['Franquicia', 'Marca', 'Red'],
-  transactionId:      ['ID Transacción', 'ID', 'Transacción'],
-  authorizationCode:  ['Código autorización', 'Auth Code', 'Autorización'],
-  purchaseValue:      ['Valor compra', 'Compra'],
-  commission:         ['Comisión'],
-  withholdingTax:     ['Retefuente', 'Rte Fuente'],
-  reteIva:            ['ReteIVA', 'Rete IVA'],
-  reteIca:            ['ReteICA', 'Rete ICA'],
-  receiptUrl:         ['Comprobante', 'URL Comprobante'],
+  hotel:              ['Hotel', 'Establecimiento', 'Propiedad', 'Nombre establecimiento'],
+  companyName:        ['Razón social', 'Razon Social', 'Empresa', 'Razón Social'],
+  movementDate:       ['Fecha del movimiento', 'Fecha Movimiento', 'Fecha', 'Fecha transacción', 'Fecha Transacción'],
+  netAmount:          ['Neto abonar', 'Valor Neto', 'Valor', 'Monto', 'Importe', 'Valor a abonar'],
+  reconciledStatus:   ['Conciliado', 'Estado Conciliación', 'Estado', 'Conciliacion', 'Conciliación', 'Estado conciliación', 'Reconciliado'],
+  bank:               ['Banco', 'Entidad bancaria', 'Entidad Bancaria', 'Banco emisor'],
+  confirmationNumber: ['Número de confirmación', 'Referencia', 'Confirmación', 'Num confirmacion', 'No. confirmación', 'No confirmación', 'Nro confirmación'],
+  movementName:       ['Nombre del movimiento', 'Nombre Movimiento', 'Nombre', 'Descripción', 'Descripcion', 'Concepto'],
+  operationType:      ['Tipo de operación', 'Tipo Operación', 'Tipo', 'Tipo operación', 'Tipo de pago'],
+  cardBrand:          ['Franquicia', 'Marca', 'Red', 'Marca tarjeta'],
+  transactionId:      ['ID Transacción', 'ID', 'Transacción', 'Cod transaccion', 'Código transacción'],
+  authorizationCode:  ['Código autorización', 'Auth Code', 'Autorización', 'Cod autorizacion', 'Código de autorización'],
+  purchaseValue:      ['Valor compra', 'Compra', 'Valor de compra'],
+  commission:         ['Comisión', 'Comision'],
+  withholdingTax:     ['Retefuente', 'Rte Fuente', 'Rte. Fuente', 'Retención en la fuente'],
+  reteIva:            ['ReteIVA', 'Rete IVA', 'Rte IVA', 'Reteiva'],
+  reteIca:            ['ReteICA', 'Rete ICA', 'Rte ICA', 'Reteica'],
+  receiptUrl:         ['Comprobante', 'URL Comprobante', 'Link comprobante', 'Soporte'],
 };
 
 function resolveHeader(headers: string[]): Record<string, number> {
@@ -110,8 +110,10 @@ export async function POST(req: NextRequest) {
     const partial = { hotelName, confirmationNumber, receiptUrl, netAmount, operationType };
     const inconsistencyFlags = detectInconsistencies(partial);
 
-    const rawStatus = String(get('reconciledStatus') ?? '').trim().toLowerCase();
-    const reconciledStatus = rawStatus === 'conciliado' || rawStatus === 'reconciled'
+    const rawStatus = String(get('reconciledStatus') ?? '').trim().toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, ''); // strip accents
+    const RECONCILED_VALUES = new Set(['conciliado', 'reconciled', 'si', 'yes', 'x', '1', 'true', 'pagado', 'paid', 'ok']);
+    const reconciledStatus = RECONCILED_VALUES.has(rawStatus)
       ? 'reconciled' as const
       : 'unreconciled' as const;
 
