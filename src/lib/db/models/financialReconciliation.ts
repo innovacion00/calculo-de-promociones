@@ -88,6 +88,12 @@ export async function insertMany(records: Omit<ReconciliationRecord, '_id'>[]): 
   return result.insertedCount;
 }
 
+export async function deleteAll(): Promise<number> {
+  const col = await getCollection();
+  const result = await col.deleteMany({});
+  return result.deletedCount;
+}
+
 export async function findById(id: string): Promise<ReconciliationRecord | null> {
   const col = await getCollection();
   return col.findOne({ id });

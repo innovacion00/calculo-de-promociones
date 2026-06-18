@@ -1331,6 +1331,7 @@
     <h2>💰 Gestión Financiera</h2>
     <div style="display:flex;gap:8px;">
       <button class="fin-action-btn" onclick="finExportCsv()" id="fin-export-btn">⬇ Exportar CSV</button>
+      <button class="fin-action-btn" onclick="finDeleteAll()" id="fin-delete-btn" style="color:#c62828;border-color:#e57373;">🗑 Limpiar registros</button>
       <button class="fin-action-btn primary" onclick="finOpenImport()" id="fin-import-btn">📥 Importar Excel</button>
     </div>
   </div>
@@ -10939,6 +10940,25 @@ async function finExecuteImport() {
     btn.disabled = false;
     btn.textContent = '✅ Importar';
   }
+}
+
+// ── Delete all ───────────────────────────────────────────────
+async function finDeleteAll() {
+  if (!hasPermission('canImportReconciliations')) { finShowToast('❌ Sin permisos'); return; }
+  if (!confirm('¿Eliminar TODOS los registros de conciliaciones? Esta acción no se puede deshacer.')) return;
+  const btn = document.getElementById('fin-delete-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Eliminando…'; }
+  try {
+    const res = await fetch('/api/financial/reconciliations', { method: 'DELETE' });
+    const json = await res.json();
+    if (!json.ok) { finShowToast('❌ ' + (json.error || 'Error')); }
+    else {
+      finShowToast('✅ ' + json.deleted + ' registros eliminados');
+      finLoadStats();
+      finLoadTable();
+    }
+  } catch(e) { finShowToast('❌ Error de red'); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = '🗑 Limpiar registros'; } }
 }
 
 // ── Export ────────────────────────────────────────────────────

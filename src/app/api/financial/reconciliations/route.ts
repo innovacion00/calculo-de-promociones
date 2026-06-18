@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '../../../../lib/auth/session';
-import { listRecords, insertMany, ensureIndexes } from '../../../../lib/db/models/financialReconciliation';
+import { listRecords, insertMany, ensureIndexes, deleteAll } from '../../../../lib/db/models/financialReconciliation';
 import { insertAuditLog } from '../../../../lib/db/models/financialAuditLog';
 import { randomUUID } from 'crypto';
 
@@ -163,6 +163,31 @@ export async function POST(req: NextRequest) {
       createdAt: now,
     });
     return NextResponse.json({ ok: true, inserted });
+  } catch (e) {
+    return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
+  }
+}
+
+export async function DELETE(_req: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ ok: false, error: 'No autenticado.' }, { status: 401 });
+  if (!session.permissions.includes('canImportReconciliations')) {
+    return NextResponse.json({ ok: false, error: 'Sin permisos.' }, { status: 403 });
+  }
+  try {
+    const deleted = await deleteAll();
+    await insertAuditLog({
+      id: randomUUID(),
+      userId: session.userId,
+      userName: session.userName,
+      module: 'reconciliations',
+      entityType: 'batch_delete',
+      entityId: 'all',
+      action: 'delete_all',
+      newValue: { deleted },
+      createdAt: new Date().toISOString(),
+    });
+    return NextResponse.json({ ok: true, deleted });
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
   }
