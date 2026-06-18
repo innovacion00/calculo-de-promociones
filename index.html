@@ -848,6 +848,81 @@
 .rep-detail-tabs { display:flex;border-bottom:2px solid var(--gold-border);flex-shrink:0; }
 .rep-detail-tab { padding:8px 16px;border:none;background:none;font-size:.75rem;font-weight:700;cursor:pointer;color:var(--gray3);border-bottom:3px solid transparent;margin-bottom:-2px;font-family:inherit;text-transform:uppercase;letter-spacing:.5px; }
 .rep-detail-tab.active { color:var(--gold);border-bottom-color:var(--gold);background:none; }
+/* ═══════════════════════════════════════════════════════════════
+   FINANCIAL MODULE
+   ═══════════════════════════════════════════════════════════════ */
+#module-financial { display:none; flex-direction:column; min-height:0; }
+.fin-header { display:flex; align-items:center; justify-content:space-between; padding:18px 24px 0; }
+.fin-header h2 { font-size:1.25rem; font-weight:800; color:var(--gold-dark); margin:0; }
+.fin-tabs { display:flex; gap:4px; padding:12px 24px 0; border-bottom:1.5px solid var(--gold-border); }
+.fin-tab { padding:7px 18px; border:none; background:none; cursor:pointer; font-size:.82rem; font-weight:600; color:#888; border-radius:6px 6px 0 0; transition:all .15s; }
+.fin-tab.active { background:var(--gold-subtle); color:var(--gold-dark); border-bottom:2px solid var(--gold); }
+.fin-tab:hover:not(.active) { background:#f5f5f5; color:#555; }
+.fin-body { flex:1; overflow-y:auto; padding:20px 24px; }
+.fin-kpi-row { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:18px; }
+.fin-kpi { flex:1; min-width:160px; background:#fff; border:1.5px solid var(--gold-border); border-radius:10px; padding:14px 18px; }
+.fin-kpi-label { font-size:.72rem; font-weight:600; color:#888; text-transform:uppercase; letter-spacing:.5px; }
+.fin-kpi-value { font-size:1.45rem; font-weight:800; color:#1a1a2e; margin-top:4px; }
+.fin-kpi-sub { font-size:.72rem; color:#aaa; margin-top:2px; }
+.fin-kpi.alert { border-color:#f4a800; background:#fffbf0; }
+.fin-kpi.alert .fin-kpi-value { color:#b07800; }
+.fin-kpi.ok { border-color:#43a047; background:#f0faf0; }
+.fin-kpi.ok .fin-kpi-value { color:#2e7d32; }
+.fin-kpi.bad { border-color:#e53935; background:#fff5f5; }
+.fin-kpi.bad .fin-kpi-value { color:#c62828; }
+.fin-toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
+.fin-toolbar input, .fin-toolbar select { padding:7px 12px; border:1.5px solid var(--gold-border); border-radius:7px; font-size:.82rem; background:#fff; color:#333; outline:none; }
+.fin-toolbar input:focus, .fin-toolbar select:focus { border-color:var(--gold); }
+.fin-action-btn { padding:7px 16px; border:1.5px solid var(--gold-border); border-radius:7px; background:#fff; color:var(--gold-dark); font-size:.82rem; font-weight:600; cursor:pointer; transition:all .15s; }
+.fin-action-btn:hover { background:var(--gold-subtle); }
+.fin-action-btn.primary { background:var(--gold); color:#fff; border-color:var(--gold); }
+.fin-action-btn.primary:hover { background:var(--gold-dark); border-color:var(--gold-dark); }
+.fin-table-wrap { overflow-x:auto; }
+.fin-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+.fin-table th { background:var(--gold-subtle); color:var(--gold-dark); font-weight:700; text-transform:uppercase; letter-spacing:.4px; font-size:.72rem; padding:9px 12px; text-align:left; border-bottom:2px solid var(--gold-border); white-space:nowrap; }
+.fin-table td { padding:9px 12px; border-bottom:1px solid #f0f0f0; color:#333; vertical-align:middle; }
+.fin-table tr:hover td { background:#faf8f5; }
+.fin-table tr.no-hotel td { border-left:3px solid var(--gold); }
+.fin-table tr.duplicate td { border-left:3px solid #e53935; }
+.fin-table tr.reviewing td { background:#fffde7; }
+.fin-badge { display:inline-block; padding:3px 9px; border-radius:20px; font-size:.7rem; font-weight:700; }
+.fin-badge.reconciled { background:#e8f5e9; color:#2e7d32; }
+.fin-badge.unreconciled { background:#ffebee; color:#c62828; }
+.fin-badge.pending_review { background:#fff3e0; color:#e65100; }
+.fin-badge.probable_duplicate { background:#fce4ec; color:#880e4f; }
+.fin-badge.requires_support { background:#e8eaf6; color:#283593; }
+.fin-badge.no_hotel { background:#fff9c4; color:#f57f17; }
+.fin-badge.under_investigation { background:#e3f2fd; color:#0d47a1; }
+.fin-badge.adjusted { background:#e8f5e9; color:#1b5e20; }
+.fin-pagination { display:flex; align-items:center; gap:10px; margin-top:14px; font-size:.82rem; color:#666; }
+.fin-pagination button { padding:5px 13px; border:1.5px solid var(--gold-border); border-radius:6px; background:#fff; color:var(--gold-dark); cursor:pointer; font-size:.8rem; font-weight:600; }
+.fin-pagination button:disabled { opacity:.4; cursor:default; }
+.fin-modal-overlay { display:none; position:fixed; inset:0; z-index:3000; background:rgba(0,0,0,.52); align-items:center; justify-content:center; }
+.fin-modal-overlay.open { display:flex; }
+.fin-modal { background:#fff; border-radius:14px; width:92%; max-width:640px; max-height:88vh; display:flex; flex-direction:column; box-shadow:0 8px 40px rgba(0,0,0,.22); border:2px solid var(--gold-border); overflow:hidden; }
+.fin-modal-header { padding:16px 22px 12px; border-bottom:1px solid var(--gold-border); display:flex; align-items:flex-start; justify-content:space-between; }
+.fin-modal-title { font-size:.9rem; font-weight:800; color:var(--gold-dark); }
+.fin-modal-body { padding:18px 22px; overflow-y:auto; flex:1; }
+.fin-modal-footer { padding:12px 22px; border-top:1px solid var(--gold-border); display:flex; gap:10px; justify-content:flex-end; }
+.fin-field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+.fin-field { display:flex; flex-direction:column; gap:4px; }
+.fin-field label { font-size:.72rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.4px; }
+.fin-field span { font-size:.85rem; color:#333; }
+.fin-field textarea { padding:8px 12px; border:1.5px solid var(--gold-border); border-radius:7px; font-size:.83rem; resize:vertical; min-height:64px; font-family:inherit; outline:none; }
+.fin-field textarea:focus { border-color:var(--gold); }
+.fin-import-zone { border:2px dashed var(--gold-border); border-radius:10px; padding:32px 24px; text-align:center; cursor:pointer; transition:all .2s; background:var(--gold-subtle); }
+.fin-import-zone.drag-over { border-color:var(--gold); background:var(--gold-pale); }
+.fin-import-zone p { margin:0; color:#888; font-size:.85rem; }
+.fin-import-preview { margin-top:14px; overflow-x:auto; }
+.fin-import-preview table { font-size:.75rem; border-collapse:collapse; }
+.fin-import-preview th { background:var(--gold-subtle); padding:5px 10px; border:1px solid var(--gold-border); font-weight:700; color:var(--gold-dark); }
+.fin-import-preview td { padding:5px 10px; border:1px solid #eee; }
+.fin-section-title { font-size:.78rem; font-weight:800; color:var(--gold-dark); text-transform:uppercase; letter-spacing:.5px; margin:16px 0 8px; }
+.fin-empty { padding:40px; text-align:center; color:#aaa; font-size:.9rem; }
+@media(max-width:700px){
+  .fin-field-row{grid-template-columns:1fr;}
+  .fin-kpi{min-width:calc(50% - 7px);}
+}
 </style>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -1244,6 +1319,132 @@
       <button class="rep-action-btn" onclick="repCloseImportModal()">Cancelar</button>
       <button class="rep-action-btn primary" id="rep-import-btn" onclick="repExecuteImport()" style="display:none;">✅ Importar</button>
       <button class="rep-action-btn primary" onclick="repDownloadTemplate()">⬇ Plantilla Excel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     FINANCIAL MODULE
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="module-financial" style="display:none;flex-direction:column;min-height:0;flex:1;">
+  <div class="fin-header">
+    <h2>💰 Gestión Financiera</h2>
+    <div style="display:flex;gap:8px;">
+      <button class="fin-action-btn" onclick="finExportCsv()" id="fin-export-btn">⬇ Exportar CSV</button>
+      <button class="fin-action-btn primary" onclick="finOpenImport()" id="fin-import-btn">📥 Importar Excel</button>
+    </div>
+  </div>
+  <div class="fin-tabs">
+    <button class="fin-tab active" id="fin-tab-reconciliations" onclick="finSwitchTab('reconciliations')">🏦 Conciliaciones</button>
+    <button class="fin-tab" id="fin-tab-balances" onclick="finSwitchTab('balances')" style="opacity:.5;cursor:default;" disabled title="Disponible en Plan 2">💳 Saldos Pendientes</button>
+    <button class="fin-tab" id="fin-tab-accounts-receivable" onclick="finSwitchTab('accounts-receivable')" style="opacity:.5;cursor:default;" disabled title="Disponible en Plan 3">📋 Cuentas por Cobrar</button>
+  </div>
+
+  <!-- TAB: Conciliaciones -->
+  <div class="fin-body" id="fin-pane-reconciliations">
+    <!-- KPI row 1: financieros -->
+    <div class="fin-kpi-row" id="fin-kpi-financieros">
+      <div class="fin-kpi"><div class="fin-kpi-label">Total movimientos</div><div class="fin-kpi-value" id="fin-kpi-total">—</div></div>
+      <div class="fin-kpi"><div class="fin-kpi-label">Monto total</div><div class="fin-kpi-value" id="fin-kpi-amount">—</div></div>
+      <div class="fin-kpi ok"><div class="fin-kpi-label">Conciliado</div><div class="fin-kpi-value" id="fin-kpi-reconciled">—</div><div class="fin-kpi-sub" id="fin-kpi-reconciled-pct">—</div></div>
+      <div class="fin-kpi bad"><div class="fin-kpi-label">No conciliado</div><div class="fin-kpi-value" id="fin-kpi-unreconciled">—</div><div class="fin-kpi-sub" id="fin-kpi-unreconciled-pct">—</div></div>
+    </div>
+    <!-- KPI row 2: alertas -->
+    <div class="fin-section-title">Bandejas de alerta</div>
+    <div class="fin-kpi-row" id="fin-kpi-alertas">
+      <div class="fin-kpi alert" style="cursor:pointer;" onclick="finFilterBy('no_hotel')"><div class="fin-kpi-label">Sin hotel</div><div class="fin-kpi-value" id="fin-kpi-no-hotel">—</div></div>
+      <div class="fin-kpi alert" style="cursor:pointer;" onclick="finFilterBy('no_receipt')"><div class="fin-kpi-label">Sin comprobante</div><div class="fin-kpi-value" id="fin-kpi-no-receipt">—</div></div>
+      <div class="fin-kpi alert" style="cursor:pointer;" onclick="finFilterBy('probable_duplicate')"><div class="fin-kpi-label">Duplicados probables</div><div class="fin-kpi-value" id="fin-kpi-duplicates">—</div></div>
+      <div class="fin-kpi alert" style="cursor:pointer;" onclick="finFilterBy('no_confirmation')"><div class="fin-kpi-label">Sin referencia</div><div class="fin-kpi-value" id="fin-kpi-no-conf">—</div></div>
+      <div class="fin-kpi alert" style="cursor:pointer;" onclick="finFilterBy('requires_support')"><div class="fin-kpi-label">Requiere revisión</div><div class="fin-kpi-value" id="fin-kpi-requires">—</div></div>
+    </div>
+    <!-- Toolbar filtros -->
+    <div class="fin-toolbar">
+      <input type="text" id="fin-search" placeholder="Buscar hotel, banco, referencia…" oninput="finDebouncedLoad()" style="min-width:200px;">
+      <select id="fin-filter-status" onchange="finLoadTable()">
+        <option value="">Todos los estados</option>
+        <option value="reconciled">Conciliado</option>
+        <option value="unreconciled">No conciliado</option>
+        <option value="pending_review">En revisión</option>
+        <option value="probable_duplicate">Duplicado probable</option>
+        <option value="requires_support">Requiere soporte</option>
+        <option value="no_hotel">Sin hotel</option>
+        <option value="under_investigation">En investigación</option>
+        <option value="adjusted">Ajustado</option>
+      </select>
+      <select id="fin-filter-bank" onchange="finLoadTable()"><option value="">Todos los bancos</option></select>
+      <select id="fin-filter-brand" onchange="finLoadTable()"><option value="">Todas las franquicias</option></select>
+      <input type="date" id="fin-filter-from" onchange="finLoadTable()" title="Fecha desde">
+      <input type="date" id="fin-filter-to" onchange="finLoadTable()" title="Fecha hasta">
+      <button class="fin-action-btn" onclick="finClearFilters()">✕ Limpiar</button>
+    </div>
+    <!-- Tabla -->
+    <div class="fin-table-wrap">
+      <table class="fin-table">
+        <thead><tr>
+          <th>Fecha</th><th>Nombre / Hotel</th><th>Banco</th><th>Franquicia</th>
+          <th>Neto abonar</th><th>Estado</th><th></th>
+        </tr></thead>
+        <tbody id="fin-table-body"><tr><td colspan="7" class="fin-empty">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="fin-pagination">
+      <button onclick="finPrevPage()" id="fin-btn-prev">◀ Anterior</button>
+      <span id="fin-pagination-info"></span>
+      <button onclick="finNextPage()" id="fin-btn-next">Siguiente ▶</button>
+    </div>
+  </div>
+
+  <!-- TAB: Saldos Pendientes (placeholder Plan 2) -->
+  <div class="fin-body" id="fin-pane-balances" style="display:none;">
+    <div class="fin-empty">💳 Sub-módulo Saldos Pendientes — disponible en Plan 2</div>
+  </div>
+
+  <!-- TAB: Cuentas por Cobrar (placeholder Plan 3) -->
+  <div class="fin-body" id="fin-pane-accounts-receivable" style="display:none;">
+    <div class="fin-empty">📋 Sub-módulo Cuentas por Cobrar — disponible en Plan 3</div>
+  </div>
+</div>
+
+<!-- MODAL: Detalle conciliación -->
+<div class="fin-modal-overlay" id="fin-detail-modal" onclick="if(event.target===this)finCloseDetail()">
+  <div class="fin-modal">
+    <div class="fin-modal-header">
+      <div class="fin-modal-title" id="fin-detail-title">Detalle de movimiento</div>
+      <button onclick="finCloseDetail()" style="border:none;background:none;font-size:1.1rem;cursor:pointer;color:#888;">✕</button>
+    </div>
+    <div class="fin-modal-body" id="fin-detail-body"></div>
+    <div class="fin-modal-footer" id="fin-detail-footer"></div>
+  </div>
+</div>
+
+<!-- MODAL: Importar Excel -->
+<div class="fin-modal-overlay" id="fin-import-modal" onclick="if(event.target===this)finCloseImport()">
+  <div class="fin-modal" style="max-width:720px;">
+    <div class="fin-modal-header">
+      <div class="fin-modal-title">📥 Importar conciliaciones desde Excel</div>
+      <button onclick="finCloseImport()" style="border:none;background:none;font-size:1.1rem;cursor:pointer;color:#888;">✕</button>
+    </div>
+    <div class="fin-modal-body">
+      <div class="fin-import-zone" id="fin-drop-zone"
+           ondragover="event.preventDefault();this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="finHandleDrop(event)"
+           onclick="document.getElementById('fin-file-input').click()">
+        <p>📂 Arrastra tu archivo Excel aquí o haz clic para seleccionarlo</p>
+        <p style="font-size:.72rem;margin-top:6px;color:#bbb;">.xlsx · .xls · Máx 10 MB</p>
+      </div>
+      <input type="file" id="fin-file-input" accept=".xlsx,.xls" style="display:none;" onchange="finHandleFileInput(event)">
+      <div id="fin-sheet-selector" style="display:none;margin-top:12px;">
+        <label style="font-size:.8rem;font-weight:700;color:#666;">Hoja:</label>
+        <select id="fin-sheet-select" style="margin-left:8px;padding:5px 10px;border:1.5px solid var(--gold-border);border-radius:6px;" onchange="finPreviewSheet()"></select>
+      </div>
+      <div id="fin-import-preview" class="fin-import-preview"></div>
+      <div id="fin-import-result" style="display:none;margin-top:12px;background:#e8f5e9;border:1px solid #c8e6c9;border-radius:6px;padding:10px 14px;font-size:.78rem;color:#2e7d32;"></div>
+    </div>
+    <div class="fin-modal-footer">
+      <button class="fin-action-btn" onclick="finCloseImport()">Cancelar</button>
+      <button class="fin-action-btn primary" id="fin-confirm-import-btn" onclick="finExecuteImport()" style="display:none;">✅ Importar</button>
     </div>
   </div>
 </div>
@@ -1740,6 +1941,11 @@ function getAvailableModulesForUser() {
       return gbpItems.length ? [{ group:'Integraciones', items: gbpItems }] : [];
     })(),
   ];
+  if (hasPermission('canViewFinancialModule')) {
+    modules.push({ group:'Finanzas', items:[
+      { id:'financial', icon:'💰', label:'Gestión Financiera' },
+    ]});
+  }
   const isAdmin = AUTH_SESSION && (AUTH_SESSION.role === 'master_admin' || hasPermission('canManageUsers'));
   if (isAdmin) {
     modules.push({ group:'Administración', items:[
@@ -1790,7 +1996,8 @@ function setupAppLayout() {
   const toMove = [
     'action-bar-simulator','action-bar-otb','action-bar-agenda','action-bar-users',
     'module-simulator','module-otb','module-agenda','module-users','module-reputation',
-    'module-google-business','module-monitoreo',
+    'module-google-business','module-monitoreo','module-financial',
+    'fin-detail-modal','fin-import-modal',
     'rep-import-modal',
     'toast',
   ];
@@ -3688,13 +3895,14 @@ document.getElementById('btn-restore').addEventListener('click', async ()=>{
 
 // ── MODULE SWITCH ─────────────────────────────────────────────
 function switchModule(mod) {
-  const isOTB   = mod === 'otb';
-  const isAgenda = mod === 'agenda';
-  const isUsers  = mod === 'users';
-  const isRep    = mod === 'reputation';
-  const isGBP    = mod === 'google-business';
-  const isMon    = mod === 'monitoreo';
-  const isSim    = !isOTB && !isAgenda && !isUsers && !isRep && !isGBP && !isMon;
+  const isOTB       = mod === 'otb';
+  const isAgenda    = mod === 'agenda';
+  const isUsers     = mod === 'users';
+  const isRep       = mod === 'reputation';
+  const isGBP       = mod === 'google-business';
+  const isMon       = mod === 'monitoreo';
+  const isFinancial = mod === 'financial';
+  const isSim       = !isOTB && !isAgenda && !isUsers && !isRep && !isGBP && !isMon && !isFinancial;
   // Nav buttons
   document.getElementById('nav-simulator').classList.toggle('active', isSim);
   document.getElementById('nav-otb').classList.toggle('active', isOTB);
@@ -3710,8 +3918,8 @@ function switchModule(mod) {
   const abarUsers = document.getElementById('action-bar-users');
   if (abarUsers) abarUsers.style.display = isUsers ? '' : 'none';
   // Modules
-  document.getElementById('module-simulator').style.display = isSim   ? '' : 'none';
-  document.getElementById('module-otb').style.display       = isOTB   ? '' : 'none';
+  document.getElementById('module-simulator').style.display = isSim  ? '' : 'none';
+  document.getElementById('module-otb').style.display       = isOTB  ? '' : 'none';
   const modAgenda = document.getElementById('module-agenda');
   if (modAgenda) modAgenda.style.display = isAgenda ? '' : 'none';
   const modUsers = document.getElementById('module-users');
@@ -3722,14 +3930,17 @@ function switchModule(mod) {
   if (modGBP) modGBP.style.display = isGBP ? '' : 'none';
   const modMon = document.getElementById('module-monitoreo');
   if (modMon) modMon.style.display = isMon ? 'flex' : 'none';
+  const modFin = document.getElementById('module-financial');
+  if (modFin) modFin.style.display = isFinancial ? 'flex' : 'none';
   // Init modules on first open
   const otbPage = document.getElementById('page-otb');
   if (isOTB && !otbPage._initialized) { initOTB(otbPage); otbPage._initialized = true; }
-  if (isAgenda) initAgenda();
-  if (isUsers)  initUsersModule();
-  if (isRep)    repInit();
-  if (isGBP)    gbpInit();
-  if (isMon)    monInit();
+  if (isAgenda)    initAgenda();
+  if (isUsers)     initUsersModule();
+  if (isRep)       repInit();
+  if (isGBP)       gbpInit();
+  if (isMon)       monInit();
+  if (isFinancial) finInit();
   // Sidebar active state
   sidebarNavSetActive(mod);
   // Audit
@@ -10327,6 +10538,442 @@ function monRender(users) {
 }
 // ═══════════════════════════════════════════════════════════════
 // END MONITOREO MODULE
+// ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// FINANCIAL MODULE — Conciliaciones Bancarias (Plan 1)
+// ═══════════════════════════════════════════════════════════════
+
+let _finInitialized = false;
+let _finCurrentTab = 'reconciliations';
+let _finPage = 1;
+const _finPageSize = 18;
+let _finTotal = 0;
+let _finDebounceTimer = null;
+let _finWorkbook = null;
+let _finParsedRows = null;
+let _finParsedHeaders = null;
+let _finSourceFileName = '';
+
+function finInit() {
+  if (!hasPermission('canViewFinancialModule')) {
+    document.getElementById('module-financial').innerHTML =
+      '<div class="fin-empty" style="margin-top:60px;">Sin permisos para ver este módulo.</div>';
+    return;
+  }
+  const impBtn = document.getElementById('fin-import-btn');
+  if (impBtn) impBtn.style.display = hasPermission('canImportReconciliations') ? '' : 'none';
+  const expBtn = document.getElementById('fin-export-btn');
+  if (expBtn) expBtn.style.display = hasPermission('canExportFinancialReports') ? '' : 'none';
+
+  const urlTab = new URLSearchParams(window.location.search).get('tab');
+  if (urlTab && ['reconciliations','balances','accounts-receivable'].includes(urlTab)) {
+    _finCurrentTab = urlTab;
+  }
+  finSwitchTab(_finCurrentTab, false);
+  finLoadStats();
+  finLoadTable();
+  _finInitialized = true;
+}
+
+function finSwitchTab(tab, pushState) {
+  if (pushState === undefined) pushState = true;
+  _finCurrentTab = tab;
+  ['reconciliations','balances','accounts-receivable'].forEach(function(t) {
+    const btn = document.getElementById('fin-tab-' + t);
+    if (btn) btn.classList.toggle('active', t === tab);
+    const pane = document.getElementById('fin-pane-' + t);
+    if (pane) pane.style.display = t === tab ? '' : 'none';
+  });
+  if (pushState) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tab);
+    window.history.replaceState({}, '', url.toString());
+  }
+}
+
+async function finLoadStats() {
+  try {
+    const res = await fetch('/api/financial/reconciliations/stats');
+    const json = await res.json();
+    if (!json.ok) return;
+    const s = json.stats;
+    const fmt = function(n) { return n != null ? n.toLocaleString('es-CO') : '—'; };
+    const fmtCop = function(n) { return n != null ? '$ ' + Math.round(n).toLocaleString('es-CO') : '—'; };
+    const pct = function(a, b) { return b > 0 ? (a / b * 100).toFixed(1) + '%' : '0%'; };
+    document.getElementById('fin-kpi-total').textContent = fmt(s.total);
+    document.getElementById('fin-kpi-amount').textContent = fmtCop(s.totalAmount);
+    document.getElementById('fin-kpi-reconciled').textContent = fmt(s.reconciled);
+    document.getElementById('fin-kpi-reconciled-pct').textContent = pct(s.reconciled, s.total) + ' del total';
+    document.getElementById('fin-kpi-unreconciled').textContent = fmt(s.unreconciled);
+    document.getElementById('fin-kpi-unreconciled-pct').textContent = pct(s.unreconciled, s.total) + ' del total';
+    document.getElementById('fin-kpi-no-hotel').textContent = fmt(s.noHotel);
+    document.getElementById('fin-kpi-no-receipt').textContent = fmt(s.noReceipt);
+    document.getElementById('fin-kpi-duplicates').textContent = fmt(s.probableDuplicate);
+    document.getElementById('fin-kpi-no-conf').textContent = fmt(s.noConfirmation);
+    document.getElementById('fin-kpi-requires').textContent = fmt(s.requiresSupport);
+  } catch(e) { console.warn('finLoadStats', e); }
+}
+
+async function finLoadTable() {
+  const tbody = document.getElementById('fin-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="7" class="fin-empty">Cargando…</td></tr>';
+
+  const params = new URLSearchParams();
+  params.set('page', String(_finPage));
+  params.set('pageSize', String(_finPageSize));
+  const search = document.getElementById('fin-search') ? document.getElementById('fin-search').value.trim() : '';
+  const status = document.getElementById('fin-filter-status') ? document.getElementById('fin-filter-status').value : '';
+  const bank   = document.getElementById('fin-filter-bank') ? document.getElementById('fin-filter-bank').value : '';
+  const brand  = document.getElementById('fin-filter-brand') ? document.getElementById('fin-filter-brand').value : '';
+  const from   = document.getElementById('fin-filter-from') ? document.getElementById('fin-filter-from').value : '';
+  const to     = document.getElementById('fin-filter-to') ? document.getElementById('fin-filter-to').value : '';
+  if (search) params.set('search', search);
+  if (status) params.set('status', status);
+  if (bank)   params.set('bank', bank);
+  if (brand)  params.set('cardBrand', brand);
+  if (from)   params.set('dateFrom', from);
+  if (to)     params.set('dateTo', to);
+
+  try {
+    const res = await fetch('/api/financial/reconciliations?' + params.toString());
+    const json = await res.json();
+    if (!json.ok) { tbody.innerHTML = '<tr><td colspan="7" class="fin-empty">Error: ' + finEsc(json.error) + '</td></tr>'; return; }
+    _finTotal = json.total;
+    finRenderTable(json.data);
+    finRenderPagination();
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="7" class="fin-empty">Error de red</td></tr>';
+  }
+}
+
+function finRenderTable(rows) {
+  const tbody = document.getElementById('fin-table-body');
+  if (!rows || rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="fin-empty">Sin registros con los filtros actuales.</td></tr>';
+    return;
+  }
+  const STATUS_LABELS = {
+    reconciled:'Conciliado', unreconciled:'No conciliado', pending_review:'En revisión',
+    probable_duplicate:'Duplicado probable', requires_support:'Requiere soporte',
+    no_hotel:'Sin hotel', under_investigation:'En investigación', adjusted:'Ajustado',
+  };
+  tbody.innerHTML = rows.map(function(r) {
+    const rowClass = r.inconsistencyFlags && r.inconsistencyFlags.includes('no_hotel') ? 'no-hotel'
+      : r.inconsistencyFlags && r.inconsistencyFlags.includes('probable_duplicate') ? 'duplicate'
+      : (r.reconciledStatus === 'pending_review' || r.reconciledStatus === 'under_investigation') ? 'reviewing'
+      : '';
+    const label = STATUS_LABELS[r.reconciledStatus] || r.reconciledStatus;
+    const fmtDate = r.movementDate ? r.movementDate.slice(0,10) : '—';
+    const fmtAmt = r.netAmount != null ? '$ ' + Math.round(r.netAmount).toLocaleString('es-CO') : '—';
+    return '<tr class="' + rowClass + '" data-id="' + finEsc(r.id) + '">' +
+      '<td>' + finEsc(fmtDate) + '</td>' +
+      '<td><div style="font-weight:600">' + finEsc(r.movementName || r.companyName || '—') + '</div>' +
+        '<div style="font-size:.72rem;color:#888">' + finEsc(r.hotelName || 'Sin hotel') + '</div></td>' +
+      '<td>' + finEsc(r.bank || '—') + '</td>' +
+      '<td>' + finEsc(r.cardBrand || '—') + '</td>' +
+      '<td style="font-weight:700">' + finEsc(fmtAmt) + '</td>' +
+      '<td><span class="fin-badge ' + finEsc(r.reconciledStatus) + '">' + finEsc(label) + '</span></td>' +
+      '<td><button class="fin-action-btn" style="padding:4px 10px;font-size:.75rem;" onclick="finOpenDetail(\'' + finEsc(r.id) + '\')">Ver</button></td>' +
+      '</tr>';
+  }).join('');
+}
+
+function finRenderPagination() {
+  const totalPages = Math.ceil(_finTotal / _finPageSize) || 1;
+  document.getElementById('fin-pagination-info').textContent =
+    'Página ' + _finPage + ' de ' + totalPages + ' · ' + _finTotal.toLocaleString('es-CO') + ' registros';
+  document.getElementById('fin-btn-prev').disabled = _finPage <= 1;
+  document.getElementById('fin-btn-next').disabled = _finPage >= totalPages;
+}
+
+function finPrevPage() { if (_finPage > 1) { _finPage--; finLoadTable(); } }
+function finNextPage() {
+  if (_finPage < Math.ceil(_finTotal / _finPageSize)) { _finPage++; finLoadTable(); }
+}
+
+function finDebouncedLoad() {
+  clearTimeout(_finDebounceTimer);
+  _finDebounceTimer = setTimeout(function() { _finPage = 1; finLoadTable(); }, 350);
+}
+
+function finClearFilters() {
+  ['fin-search','fin-filter-status','fin-filter-bank','fin-filter-brand','fin-filter-from','fin-filter-to']
+    .forEach(function(id) { const el = document.getElementById(id); if (el) el.value = ''; });
+  _finPage = 1;
+  finLoadTable();
+}
+
+function finFilterBy(inconsistencyFlag) {
+  const map = { no_hotel:'no_hotel', requires_support:'requires_support', probable_duplicate:'probable_duplicate' };
+  const statusEl = document.getElementById('fin-filter-status');
+  if (statusEl && map[inconsistencyFlag]) {
+    statusEl.value = map[inconsistencyFlag];
+    _finPage = 1;
+    finLoadTable();
+  }
+}
+
+// ── Detail modal ──────────────────────────────────────────────
+let _finDetailRecord = null;
+
+async function finOpenDetail(id) {
+  try {
+    const res = await fetch('/api/financial/reconciliations?search=' + encodeURIComponent(id) + '&pageSize=1');
+    const json = await res.json();
+    const r = json.data && json.data[0];
+    if (!r) { finShowToast('❌ Registro no encontrado'); return; }
+    _finDetailRecord = r;
+    finRenderDetailModal(r);
+    document.getElementById('fin-detail-modal').classList.add('open');
+  } catch(e) { finShowToast('❌ Error al cargar el registro'); }
+}
+
+function finRenderDetailModal(r) {
+  const fmt = function(v) { return v != null ? v : '—'; };
+  const fmtCop = function(v) { return v != null ? '$ ' + Math.round(v).toLocaleString('es-CO') : '—'; };
+  const STATUS_LABELS = {
+    reconciled:'Conciliado', unreconciled:'No conciliado', pending_review:'En revisión',
+    probable_duplicate:'Duplicado probable', requires_support:'Requiere soporte',
+    no_hotel:'Sin hotel', under_investigation:'En investigación', adjusted:'Ajustado',
+  };
+  document.getElementById('fin-detail-title').textContent = r.movementName || r.companyName || 'Detalle de movimiento';
+  document.getElementById('fin-detail-body').innerHTML =
+    '<div class="fin-field-row">' +
+      '<div class="fin-field"><label>Hotel</label><span>' + finEsc(fmt(r.hotelName)) + '</span></div>' +
+      '<div class="fin-field"><label>Razón social</label><span>' + finEsc(fmt(r.companyName)) + '</span></div>' +
+    '</div>' +
+    '<div class="fin-field-row">' +
+      '<div class="fin-field"><label>Fecha</label><span>' + finEsc(fmt(r.movementDate ? r.movementDate.slice(0,10) : null)) + '</span></div>' +
+      '<div class="fin-field"><label>Banco</label><span>' + finEsc(fmt(r.bank)) + '</span></div>' +
+    '</div>' +
+    '<div class="fin-field-row">' +
+      '<div class="fin-field"><label>Tipo de operación</label><span>' + finEsc(fmt(r.operationType)) + '</span></div>' +
+      '<div class="fin-field"><label>Nº Confirmación</label><span>' + finEsc(fmt(r.confirmationNumber)) + '</span></div>' +
+    '</div>' +
+    '<div class="fin-section-title">Desglose financiero</div>' +
+    '<div class="fin-field-row">' +
+      '<div class="fin-field"><label>Valor compra</label><span>' + fmtCop(r.purchaseValue) + '</span></div>' +
+      '<div class="fin-field"><label>Comisión</label><span>' + fmtCop(r.commission) + '</span></div>' +
+    '</div>' +
+    '<div class="fin-field-row">' +
+      '<div class="fin-field"><label>Neto abonar</label><span style="font-weight:800;font-size:1.05rem">' + fmtCop(r.netAmount) + '</span></div>' +
+      '<div class="fin-field"><label>Retefuente</label><span>' + fmtCop(r.withholdingTax) + '</span></div>' +
+    '</div>' +
+    '<div class="fin-field-row">' +
+      '<div class="fin-field"><label>ReteIVA</label><span>' + fmtCop(r.reteIva) + '</span></div>' +
+      '<div class="fin-field"><label>ReteICA</label><span>' + fmtCop(r.reteIca) + '</span></div>' +
+    '</div>' +
+    '<div class="fin-section-title">Estado e inconsistencias</div>' +
+    '<div class="fin-field-row">' +
+      '<div class="fin-field"><label>Estado</label><span><span class="fin-badge ' + finEsc(r.reconciledStatus) + '">' + finEsc(STATUS_LABELS[r.reconciledStatus] || r.reconciledStatus) + '</span></span></div>' +
+      '<div class="fin-field"><label>Duplicado</label><span>' + (r.duplicateFlag ? '⚠️ Sí' : '—') + '</span></div>' +
+    '</div>' +
+    (r.inconsistencyFlags && r.inconsistencyFlags.length ? '<div class="fin-field" style="margin-bottom:12px"><label>Flags</label><span>' + r.inconsistencyFlags.map(function(f){ return '<span class="fin-badge pending_review" style="margin-right:4px">' + finEsc(f) + '</span>'; }).join('') + '</span></div>' : '') +
+    (r.receiptUrl ? '<div class="fin-field" style="margin-bottom:12px"><label>Comprobante</label><span><a href="' + finEsc(r.receiptUrl) + '" target="_blank" rel="noopener">Ver comprobante ↗</a></span></div>' : '') +
+    '<div class="fin-field" style="margin-top:8px"><label>Observación</label>' +
+      '<textarea id="fin-detail-notes" rows="3" placeholder="Agregar observación…">' + finEsc(r.notes || '') + '</textarea>' +
+    '</div>';
+
+  const footer = document.getElementById('fin-detail-footer');
+  const canEdit = hasPermission('canEditReconciliations');
+  const canMark = hasPermission('canMarkReconciled');
+  footer.innerHTML =
+    (canEdit ? '<button class="fin-action-btn primary" onclick="finSaveNotes(\'' + finEsc(r.id) + '\')">💾 Guardar</button>' : '') +
+    (canMark && r.reconciledStatus !== 'reconciled' ? '<button class="fin-action-btn" style="background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7;" onclick="finMarkReconciled(\'' + finEsc(r.id) + '\')">✅ Marcar conciliado</button>' : '') +
+    (canMark && r.reconciledStatus === 'reconciled' ? '<button class="fin-action-btn" onclick="finMarkUnreconciled(\'' + finEsc(r.id) + '\')">↩ Desmarcar</button>' : '') +
+    '<button class="fin-action-btn" onclick="finCloseDetail()">Cerrar</button>';
+}
+
+function finCloseDetail() {
+  document.getElementById('fin-detail-modal').classList.remove('open');
+  _finDetailRecord = null;
+}
+
+async function finSaveNotes(id) {
+  const notesEl = document.getElementById('fin-detail-notes');
+  const notes = notesEl ? notesEl.value : '';
+  try {
+    const res = await fetch('/api/financial/reconciliations/' + encodeURIComponent(id), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes: notes }),
+    });
+    const json = await res.json();
+    if (!json.ok) { finShowToast('❌ ' + (json.error || 'Error')); return; }
+    finShowToast('✅ Observación guardada');
+    finCloseDetail();
+    finLoadTable();
+  } catch(e) { finShowToast('❌ Error de red'); }
+}
+
+async function finMarkReconciled(id) {
+  try {
+    const res = await fetch('/api/financial/reconciliations/' + encodeURIComponent(id) + '/mark-reconciled', { method: 'POST' });
+    const json = await res.json();
+    if (!json.ok) { finShowToast('❌ ' + (json.error || 'Error')); return; }
+    finShowToast('✅ Marcado como conciliado');
+    finCloseDetail();
+    finLoadStats();
+    finLoadTable();
+  } catch(e) { finShowToast('❌ Error de red'); }
+}
+
+async function finMarkUnreconciled(id) {
+  try {
+    const res = await fetch('/api/financial/reconciliations/' + encodeURIComponent(id) + '/mark-unreconciled', { method: 'POST' });
+    const json = await res.json();
+    if (!json.ok) { finShowToast('❌ ' + (json.error || 'Error')); return; }
+    finShowToast('✅ Desmarcado como conciliado');
+    finCloseDetail();
+    finLoadStats();
+    finLoadTable();
+  } catch(e) { finShowToast('❌ Error de red'); }
+}
+
+// ── Import modal ──────────────────────────────────────────────
+function finOpenImport() {
+  document.getElementById('fin-import-modal').classList.add('open');
+  document.getElementById('fin-import-preview').innerHTML = '';
+  document.getElementById('fin-import-result').style.display = 'none';
+  document.getElementById('fin-confirm-import-btn').style.display = 'none';
+  _finWorkbook = null; _finParsedRows = null; _finParsedHeaders = null;
+}
+
+function finCloseImport() {
+  document.getElementById('fin-import-modal').classList.remove('open');
+}
+
+function finHandleDrop(event) {
+  event.preventDefault();
+  document.getElementById('fin-drop-zone').classList.remove('drag-over');
+  const file = event.dataTransfer.files[0];
+  if (file) finProcessFile(file);
+}
+
+function finHandleFileInput(event) {
+  const file = event.target.files[0];
+  if (file) finProcessFile(file);
+}
+
+function finProcessFile(file) {
+  _finSourceFileName = file.name;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      _finWorkbook = XLSX.read(e.target.result, { type: 'array' });
+      const sheetNames = _finWorkbook.SheetNames;
+      const sel = document.getElementById('fin-sheet-select');
+      sel.innerHTML = sheetNames.map(function(n) { return '<option value="' + finEsc(n) + '">' + finEsc(n) + '</option>'; }).join('');
+      document.getElementById('fin-sheet-selector').style.display = '';
+      finPreviewSheet();
+    } catch(err) {
+      document.getElementById('fin-import-preview').innerHTML =
+        '<p style="color:#c62828;font-size:.83rem">❌ No se pudo leer el archivo: ' + finEsc(String(err)) + '</p>';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function finPreviewSheet() {
+  if (!_finWorkbook) return;
+  const sheetName = document.getElementById('fin-sheet-select').value;
+  const sheet = _finWorkbook.Sheets[sheetName];
+  const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+  if (!raw || raw.length < 2) {
+    document.getElementById('fin-import-preview').innerHTML =
+      '<p style="color:#c62828;font-size:.83rem">❌ Hoja vacía o sin datos suficientes.</p>';
+    return;
+  }
+  _finParsedHeaders = raw[0].map(function(h) { return String(h != null ? h : '').trim(); });
+  _finParsedRows = raw.slice(1).filter(function(row) { return row.some(function(v) { return v !== '' && v != null; }); });
+
+  const preview = _finParsedRows.slice(0, 10);
+  let html = '<p style="font-size:.75rem;color:#666;margin:8px 0">Mostrando ' + preview.length + ' de ' + _finParsedRows.length + ' filas</p>';
+  html += '<table><thead><tr>' + _finParsedHeaders.map(function(h) { return '<th>' + finEsc(h) + '</th>'; }).join('') + '</tr></thead><tbody>';
+  html += preview.map(function(row) {
+    return '<tr>' + _finParsedHeaders.map(function(_, i) { return '<td>' + finEsc(String(row[i] != null ? row[i] : '')) + '</td>'; }).join('') + '</tr>';
+  }).join('');
+  html += '</tbody></table>';
+  document.getElementById('fin-import-preview').innerHTML = html;
+  document.getElementById('fin-confirm-import-btn').style.display = '';
+}
+
+async function finExecuteImport() {
+  if (!_finParsedRows || !_finParsedHeaders) return;
+  const btn = document.getElementById('fin-confirm-import-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Importando…';
+  const sheetName = document.getElementById('fin-sheet-select').value;
+  try {
+    const res = await fetch('/api/financial/reconciliations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        headers: _finParsedHeaders,
+        rows: _finParsedRows,
+        sourceFileName: _finSourceFileName,
+        sourceSheet: sheetName,
+      }),
+    });
+    const json = await res.json();
+    const resultEl = document.getElementById('fin-import-result');
+    resultEl.style.display = '';
+    if (json.ok) {
+      resultEl.style.background = '#e8f5e9';
+      resultEl.style.color = '#2e7d32';
+      resultEl.textContent = '✅ ' + json.inserted + ' registros importados correctamente.';
+      btn.style.display = 'none';
+      finLoadStats();
+      finLoadTable();
+    } else {
+      resultEl.style.background = '#ffebee';
+      resultEl.style.color = '#c62828';
+      resultEl.textContent = '❌ ' + (json.error || 'Error al importar');
+      btn.disabled = false;
+      btn.textContent = '✅ Importar';
+    }
+  } catch(e) {
+    finShowToast('❌ Error de red');
+    btn.disabled = false;
+    btn.textContent = '✅ Importar';
+  }
+}
+
+// ── Export ────────────────────────────────────────────────────
+function finExportCsv() {
+  const params = new URLSearchParams();
+  const status = document.getElementById('fin-filter-status') ? document.getElementById('fin-filter-status').value : '';
+  const bank   = document.getElementById('fin-filter-bank') ? document.getElementById('fin-filter-bank').value : '';
+  const brand  = document.getElementById('fin-filter-brand') ? document.getElementById('fin-filter-brand').value : '';
+  const from   = document.getElementById('fin-filter-from') ? document.getElementById('fin-filter-from').value : '';
+  const to     = document.getElementById('fin-filter-to') ? document.getElementById('fin-filter-to').value : '';
+  const search = document.getElementById('fin-search') ? document.getElementById('fin-search').value.trim() : '';
+  if (status) params.set('status', status);
+  if (bank)   params.set('bank', bank);
+  if (brand)  params.set('cardBrand', brand);
+  if (from)   params.set('dateFrom', from);
+  if (to)     params.set('dateTo', to);
+  if (search) params.set('search', search);
+  window.open('/api/financial/reconciliations/export?' + params.toString(), '_blank');
+}
+
+// ── Utils ─────────────────────────────────────────────────────
+function finEsc(str) {
+  return String(str != null ? str : '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function finShowToast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.style.opacity = 1;
+  t.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(t._to);
+  t._to = setTimeout(function() { t.style.opacity = 0; t.style.transform = 'translateX(-50%) translateY(12px)'; }, 3000);
+}
+// ═══════════════════════════════════════════════════════════════
+// END FINANCIAL MODULE
 // ═══════════════════════════════════════════════════════════════
 </script>
 
