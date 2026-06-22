@@ -145,6 +145,9 @@
   .cfg-pct span{font-size:.72rem;color:var(--gold-dark);}
   .cfg-add-btn{margin-top:8px;width:100%;padding:5px;background:none;border:1.5px dashed var(--gold-border);border-radius:6px;color:var(--gold-dark);font-size:.74rem;font-weight:600;cursor:pointer;transition:all .15s;}
   .cfg-add-btn:hover{background:var(--gold-pale);border-color:var(--gold);}
+  .cfg-plan-picker{background:#fff;border:1.5px solid var(--gold-border);border-radius:8px;box-shadow:0 4px 18px rgba(0,0,0,.12);padding:4px;display:flex;flex-direction:column;gap:2px;margin-top:4px;}
+  .cfg-plan-picker-item{background:none;border:none;border-radius:5px;padding:7px 12px;text-align:left;font-size:.78rem;font-weight:600;color:#333;cursor:pointer;transition:background .1s;white-space:nowrap;}
+  .cfg-plan-picker-item:hover{background:var(--gold-pale);color:var(--gold-dark);}
 
   /* TABLE */
   .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
@@ -2343,8 +2346,8 @@ function renderPTMerged(card, sec, baseRates, promoDisc) {
     return wrap;
   }
 
-  tables.appendChild(makeSubTable(sec.rowsSin||[], 'SIN COMISIÃN'));
   tables.appendChild(makeSubTable(sec.rowsCon||[], 'CON COMISIÃN (Ã·0.75)'));
+  tables.appendChild(makeSubTable(sec.rowsSin||[], 'SIN COMISIÃN'));
   body.appendChild(tables);
   card.appendChild(body);
 }
@@ -2390,15 +2393,60 @@ function buildCfgPanel(sec, card, ch, baseRates, commission) {
     });
   }
 
+  function showPlanPicker(anchorBtn, options, onSelect) {
+    const existing = panel.querySelector('.cfg-plan-picker');
+    if (existing) { existing.remove(); return; }
+    const picker = document.createElement('div');
+    picker.className = 'cfg-plan-picker';
+    options.forEach(({label, key}) => {
+      const item = document.createElement('button');
+      item.className = 'cfg-plan-picker-item';
+      item.textContent = label;
+      item.addEventListener('click', e => {
+        e.stopPropagation();
+        picker.remove();
+        onSelect(key);
+      });
+      picker.appendChild(item);
+    });
+    anchorBtn.insertAdjacentElement('afterend', picker);
+    const onOutside = e => {
+      if (!picker.contains(e.target) && e.target !== anchorBtn) {
+        picker.remove();
+        document.removeEventListener('click', onOutside, true);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', onOutside, true), 0);
+  }
+
   if (sec.ptMerged) {
-    buildRowList(sec.rowsSin,'SIN COMISIÃN','rowsSin');
-    const addSin=document.createElement('button'); addSin.className='cfg-add-btn'; addSin.textContent='+ AÃ±adir plan SIN COMI';
-    addSin.addEventListener('click',()=>{ sec.rowsSin.push({label:'Nuevo Plan',base:'std',discounts:[0],planPct:0}); sec.rowsCon.push({label:'Nuevo Plan',base:'stdC',discounts:[0],planPct:0}); rebuildCfgPanel(panel,sec,card,ch,baseRates,commission); reRender(card,sec,baseRates,commission,ch); });
+    buildRowList(sec.rowsSin,'SIN COMISIÓN','rowsSin');
+    const addSin=document.createElement('button'); addSin.className='cfg-add-btn'; addSin.textContent='+ Añadir plan tarifario';
+    const sinOptions = ch.baseKeys
+      .map((k,i) => ({key:k, label:ch.baseLabels[i], factor:ch.baseFactors[i]}))
+      .filter(o => o.factor !== null && !o.key.endsWith('C'))
+      .map(o => ({key:o.key, label:o.label}));
+    addSin.addEventListener('click', e => {
+      e.stopPropagation();
+      const opts = sinOptions.length ? sinOptions : [{key:'std', label:'Estándar SIN COMI'},{key:'nr', label:'No reembolsable SIN COMI'}];
+      showPlanPicker(addSin, opts, selectedKey => {
+        sec.rowsSin.push({label:'Nuevo Plan',base:selectedKey,discounts:[0],planPct:0});
+        sec.rowsCon.push({label:'Nuevo Plan',base:selectedKey+'C',discounts:[0],planPct:0});
+        rebuildCfgPanel(panel,sec,card,ch,baseRates,commission); reRender(card,sec,baseRates,commission,ch);
+      });
+    });
     panel.appendChild(addSin);
   } else {
     buildRowList(sec.rows,'','rows');
-    const addBtn=document.createElement('button'); addBtn.className='cfg-add-btn'; addBtn.textContent='+ AÃ±adir plan tarifario';
-    addBtn.addEventListener('click',()=>{ sec.rows.push({label:'Nuevo Plan',base:ch.baseKeys[0],discounts:[0],planPct:0}); rebuildCfgPanel(panel,sec,card,ch,baseRates,commission); reRender(card,sec,baseRates,commission,ch); });
+    const addBtn=document.createElement('button'); addBtn.className='cfg-add-btn'; addBtn.textContent='+ Añadir plan tarifario';
+    const planOptions = ch.baseKeys.map((k,i) => ({key:k, label:ch.baseLabels[i]}));
+    addBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      showPlanPicker(addBtn, planOptions, selectedKey => {
+        sec.rows.push({label:'Nuevo Plan',base:selectedKey,discounts:[0],planPct:0});
+        rebuildCfgPanel(panel,sec,card,ch,baseRates,commission); reRender(card,sec,baseRates,commission,ch);
+      });
+    });
     panel.appendChild(addBtn);
   }
   return panel;
