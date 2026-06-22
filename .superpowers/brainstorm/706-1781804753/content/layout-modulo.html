@@ -1,0 +1,148 @@
+<h2>Diseño del módulo: Gestión Financiera</h2>
+<p class="subtitle">Layout general — sidebar + estructura de tabs internos</p>
+
+<div class="section">
+  <div class="mockup" style="max-width:100%">
+    <div class="mockup-header">Vista completa de la aplicación con el nuevo módulo</div>
+    <div class="mockup-body" style="padding:0;overflow:hidden;border-radius:0 0 8px 8px">
+
+      <!-- App layout -->
+      <div style="display:flex;height:520px;font-family:system-ui,sans-serif;font-size:13px">
+
+        <!-- Sidebar -->
+        <div style="width:200px;background:#1a1a2e;color:#ccc;display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto">
+          <div style="padding:16px 14px 8px;color:#c8920a;font-weight:800;font-size:11px;letter-spacing:2px;text-transform:uppercase">GEH Suites</div>
+
+          <div style="padding:6px 10px 2px;font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1.5px;font-weight:700">Revenue</div>
+          <div style="padding:8px 14px;color:#aaa;display:flex;align-items:center;gap:8px">📊 Simulador de Tarifas</div>
+          <div style="padding:8px 14px;color:#aaa;display:flex;align-items:center;gap:8px">📈 Comparativa OTB</div>
+          <div style="height:1px;background:#333;margin:4px 10px"></div>
+
+          <div style="padding:6px 10px 2px;font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1.5px;font-weight:700">Seguimiento</div>
+          <div style="padding:8px 14px;color:#aaa;display:flex;align-items:center;gap:8px">📋 Agenda Revenue</div>
+          <div style="height:1px;background:#333;margin:4px 10px"></div>
+
+          <!-- NEW MODULE - highlighted -->
+          <div style="padding:6px 10px 2px;font-size:10px;color:#c8920a;text-transform:uppercase;letter-spacing:1.5px;font-weight:700">Finanzas</div>
+          <div style="padding:8px 14px;color:#fff;background:rgba(200,146,10,0.18);border-left:3px solid #c8920a;display:flex;align-items:center;gap:8px;font-weight:600">💰 Gestión Financiera</div>
+          <div style="height:1px;background:#333;margin:4px 10px"></div>
+
+          <div style="padding:6px 10px 2px;font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1.5px;font-weight:700">Admin</div>
+          <div style="padding:8px 14px;color:#aaa;display:flex;align-items:center;gap:8px">👤 Usuarios</div>
+          <div style="height:1px;background:#333;margin:4px 10px"></div>
+          <div style="padding:6px 10px 2px;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1.5px;font-weight:700">Próximamente</div>
+          <div style="padding:8px 14px;color:#555;display:flex;align-items:center;gap:8px">🔮 Forecast</div>
+          <div style="padding:8px 14px;color:#555;display:flex;align-items:center;gap:8px">📑 Reportes</div>
+        </div>
+
+        <!-- Main content -->
+        <div style="flex:1;display:flex;flex-direction:column;background:#f7f3ed;overflow:hidden">
+
+          <!-- Header -->
+          <div style="background:#fff;border-bottom:1px solid #e5d9c8;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;flex-shrink:0">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:18px">💰</span>
+              <div>
+                <div style="font-weight:800;font-size:15px;color:#1a1a2e">Gestión Financiera</div>
+                <div style="font-size:11px;color:#9a6f07">Cartera y Conciliaciones · Alojamiento</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="background:#fffaf5;border:1px solid #e5d0a5;border-radius:20px;padding:5px 12px;font-size:12px;color:#8a5a1a">🏨 GEH Suites Bogotá</div>
+              <div style="background:#c8920a;color:#fff;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:700">Exportar</div>
+            </div>
+          </div>
+
+          <!-- Sub-tabs -->
+          <div style="background:#fff;border-bottom:1px solid #e5d9c8;padding:0 20px;display:flex;gap:0;flex-shrink:0">
+            <div style="padding:12px 20px;color:#c8920a;font-weight:700;font-size:13px;border-bottom:2px solid #c8920a;cursor:pointer">🏦 Conciliaciones Bancarias</div>
+            <div style="padding:12px 20px;color:#888;font-size:13px;cursor:pointer;border-bottom:2px solid transparent">⏳ Saldos Pendientes</div>
+            <div style="padding:12px 20px;color:#888;font-size:13px;cursor:pointer;border-bottom:2px solid transparent">📋 Cuentas por Cobrar</div>
+          </div>
+
+          <!-- KPI row -->
+          <div style="padding:16px 20px;display:grid;grid-template-columns:repeat(5,1fr);gap:10px;flex-shrink:0">
+            <div style="background:#fff;border-radius:10px;padding:12px;border:1px solid #e5d9c8;box-shadow:0 2px 6px rgba(0,0,0,0.04)">
+              <div style="font-size:10px;color:#9a6f07;font-weight:700;text-transform:uppercase;letter-spacing:1px">Total movimientos</div>
+              <div style="font-size:22px;font-weight:800;color:#1a1a2e;margin-top:4px">1,247</div>
+              <div style="font-size:11px;color:#888">este periodo</div>
+            </div>
+            <div style="background:#fff;border-radius:10px;padding:12px;border:1px solid #e5d9c8;box-shadow:0 2px 6px rgba(0,0,0,0.04)">
+              <div style="font-size:10px;color:#9a6f07;font-weight:700;text-transform:uppercase;letter-spacing:1px">Monto total</div>
+              <div style="font-size:22px;font-weight:800;color:#1a1a2e;margin-top:4px">$284M</div>
+              <div style="font-size:11px;color:#888">COP recibidos</div>
+            </div>
+            <div style="background:#f0fdf4;border-radius:10px;padding:12px;border:1px solid #bbf7d0;box-shadow:0 2px 6px rgba(0,0,0,0.04)">
+              <div style="font-size:10px;color:#15803d;font-weight:700;text-transform:uppercase;letter-spacing:1px">Conciliado</div>
+              <div style="font-size:22px;font-weight:800;color:#14532d;margin-top:4px">$241M</div>
+              <div style="font-size:11px;color:#16a34a">84.9%</div>
+            </div>
+            <div style="background:#fef2f2;border-radius:10px;padding:12px;border:1px solid #fecaca;box-shadow:0 2px 6px rgba(0,0,0,0.04)">
+              <div style="font-size:10px;color:#dc2626;font-weight:700;text-transform:uppercase;letter-spacing:1px">No conciliado</div>
+              <div style="font-size:22px;font-weight:800;color:#7f1d1d;margin-top:4px">$43M</div>
+              <div style="font-size:11px;color:#ef4444">15.1%</div>
+            </div>
+            <div style="background:#fefce8;border-radius:10px;padding:12px;border:1px solid #fde68a;box-shadow:0 2px 6px rgba(0,0,0,0.04)">
+              <div style="font-size:10px;color:#a16207;font-weight:700;text-transform:uppercase;letter-spacing:1px">Sin hotel</div>
+              <div style="font-size:22px;font-weight:800;color:#713f12;margin-top:4px">23</div>
+              <div style="font-size:11px;color:#ca8a04">requieren asignación</div>
+            </div>
+          </div>
+
+          <!-- Table area placeholder -->
+          <div style="flex:1;padding:0 20px 16px;overflow:hidden">
+            <div style="background:#fff;border-radius:10px;border:1px solid #e5d9c8;height:100%;display:flex;flex-direction:column">
+              <div style="padding:12px 16px;border-bottom:1px solid #f0e8d8;display:flex;align-items:center;justify-content:space-between">
+                <div style="font-weight:700;font-size:13px;color:#1a1a2e">Detalle de conciliaciones bancarias</div>
+                <div style="display:flex;gap:8px">
+                  <div style="background:#f7f3ed;border:1px solid #e5d0a5;border-radius:6px;padding:5px 12px;font-size:11px;color:#8a5a1a">Filtros</div>
+                  <div style="background:#f7f3ed;border:1px solid #e5d0a5;border-radius:6px;padding:5px 12px;font-size:11px;color:#8a5a1a">Importar Excel</div>
+                </div>
+              </div>
+              <div style="padding:10px 16px;display:grid;grid-template-columns:100px 1fr 80px 90px 80px 90px 80px;gap:8px;background:#f9f5ef;border-bottom:1px solid #ece3d5">
+                <div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase">Fecha</div>
+                <div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase">Negociación / Hotel</div>
+                <div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase">Banco</div>
+                <div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase">Franquicia</div>
+                <div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase">Neto abonar</div>
+                <div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase">Estado</div>
+                <div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase">Acción</div>
+              </div>
+              <div style="padding:9px 16px;display:grid;grid-template-columns:100px 1fr 80px 90px 80px 90px 80px;gap:8px;border-bottom:1px solid #f5ede0">
+                <div style="font-size:12px;color:#555">03/06/2026</div>
+                <div style="font-size:12px;color:#1a1a2e;font-weight:600">Hotel Rosales · Empresa A</div>
+                <div style="font-size:12px;color:#555">Bancolombia</div>
+                <div style="font-size:12px;color:#555">Mastercard</div>
+                <div style="font-size:12px;color:#1a1a2e;font-weight:700">$1,850,000</div>
+                <div><span style="background:#f0fdf4;color:#15803d;font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;border:1px solid #bbf7d0">Conciliado</span></div>
+                <div style="font-size:11px;color:#c8920a;cursor:pointer;font-weight:600">Ver ›</div>
+              </div>
+              <div style="padding:9px 16px;display:grid;grid-template-columns:100px 1fr 80px 90px 80px 90px 80px;gap:8px;border-bottom:1px solid #f5ede0;background:#fffaf5">
+                <div style="font-size:12px;color:#555">03/06/2026</div>
+                <div style="font-size:12px;color:#1a1a2e;font-weight:600">— Sin hotel</div>
+                <div style="font-size:12px;color:#555">Davivienda</div>
+                <div style="font-size:12px;color:#555">Visa</div>
+                <div style="font-size:12px;color:#1a1a2e;font-weight:700">$920,000</div>
+                <div><span style="background:#fefce8;color:#a16207;font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;border:1px solid #fde68a">Sin hotel</span></div>
+                <div style="font-size:11px;color:#c8920a;cursor:pointer;font-weight:600">Asignar ›</div>
+              </div>
+              <div style="padding:9px 16px;display:grid;grid-template-columns:100px 1fr 80px 90px 80px 90px 80px;gap:8px;border-bottom:1px solid #f5ede0">
+                <div style="font-size:12px;color:#555">04/06/2026</div>
+                <div style="font-size:12px;color:#1a1a2e;font-weight:600">Hotel 72 · Empresa B</div>
+                <div style="font-size:12px;color:#555">Bancolombia</div>
+                <div style="font-size:12px;color:#555">PSE</div>
+                <div style="font-size:12px;color:#1a1a2e;font-weight:700">$3,200,000</div>
+                <div><span style="background:#fef2f2;color:#dc2626;font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;border:1px solid #fecaca">No conciliado</span></div>
+                <div style="font-size:11px;color:#c8920a;cursor:pointer;font-weight:600">Ver ›</div>
+              </div>
+              <div style="padding:8px 16px;color:#999;font-size:12px">… 1,244 registros más</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:16px">¿Este layout general se ve correcto? ¿Cambiarías algo antes de continuar con el diseño de cada sección?</p>

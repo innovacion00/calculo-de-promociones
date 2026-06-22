@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
   try {
     const result = await listRecords({
       hotelId: sp.get('hotelId') ?? undefined,
+      hotelName: sp.get('hotelName') ?? undefined,
       status: (sp.get('status') as never) ?? undefined,
       bank: sp.get('bank') ?? undefined,
       cardBrand: sp.get('cardBrand') ?? undefined,
@@ -60,6 +61,38 @@ function resolveHeader(headers: string[]): Record<string, number> {
     }
   }
   return map;
+}
+
+function parseMovementDate(raw: unknown): string | undefined {
+  if (raw == null) return undefined;
+  const s = String(raw).trim();
+  if (!s) return undefined;
+
+  // Already ISO yyyy-mm-dd
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+
+  // dd/mm/yyyy or dd-mm-yyyy
+  const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (dmy) {
+    const [, d, m, y] = dmy;
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+
+  // mm/dd/yyyy (US format fallback)
+  const mdy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (mdy) {
+    const [, m, d, y] = mdy;
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+
+  // Excel serial number
+  const serial = Number(s);
+  if (!isNaN(serial) && serial > 20000 && serial < 100000) {
+    const date = new Date((serial - 25569) * 86400 * 1000);
+    return date.toISOString().slice(0, 10);
+  }
+
+  return s.slice(0, 10) || undefined;
 }
 
 function detectInconsistencies(row: Record<string, unknown>): string[] {
@@ -126,7 +159,7 @@ export async function POST(req: NextRequest) {
       hotelName,
       companyName: String(get('companyName') ?? '').trim() || undefined,
       operationType,
-      movementDate: String(get('movementDate') ?? '').trim() || undefined,
+      movementDate: parseMovementDate(get('movementDate')),
       bank: String(get('bank') ?? '').trim() || undefined,
       confirmationNumber,
       reconciledStatus,

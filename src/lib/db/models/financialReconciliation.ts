@@ -54,6 +54,7 @@ export interface ReconciliationRecord {
 
 export interface ReconciliationListOptions {
   hotelId?: string;
+  hotelName?: string;
   status?: ReconciliationStatus;
   bank?: string;
   cardBrand?: string;
@@ -119,11 +120,12 @@ export async function listRecords(opts: ReconciliationListOptions = {}): Promise
   total: number;
 }> {
   const col = await getCollection();
-  const { hotelId, status, bank, cardBrand, dateFrom, dateTo, search, page = 1, pageSize = 18 } = opts;
+  const { hotelId, hotelName, status, bank, cardBrand, dateFrom, dateTo, search, page = 1, pageSize = 18 } = opts;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const filter: Record<string, any> = {};
   if (hotelId) filter.hotelId = hotelId;
+  if (hotelName) filter.hotelName = hotelName;
   if (status) filter.reconciledStatus = status;
   if (bank) filter.bank = bank;
   if (cardBrand) filter.cardBrand = cardBrand;

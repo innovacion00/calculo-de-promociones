@@ -860,10 +860,10 @@
 .fin-tab:hover:not(.active) { background:#f5f5f5; color:#555; }
 .fin-body { flex:1; overflow-y:auto; padding:20px 24px; }
 .fin-kpi-row { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:18px; }
-.fin-kpi { flex:1; min-width:160px; background:#fff; border:1.5px solid var(--gold-border); border-radius:10px; padding:14px 18px; }
-.fin-kpi-label { font-size:.72rem; font-weight:600; color:#888; text-transform:uppercase; letter-spacing:.5px; }
-.fin-kpi-value { font-size:1.45rem; font-weight:800; color:#1a1a2e; margin-top:4px; }
-.fin-kpi-sub { font-size:.72rem; color:#aaa; margin-top:2px; }
+.fin-kpi { flex:1; min-width:160px; background:#fff; border:1.5px solid var(--gold-border); border-radius:10px; padding:14px 18px; text-align:left; }
+.fin-kpi-label { font-size:.72rem; font-weight:600; color:#888; text-transform:uppercase; letter-spacing:.5px; text-align:left; }
+.fin-kpi-value { font-size:1.45rem; font-weight:800; color:#1a1a2e; margin-top:4px; text-align:left; }
+.fin-kpi-sub { font-size:.72rem; color:#aaa; margin-top:2px; text-align:left; }
 .fin-kpi.alert { border-color:#f4a800; background:#fffbf0; }
 .fin-kpi.alert .fin-kpi-value { color:#b07800; }
 .fin-kpi.ok { border-color:#43a047; background:#f0faf0; }
@@ -880,7 +880,7 @@
 .fin-table-wrap { overflow-x:auto; }
 .fin-table { width:100%; border-collapse:collapse; font-size:.82rem; }
 .fin-table th { background:var(--gold-subtle); color:var(--gold-dark); font-weight:700; text-transform:uppercase; letter-spacing:.4px; font-size:.72rem; padding:9px 12px; text-align:left; border-bottom:2px solid var(--gold-border); white-space:nowrap; }
-.fin-table td { padding:9px 12px; border-bottom:1px solid #f0f0f0; color:#333; vertical-align:middle; }
+.fin-table td { padding:9px 12px; border-bottom:1px solid #f0f0f0; color:#333; vertical-align:middle; text-align:left; }
 .fin-table tr:hover td { background:#faf8f5; }
 .fin-table tr.no-hotel td { border-left:3px solid var(--gold); }
 .fin-table tr.duplicate td { border-left:3px solid #e53935; }
@@ -905,9 +905,9 @@
 .fin-modal-body { padding:18px 22px; overflow-y:auto; flex:1; }
 .fin-modal-footer { padding:12px 22px; border-top:1px solid var(--gold-border); display:flex; gap:10px; justify-content:flex-end; }
 .fin-field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
-.fin-field { display:flex; flex-direction:column; gap:4px; }
-.fin-field label { font-size:.72rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.4px; }
-.fin-field span { font-size:.85rem; color:#333; }
+.fin-field { display:flex; flex-direction:column; gap:4px; text-align:left; }
+.fin-field label { font-size:.72rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.4px; text-align:left; }
+.fin-field span { font-size:.85rem; color:#333; text-align:left; }
 .fin-field textarea { padding:8px 12px; border:1.5px solid var(--gold-border); border-radius:7px; font-size:.83rem; resize:vertical; min-height:64px; font-family:inherit; outline:none; }
 .fin-field textarea:focus { border-color:var(--gold); }
 .fin-import-zone { border:2px dashed var(--gold-border); border-radius:10px; padding:32px 24px; text-align:center; cursor:pointer; transition:all .2s; background:var(--gold-subtle); }
@@ -1373,6 +1373,7 @@
         <option value="under_investigation">En investigación</option>
         <option value="adjusted">Ajustado</option>
       </select>
+      <select id="fin-filter-hotel" onchange="finLoadTable()"><option value="">Todos los hoteles</option></select>
       <select id="fin-filter-bank" onchange="finLoadTable()"><option value="">Todos los bancos</option></select>
       <select id="fin-filter-brand" onchange="finLoadTable()"><option value="">Todas las franquicias</option></select>
       <input type="date" id="fin-filter-from" onchange="finLoadTable()" title="Fecha desde">
@@ -1383,10 +1384,10 @@
     <div class="fin-table-wrap">
       <table class="fin-table">
         <thead><tr>
-          <th>Fecha</th><th>Nombre / Hotel</th><th>Banco</th><th>Franquicia</th>
+          <th>Fecha del movimiento</th><th>Nombre</th><th>Hotel</th><th>Banco</th><th>Franquicia</th>
           <th>Neto abonar</th><th>Estado</th><th></th>
         </tr></thead>
-        <tbody id="fin-table-body"><tr><td colspan="7" class="fin-empty">Cargando…</td></tr></tbody>
+        <tbody id="fin-table-body"><tr><td colspan="8" class="fin-empty">Cargando…</td></tr></tbody>
       </table>
     </div>
     <div class="fin-pagination">
@@ -10572,9 +10573,39 @@ function finInit() {
     _finCurrentTab = urlTab;
   }
   finSwitchTab(_finCurrentTab, false);
+  finLoadFilterOptions();
   finLoadStats();
   finLoadTable();
   _finInitialized = true;
+}
+
+async function finLoadFilterOptions() {
+  try {
+    const res = await fetch('/api/financial/reconciliations/distinct');
+    const json = await res.json();
+    if (!json.ok) return;
+    const hotelSel = document.getElementById('fin-filter-hotel');
+    const bankSel  = document.getElementById('fin-filter-bank');
+    const brandSel = document.getElementById('fin-filter-brand');
+    if (hotelSel) {
+      const cur = hotelSel.value;
+      hotelSel.innerHTML = '<option value="">Todos los hoteles</option>' +
+        json.hotels.map(function(h) { return '<option value="' + finEsc(h) + '">' + finEsc(h) + '</option>'; }).join('');
+      hotelSel.value = cur;
+    }
+    if (bankSel) {
+      const cur = bankSel.value;
+      bankSel.innerHTML = '<option value="">Todos los bancos</option>' +
+        json.banks.map(function(b) { return '<option value="' + finEsc(b) + '">' + finEsc(b) + '</option>'; }).join('');
+      bankSel.value = cur;
+    }
+    if (brandSel) {
+      const cur = brandSel.value;
+      brandSel.innerHTML = '<option value="">Todas las franquicias</option>' +
+        json.brands.map(function(b) { return '<option value="' + finEsc(b) + '">' + finEsc(b) + '</option>'; }).join('');
+      brandSel.value = cur;
+    }
+  } catch(e) { /* silencioso */ }
 }
 
 function finSwitchTab(tab, pushState) {
@@ -10619,19 +10650,21 @@ async function finLoadStats() {
 async function finLoadTable() {
   const tbody = document.getElementById('fin-table-body');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="7" class="fin-empty">Cargando…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="8" class="fin-empty">Cargando…</td></tr>';
 
   const params = new URLSearchParams();
   params.set('page', String(_finPage));
   params.set('pageSize', String(_finPageSize));
   const search = document.getElementById('fin-search') ? document.getElementById('fin-search').value.trim() : '';
   const status = document.getElementById('fin-filter-status') ? document.getElementById('fin-filter-status').value : '';
+  const hotel  = document.getElementById('fin-filter-hotel') ? document.getElementById('fin-filter-hotel').value : '';
   const bank   = document.getElementById('fin-filter-bank') ? document.getElementById('fin-filter-bank').value : '';
   const brand  = document.getElementById('fin-filter-brand') ? document.getElementById('fin-filter-brand').value : '';
   const from   = document.getElementById('fin-filter-from') ? document.getElementById('fin-filter-from').value : '';
   const to     = document.getElementById('fin-filter-to') ? document.getElementById('fin-filter-to').value : '';
   if (search) params.set('search', search);
   if (status) params.set('status', status);
+  if (hotel)  params.set('hotelName', hotel);
   if (bank)   params.set('bank', bank);
   if (brand)  params.set('cardBrand', brand);
   if (from)   params.set('dateFrom', from);
@@ -10640,19 +10673,19 @@ async function finLoadTable() {
   try {
     const res = await fetch('/api/financial/reconciliations?' + params.toString());
     const json = await res.json();
-    if (!json.ok) { tbody.innerHTML = '<tr><td colspan="7" class="fin-empty">Error: ' + finEsc(json.error) + '</td></tr>'; return; }
+    if (!json.ok) { tbody.innerHTML = '<tr><td colspan="8" class="fin-empty">Error: ' + finEsc(json.error) + '</td></tr>'; return; }
     _finTotal = json.total;
     finRenderTable(json.data);
     finRenderPagination();
   } catch(e) {
-    tbody.innerHTML = '<tr><td colspan="7" class="fin-empty">Error de red</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="fin-empty">Error de red</td></tr>';
   }
 }
 
 function finRenderTable(rows) {
   const tbody = document.getElementById('fin-table-body');
   if (!rows || rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="fin-empty">Sin registros con los filtros actuales.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="fin-empty">Sin registros con los filtros actuales.</td></tr>';
     return;
   }
   const STATUS_LABELS = {
@@ -10670,8 +10703,8 @@ function finRenderTable(rows) {
     const fmtAmt = r.netAmount != null ? '$ ' + Math.round(r.netAmount).toLocaleString('es-CO') : '—';
     return '<tr class="' + rowClass + '" data-id="' + finEsc(r.id) + '">' +
       '<td>' + finEsc(fmtDate) + '</td>' +
-      '<td><div style="font-weight:600">' + finEsc(r.movementName || r.companyName || '—') + '</div>' +
-        '<div style="font-size:.72rem;color:#888">' + finEsc(r.hotelName || 'Sin hotel') + '</div></td>' +
+      '<td style="font-weight:600">' + finEsc(r.movementName || r.companyName || '—') + '</td>' +
+      '<td>' + finEsc(r.hotelName || '—') + '</td>' +
       '<td>' + finEsc(r.bank || '—') + '</td>' +
       '<td>' + finEsc(r.cardBrand || '—') + '</td>' +
       '<td style="font-weight:700">' + finEsc(fmtAmt) + '</td>' +
@@ -10700,7 +10733,7 @@ function finDebouncedLoad() {
 }
 
 function finClearFilters() {
-  ['fin-search','fin-filter-status','fin-filter-bank','fin-filter-brand','fin-filter-from','fin-filter-to']
+  ['fin-search','fin-filter-status','fin-filter-hotel','fin-filter-bank','fin-filter-brand','fin-filter-from','fin-filter-to']
     .forEach(function(id) { const el = document.getElementById(id); if (el) el.value = ''; });
   _finPage = 1;
   finLoadTable();
@@ -10746,7 +10779,7 @@ function finRenderDetailModal(r) {
       '<div class="fin-field"><label>Razón social</label><span>' + finEsc(fmt(r.companyName)) + '</span></div>' +
     '</div>' +
     '<div class="fin-field-row">' +
-      '<div class="fin-field"><label>Fecha</label><span>' + finEsc(fmt(r.movementDate ? r.movementDate.slice(0,10) : null)) + '</span></div>' +
+      '<div class="fin-field"><label>Fecha del movimiento</label><span>' + finEsc(fmt(r.movementDate ? r.movementDate.slice(0,10) : null)) + '</span></div>' +
       '<div class="fin-field"><label>Banco</label><span>' + finEsc(fmt(r.bank)) + '</span></div>' +
     '</div>' +
     '<div class="fin-field-row">' +
@@ -10863,7 +10896,7 @@ function finProcessFile(file) {
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
-      _finWorkbook = XLSX.read(e.target.result, { type: 'array' });
+      _finWorkbook = XLSX.read(e.target.result, { type: 'array', cellDates: true });
       const sheetNames = _finWorkbook.SheetNames;
       const sel = document.getElementById('fin-sheet-select');
       sel.innerHTML = sheetNames.map(function(n) { return '<option value="' + finEsc(n) + '">' + finEsc(n) + '</option>'; }).join('');
@@ -10881,7 +10914,7 @@ function finPreviewSheet() {
   if (!_finWorkbook) return;
   const sheetName = document.getElementById('fin-sheet-select').value;
   const sheet = _finWorkbook.Sheets[sheetName];
-  const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+  const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false, dateNF: 'yyyy-mm-dd' });
   if (!raw || raw.length < 2) {
     document.getElementById('fin-import-preview').innerHTML =
       '<p style="color:#c62828;font-size:.83rem">❌ Hoja vacía o sin datos suficientes.</p>';
@@ -10965,12 +10998,14 @@ async function finDeleteAll() {
 function finExportCsv() {
   const params = new URLSearchParams();
   const status = document.getElementById('fin-filter-status') ? document.getElementById('fin-filter-status').value : '';
+  const hotel  = document.getElementById('fin-filter-hotel') ? document.getElementById('fin-filter-hotel').value : '';
   const bank   = document.getElementById('fin-filter-bank') ? document.getElementById('fin-filter-bank').value : '';
   const brand  = document.getElementById('fin-filter-brand') ? document.getElementById('fin-filter-brand').value : '';
   const from   = document.getElementById('fin-filter-from') ? document.getElementById('fin-filter-from').value : '';
   const to     = document.getElementById('fin-filter-to') ? document.getElementById('fin-filter-to').value : '';
   const search = document.getElementById('fin-search') ? document.getElementById('fin-search').value.trim() : '';
   if (status) params.set('status', status);
+  if (hotel)  params.set('hotelName', hotel);
   if (bank)   params.set('bank', bank);
   if (brand)  params.set('cardBrand', brand);
   if (from)   params.set('dateFrom', from);

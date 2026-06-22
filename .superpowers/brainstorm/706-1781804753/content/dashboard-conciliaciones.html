@@ -1,0 +1,288 @@
+<h2>Dashboard — Conciliaciones Bancarias</h2>
+<p class="subtitle">Vista analítica con KPIs, gráficos y bandejas de inconsistencias</p>
+
+<div class="section">
+  <div class="mockup" style="max-width:100%">
+    <div class="mockup-header">Panel interno del sub-módulo Conciliaciones (vista Dashboard)</div>
+    <div class="mockup-body" style="padding:0;overflow:hidden">
+
+      <div style="height:600px;overflow-y:auto;background:#f7f4f0;font-family:'Segoe UI',system-ui,sans-serif;font-size:13px">
+
+        <!-- View toggle: Dashboard | Detalle -->
+        <div style="background:#fff;border-bottom:2px solid #e8c88a;padding:0 20px;display:flex;gap:0;flex-shrink:0">
+          <button style="padding:10px 20px;border:none;background:none;font-size:.75rem;font-weight:700;color:#CE7E1F;border-bottom:3px solid #CE7E1F;cursor:pointer;letter-spacing:.6px;text-transform:uppercase;margin-bottom:-2px">📊 Dashboard</button>
+          <button style="padding:10px 20px;border:none;background:none;font-size:.75rem;font-weight:700;color:#666;border-bottom:3px solid transparent;cursor:pointer;letter-spacing:.6px;text-transform:uppercase;margin-bottom:-2px">📋 Detalle</button>
+          <button style="padding:10px 20px;border:none;background:none;font-size:.75rem;font-weight:700;color:#666;border-bottom:3px solid transparent;cursor:pointer;letter-spacing:.6px;text-transform:uppercase;margin-bottom:-2px">⚠ Inconsistencias</button>
+        </div>
+
+        <div style="padding:16px 18px">
+
+          <!-- Date filter bar -->
+          <div style="background:#fff;border:1.5px solid #e8c88a;border-radius:8px;padding:10px 16px;display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;box-shadow:0 2px 8px rgba(175,118,43,.06)">
+            <span style="font-size:.65rem;font-weight:700;color:#AF762B;text-transform:uppercase;letter-spacing:1px">Periodo:</span>
+            <button style="background:#CE7E1F;color:#fff;border:none;border-radius:5px;padding:5px 12px;font-size:.72rem;font-weight:700;cursor:pointer">Hoy</button>
+            <button style="background:#faf0e0;color:#AF762B;border:1px solid #e8c88a;border-radius:5px;padding:5px 12px;font-size:.72rem;font-weight:700;cursor:pointer">Semana</button>
+            <button style="background:#faf0e0;color:#AF762B;border:1px solid #e8c88a;border-radius:5px;padding:5px 12px;font-size:.72rem;font-weight:700;cursor:pointer">Mes</button>
+            <button style="background:#faf0e0;color:#AF762B;border:1px solid #e8c88a;border-radius:5px;padding:5px 12px;font-size:.72rem;font-weight:700;cursor:pointer">Año</button>
+            <div style="display:flex;align-items:center;gap:6px;margin-left:4px">
+              <input type="date" value="2026-06-01" style="background:#f7f4f0;border:1.5px solid #e8c88a;border-radius:5px;padding:4px 8px;font-size:.72rem;color:#2a2a2a">
+              <span style="color:#999;font-size:.72rem">→</span>
+              <input type="date" value="2026-06-18" style="background:#f7f4f0;border:1.5px solid #e8c88a;border-radius:5px;padding:4px 8px;font-size:.72rem;color:#2a2a2a">
+            </div>
+            <div style="margin-left:auto;display:flex;gap:6px">
+              <select style="background:#faf0e0;border:1.5px solid #e8c88a;border-radius:5px;padding:5px 10px;font-size:.72rem;color:#AF762B;font-weight:700">
+                <option>Todos los hoteles</option>
+              </select>
+              <select style="background:#faf0e0;border:1.5px solid #e8c88a;border-radius:5px;padding:5px 10px;font-size:.72rem;color:#AF762B;font-weight:700">
+                <option>Todos los bancos</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- KPI row 1 — Financial totals -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">
+            <div style="background:#fff;border-radius:8px;padding:14px;border:1.5px solid #e8c88a;box-shadow:0 2px 8px rgba(175,118,43,.08)">
+              <div style="font-size:.6rem;color:#AF762B;font-weight:700;text-transform:uppercase;letter-spacing:1px">Total movimientos</div>
+              <div style="font-size:24px;font-weight:800;color:#2a2a2a;margin-top:4px">1,247</div>
+              <div style="font-size:.65rem;color:#999">este periodo</div>
+            </div>
+            <div style="background:#fff;border-radius:8px;padding:14px;border:1.5px solid #e8c88a;box-shadow:0 2px 8px rgba(175,118,43,.08)">
+              <div style="font-size:.6rem;color:#AF762B;font-weight:700;text-transform:uppercase;letter-spacing:1px">Monto recibido</div>
+              <div style="font-size:24px;font-weight:800;color:#2a2a2a;margin-top:4px">$284.3M</div>
+              <div style="font-size:.65rem;color:#999">COP neto</div>
+            </div>
+            <div style="background:#d4edda;border-radius:8px;padding:14px;border:1.5px solid #a3d9b0;box-shadow:0 2px 8px rgba(26,110,60,.06)">
+              <div style="font-size:.6rem;color:#1a6e3c;font-weight:700;text-transform:uppercase;letter-spacing:1px">Total conciliado</div>
+              <div style="font-size:24px;font-weight:800;color:#1a6e3c;margin-top:4px">$241.2M</div>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+                <div style="flex:1;height:5px;background:#a3d9b0;border-radius:99px"><div style="width:84.9%;height:100%;background:#1a6e3c;border-radius:99px"></div></div>
+                <span style="font-size:.7rem;color:#1a6e3c;font-weight:700">84.9%</span>
+              </div>
+            </div>
+            <div style="background:#fce8e8;border-radius:8px;padding:14px;border:1.5px solid #f5b8b8;box-shadow:0 2px 8px rgba(180,40,40,.06)">
+              <div style="font-size:.6rem;color:#b42828;font-weight:700;text-transform:uppercase;letter-spacing:1px">No conciliado</div>
+              <div style="font-size:24px;font-weight:800;color:#b42828;margin-top:4px">$43.1M</div>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+                <div style="flex:1;height:5px;background:#f5b8b8;border-radius:99px"><div style="width:15.1%;height:100%;background:#b42828;border-radius:99px"></div></div>
+                <span style="font-size:.7rem;color:#b42828;font-weight:700">15.1%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI row 2 — Inconsistencies / alerts -->
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px">
+            <div style="background:#faf0e0;border-radius:8px;padding:11px;border:1.5px solid #e8c88a">
+              <div style="font-size:.58rem;color:#AF762B;font-weight:700;text-transform:uppercase;letter-spacing:1px">Sin hotel</div>
+              <div style="font-size:20px;font-weight:800;color:#AF762B;margin-top:3px">23</div>
+              <div style="font-size:.62rem;color:#CE7E1F;font-weight:600;cursor:pointer">Ver bandeja ›</div>
+            </div>
+            <div style="background:#faf0e0;border-radius:8px;padding:11px;border:1.5px solid #e8c88a">
+              <div style="font-size:.58rem;color:#AF762B;font-weight:700;text-transform:uppercase;letter-spacing:1px">Sin comprobante</div>
+              <div style="font-size:20px;font-weight:800;color:#AF762B;margin-top:3px">87</div>
+              <div style="font-size:.62rem;color:#CE7E1F;font-weight:600;cursor:pointer">Ver bandeja ›</div>
+            </div>
+            <div style="background:#fce8e8;border-radius:8px;padding:11px;border:1.5px solid #f5b8b8">
+              <div style="font-size:.58rem;color:#b42828;font-weight:700;text-transform:uppercase;letter-spacing:1px">Duplicados prob.</div>
+              <div style="font-size:20px;font-weight:800;color:#b42828;margin-top:3px">5</div>
+              <div style="font-size:.62rem;color:#b42828;font-weight:600;cursor:pointer">Revisar ›</div>
+            </div>
+            <div style="background:#fff;border-radius:8px;padding:11px;border:1.5px solid #e8c88a">
+              <div style="font-size:.58rem;color:#AF762B;font-weight:700;text-transform:uppercase;letter-spacing:1px">Sin referencia</div>
+              <div style="font-size:20px;font-weight:800;color:#2a2a2a;margin-top:3px">14</div>
+              <div style="font-size:.62rem;color:#CE7E1F;font-weight:600;cursor:pointer">Ver bandeja ›</div>
+            </div>
+            <div style="background:#fff;border-radius:8px;padding:11px;border:1.5px solid #e8c88a">
+              <div style="font-size:.58rem;color:#AF762B;font-weight:700;text-transform:uppercase;letter-spacing:1px">Requiere revisión</div>
+              <div style="font-size:20px;font-weight:800;color:#2a2a2a;margin-top:3px">9</div>
+              <div style="font-size:.62rem;color:#CE7E1F;font-weight:600;cursor:pointer">Ver bandeja ›</div>
+            </div>
+          </div>
+
+          <!-- Charts row 1 -->
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px">
+
+            <!-- Bar chart: monto diario -->
+            <div style="background:#fff;border-radius:8px;padding:14px;border:1.5px solid #e8c88a;box-shadow:0 2px 8px rgba(175,118,43,.06)">
+              <div style="font-size:.72rem;font-weight:800;color:#2a2a2a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Monto recibido por día</div>
+              <div style="display:flex;align-items:flex-end;gap:4px;height:90px;padding-bottom:4px">
+                <!-- Mock bars -->
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <div style="width:100%;background:#CE7E1F;border-radius:3px 3px 0 0" style="height:60px"></div>
+                  <div style="width:100%;background:#CE7E1F;border-radius:3px 3px 0 0;height:60px"></div>
+                  <div style="font-size:.55rem;color:#999">01</div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <div style="width:100%;background:#CE7E1F;border-radius:3px 3px 0 0;height:45px"></div>
+                  <div style="font-size:.55rem;color:#999">02</div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <div style="width:100%;background:#CE7E1F;border-radius:3px 3px 0 0;height:75px"></div>
+                  <div style="font-size:.55rem;color:#999">03</div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <div style="width:100%;background:#CE7E1F;border-radius:3px 3px 0 0;height:55px"></div>
+                  <div style="font-size:.55rem;color:#999">04</div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <div style="width:100%;background:#CE7E1F;border-radius:3px 3px 0 0;height:80px"></div>
+                  <div style="font-size:.55rem;color:#999">05</div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <div style="width:100%;background:#CE7E1F;border-radius:3px 3px 0 0;height:50px"></div>
+                  <div style="font-size:.55rem;color:#999">06</div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <div style="width:100%;background:#CE7E1F;border-radius:3px 3px 0 0;height:65px"></div>
+                  <div style="font-size:.55rem;color:#999">07</div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <div style="width:100%;background:#CE7E1F;border-radius:3px 3px 0 0;height:40px"></div>
+                  <div style="font-size:.55rem;color:#999">08</div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <div style="width:100%;background:#e8c88a;border-radius:3px 3px 0 0;height:70px"></div>
+                  <div style="font-size:.55rem;color:#999">09</div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <div style="width:100%;background:#CE7E1F;border-radius:3px 3px 0 0;height:85px"></div>
+                  <div style="font-size:.55rem;color:#999">10</div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <div style="width:100%;background:#CE7E1F;border-radius:3px 3px 0 0;height:58px"></div>
+                  <div style="font-size:.55rem;color:#999">11</div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <div style="width:100%;background:#CE7E1F;border-radius:3px 3px 0 0;height:72px"></div>
+                  <div style="font-size:.55rem;color:#999">12</div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <div style="width:100%;background:#CE7E1F;border-radius:3px 3px 0 0;height:48px"></div>
+                  <div style="font-size:.55rem;color:#999">13</div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <div style="width:100%;background:#e8c88a;border-radius:3px 3px 0 0;height:62px"></div>
+                  <div style="font-size:.55rem;color:#999">14</div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <div style="width:100%;background:#CE7E1F;border-radius:3px 3px 0 0;height:78px"></div>
+                  <div style="font-size:.55rem;color:#999">15</div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <div style="width:100%;background:#CE7E1F;border-radius:3px 3px 0 0;height:54px"></div>
+                  <div style="font-size:.55rem;color:#999">16</div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <div style="width:100%;background:#CE7E1F;border-radius:3px 3px 0 0;height:44px"></div>
+                  <div style="font-size:.55rem;color:#999">17</div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <div style="width:100%;background:#e8c88a;border-radius:3px 3px 0 0;height:30px"></div>
+                  <div style="font-size:.55rem;color:#999">18</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:6px">
+                <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:#CE7E1F"></div><span style="font-size:.6rem;color:#999">Día normal</span></div>
+                <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:#e8c88a"></div><span style="font-size:.6rem;color:#999">Fin de semana</span></div>
+              </div>
+            </div>
+
+            <!-- Donut: conciliado vs no conciliado -->
+            <div style="background:#fff;border-radius:8px;padding:14px;border:1.5px solid #e8c88a;box-shadow:0 2px 8px rgba(175,118,43,.06)">
+              <div style="font-size:.72rem;font-weight:800;color:#2a2a2a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Conciliado vs No conciliado</div>
+              <div style="display:flex;justify-content:center;margin:8px 0">
+                <!-- SVG donut -->
+                <svg width="110" height="110" viewBox="0 0 42 42">
+                  <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#e8c88a" stroke-width="5"/>
+                  <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#1a6e3c" stroke-width="5" stroke-dasharray="84.9 15.1" stroke-dashoffset="25" transform="rotate(-90 21 21)"/>
+                  <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#b42828" stroke-width="5" stroke-dasharray="15.1 84.9" stroke-dashoffset="-59.9" transform="rotate(-90 21 21)"/>
+                  <text x="21" y="19" text-anchor="middle" font-size="5.5" font-weight="800" fill="#1a6e3c">84.9%</text>
+                  <text x="21" y="25.5" text-anchor="middle" font-size="3.5" fill="#999">conciliado</text>
+                </svg>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:2px;background:#1a6e3c"></div><span style="font-size:.65rem;color:#666">Conciliado</span></div>
+                  <span style="font-size:.7rem;font-weight:700;color:#1a6e3c">$241.2M</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:2px;background:#b42828"></div><span style="font-size:.65rem;color:#666">No conciliado</span></div>
+                  <span style="font-size:.7rem;font-weight:700;color:#b42828">$43.1M</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Charts row 2 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+
+            <!-- Por banco -->
+            <div style="background:#fff;border-radius:8px;padding:14px;border:1.5px solid #e8c88a;box-shadow:0 2px 8px rgba(175,118,43,.06)">
+              <div style="font-size:.72rem;font-weight:800;color:#2a2a2a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Valor por banco</div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:.68rem;color:#555">Bancolombia</span><span style="font-size:.68rem;font-weight:700;color:#2a2a2a">$158M</span></div>
+                  <div style="height:6px;background:#f0e8d8;border-radius:99px"><div style="width:55%;height:100%;background:#CE7E1F;border-radius:99px"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:.68rem;color:#555">Davivienda</span><span style="font-size:.68rem;font-weight:700;color:#2a2a2a">$89M</span></div>
+                  <div style="height:6px;background:#f0e8d8;border-radius:99px"><div style="width:31%;height:100%;background:#CE7E1F;border-radius:99px"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:.68rem;color:#555">Otros</span><span style="font-size:.68rem;font-weight:700;color:#2a2a2a">$37M</span></div>
+                  <div style="height:6px;background:#f0e8d8;border-radius:99px"><div style="width:13%;height:100%;background:#e8c88a;border-radius:99px"></div></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Por franquicia -->
+            <div style="background:#fff;border-radius:8px;padding:14px;border:1.5px solid #e8c88a;box-shadow:0 2px 8px rgba(175,118,43,.06)">
+              <div style="font-size:.72rem;font-weight:800;color:#2a2a2a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Transacciones por franquicia</div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:.68rem;color:#555">Mastercard</span><span style="font-size:.68rem;font-weight:700;color:#2a2a2a">482</span></div>
+                  <div style="height:6px;background:#f0e8d8;border-radius:99px"><div style="width:38%;height:100%;background:#CE7E1F;border-radius:99px"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:.68rem;color:#555">Visa</span><span style="font-size:.68rem;font-weight:700;color:#2a2a2a">361</span></div>
+                  <div style="height:6px;background:#f0e8d8;border-radius:99px"><div style="width:29%;height:100%;background:#CE7E1F;border-radius:99px"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:.68rem;color:#555">PSE</span><span style="font-size:.68rem;font-weight:700;color:#2a2a2a">248</span></div>
+                  <div style="height:6px;background:#f0e8d8;border-radius:99px"><div style="width:20%;height:100%;background:#e8c88a;border-radius:99px"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:.68rem;color:#555">Otros</span><span style="font-size:.68rem;font-weight:700;color:#2a2a2a">156</span></div>
+                  <div style="height:6px;background:#f0e8d8;border-radius:99px"><div style="width:13%;height:100%;background:#f0e8d8;border-radius:99px;border:1px solid #e8c88a"></div></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Por hotel -->
+            <div style="background:#fff;border-radius:8px;padding:14px;border:1.5px solid #e8c88a;box-shadow:0 2px 8px rgba(175,118,43,.06)">
+              <div style="font-size:.72rem;font-weight:800;color:#2a2a2a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">No conciliado por hotel</div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:.68rem;color:#555">Hotel 72</span><span style="font-size:.68rem;font-weight:700;color:#b42828">$18.4M</span></div>
+                  <div style="height:6px;background:#fce8e8;border-radius:99px"><div style="width:43%;height:100%;background:#b42828;border-radius:99px"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:.68rem;color:#555">Hotel Rosales</span><span style="font-size:.68rem;font-weight:700;color:#b42828">$12.1M</span></div>
+                  <div style="height:6px;background:#fce8e8;border-radius:99px"><div style="width:28%;height:100%;background:#b42828;border-radius:99px"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:.68rem;color:#555">Sin asignar</span><span style="font-size:.68rem;font-weight:700;color:#AF762B">$12.6M</span></div>
+                  <div style="height:6px;background:#faf0e0;border-radius:99px"><div style="width:29%;height:100%;background:#AF762B;border-radius:99px"></div></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:14px">Dashboard con: filtro de período rápido, 4 KPIs financieros + 5 bandejas de inconsistencias, gráfico de barras diario, dona de conciliación, y 3 gráficos de distribución. ¿Se ve bien? ¿Agregarías o quitarías algo?</p>

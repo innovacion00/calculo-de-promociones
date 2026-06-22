@@ -1,0 +1,240 @@
+<h2>Vista Detalle — Tabla + Filtros + Modal de acción</h2>
+<p class="subtitle">Tabla principal con panel de filtros y modal al hacer clic en "Ver ›"</p>
+
+<div class="section">
+  <div class="split" style="gap:16px;align-items:flex-start">
+
+    <!-- LEFT: Tabla con filtros -->
+    <div class="mockup" style="flex:1.4">
+      <div class="mockup-header">Tabla detallada con panel de filtros</div>
+      <div class="mockup-body" style="padding:0;overflow:hidden">
+        <div style="font-family:'Segoe UI',system-ui,sans-serif;font-size:12px;background:#f7f4f0;height:560px;display:flex;flex-direction:column">
+
+          <!-- Toolbar -->
+          <div style="background:#fff;border-bottom:1px solid #e8c88a;padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0">
+            <input placeholder="🔍 Buscar por nombre, referencia, banco…" style="flex:1;min-width:180px;background:#f7f4f0;border:1.5px solid #e8c88a;border-radius:6px;padding:6px 10px;font-size:.72rem;color:#2a2a2a">
+            <select style="background:#faf0e0;border:1.5px solid #e8c88a;border-radius:6px;padding:6px 9px;font-size:.72rem;color:#AF762B;font-weight:700">
+              <option>Estado: Todos</option>
+              <option>Conciliado</option>
+              <option>No conciliado</option>
+              <option>Sin hotel</option>
+              <option>Duplicado</option>
+            </select>
+            <select style="background:#faf0e0;border:1.5px solid #e8c88a;border-radius:6px;padding:6px 9px;font-size:.72rem;color:#AF762B;font-weight:700">
+              <option>Banco: Todos</option>
+            </select>
+            <select style="background:#faf0e0;border:1.5px solid #e8c88a;border-radius:6px;padding:6px 9px;font-size:.72rem;color:#AF762B;font-weight:700">
+              <option>Franquicia: Todas</option>
+            </select>
+            <button style="background:#CE7E1F;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap">⬆ Importar Excel</button>
+            <button style="background:#faf0e0;color:#AF762B;border:1.5px solid #e8c88a;border-radius:6px;padding:6px 12px;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap">⬇ Exportar</button>
+          </div>
+
+          <!-- Table -->
+          <div style="flex:1;overflow-y:auto">
+            <!-- Header -->
+            <div style="display:grid;grid-template-columns:85px 1fr 75px 75px 85px 95px 60px;gap:4px;padding:7px 14px;background:#f0e8d8;border-bottom:1px solid #e8c88a;position:sticky;top:0">
+              <div style="font-size:.58rem;font-weight:700;color:#999;text-transform:uppercase">Fecha</div>
+              <div style="font-size:.58rem;font-weight:700;color:#999;text-transform:uppercase">Nombre / Hotel</div>
+              <div style="font-size:.58rem;font-weight:700;color:#999;text-transform:uppercase">Banco</div>
+              <div style="font-size:.58rem;font-weight:700;color:#999;text-transform:uppercase">Franquicia</div>
+              <div style="font-size:.58rem;font-weight:700;color:#999;text-transform:uppercase">Neto</div>
+              <div style="font-size:.58rem;font-weight:700;color:#999;text-transform:uppercase">Estado</div>
+              <div style="font-size:.58rem;font-weight:700;color:#999;text-transform:uppercase">Acción</div>
+            </div>
+
+            <!-- Row — conciliado -->
+            <div style="display:grid;grid-template-columns:85px 1fr 75px 75px 85px 95px 60px;gap:4px;padding:8px 14px;border-bottom:1px solid #f5ede0;align-items:center;background:#fff">
+              <div style="font-size:.7rem;color:#666">03/06/2026</div>
+              <div>
+                <div style="font-size:.75rem;color:#2a2a2a;font-weight:600">Rosales Suite</div>
+                <div style="font-size:.62rem;color:#AF762B">Hotel Rosales</div>
+              </div>
+              <div style="font-size:.7rem;color:#555">Bancolombia</div>
+              <div style="font-size:.7rem;color:#555">Mastercard</div>
+              <div style="font-size:.75rem;color:#2a2a2a;font-weight:700">$1,850,000</div>
+              <div><span style="background:#d4edda;color:#1a6e3c;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:99px">✓ Conciliado</span></div>
+              <div style="font-size:.68rem;color:#CE7E1F;cursor:pointer;font-weight:700">Ver ›</div>
+            </div>
+
+            <!-- Row — sin hotel, highlighted -->
+            <div style="display:grid;grid-template-columns:85px 1fr 75px 75px 85px 95px 60px;gap:4px;padding:8px 14px;border-bottom:1px solid #f5ede0;align-items:center;background:#fffdf5;border-left:3px solid #CE7E1F">
+              <div style="font-size:.7rem;color:#666">03/06/2026</div>
+              <div>
+                <div style="font-size:.75rem;color:#2a2a2a;font-weight:600">Pago en línea</div>
+                <div style="font-size:.62rem;color:#b42828">⚠ Sin hotel asignado</div>
+              </div>
+              <div style="font-size:.7rem;color:#555">Davivienda</div>
+              <div style="font-size:.7rem;color:#555">Visa</div>
+              <div style="font-size:.75rem;color:#2a2a2a;font-weight:700">$920,000</div>
+              <div><span style="background:#faf0e0;color:#AF762B;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:99px">Sin hotel</span></div>
+              <div style="font-size:.68rem;color:#CE7E1F;cursor:pointer;font-weight:700">Asignar ›</div>
+            </div>
+
+            <!-- Row — no conciliado -->
+            <div style="display:grid;grid-template-columns:85px 1fr 75px 75px 85px 95px 60px;gap:4px;padding:8px 14px;border-bottom:1px solid #f5ede0;align-items:center;background:#fff">
+              <div style="font-size:.7rem;color:#666">04/06/2026</div>
+              <div>
+                <div style="font-size:.75rem;color:#2a2a2a;font-weight:600">Hotel 72 Exec</div>
+                <div style="font-size:.62rem;color:#AF762B">Hotel 72</div>
+              </div>
+              <div style="font-size:.7rem;color:#555">Bancolombia</div>
+              <div style="font-size:.7rem;color:#555">PSE</div>
+              <div style="font-size:.75rem;color:#2a2a2a;font-weight:700">$3,200,000</div>
+              <div><span style="background:#fce8e8;color:#b42828;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:99px">✗ No conciliado</span></div>
+              <div style="font-size:.68rem;color:#CE7E1F;cursor:pointer;font-weight:700">Ver ›</div>
+            </div>
+
+            <!-- Row — duplicado probable -->
+            <div style="display:grid;grid-template-columns:85px 1fr 75px 75px 85px 95px 60px;gap:4px;padding:8px 14px;border-bottom:1px solid #f5ede0;align-items:center;background:#fffcf0;border-left:3px solid #b42828">
+              <div style="font-size:.7rem;color:#666">04/06/2026</div>
+              <div>
+                <div style="font-size:.75rem;color:#2a2a2a;font-weight:600">Hotel 72 Exec</div>
+                <div style="font-size:.62rem;color:#b42828">⚠ Duplicado probable</div>
+              </div>
+              <div style="font-size:.7rem;color:#555">Bancolombia</div>
+              <div style="font-size:.7rem;color:#555">PSE</div>
+              <div style="font-size:.75rem;color:#b42828;font-weight:700">$3,200,000</div>
+              <div><span style="background:#fce8e8;color:#b42828;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:99px">⚠ Duplicado</span></div>
+              <div style="font-size:.68rem;color:#CE7E1F;cursor:pointer;font-weight:700">Ver ›</div>
+            </div>
+
+            <!-- Row — pendiente revisión -->
+            <div style="display:grid;grid-template-columns:85px 1fr 75px 75px 85px 95px 60px;gap:4px;padding:8px 14px;border-bottom:1px solid #f5ede0;align-items:center;background:#fff">
+              <div style="font-size:.7rem;color:#666">05/06/2026</div>
+              <div>
+                <div style="font-size:.75rem;color:#2a2a2a;font-weight:600">Transferencia BTA</div>
+                <div style="font-size:.62rem;color:#AF762B">Hotel Fontanar</div>
+              </div>
+              <div style="font-size:.7rem;color:#555">Davivienda</div>
+              <div style="font-size:.7rem;color:#555">—</div>
+              <div style="font-size:.75rem;color:#2a2a2a;font-weight:700">$5,600,000</div>
+              <div><span style="background:#fefce8;color:#a16207;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:99px">⏳ En revisión</span></div>
+              <div style="font-size:.68rem;color:#CE7E1F;cursor:pointer;font-weight:700">Ver ›</div>
+            </div>
+
+            <div style="padding:8px 14px;font-size:.68rem;color:#999">… 1,242 registros más · Página 1 de 70</div>
+          </div>
+
+          <!-- Pagination -->
+          <div style="background:#fff;border-top:1px solid #e8c88a;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+            <div style="font-size:.68rem;color:#999">Mostrando 1–18 de 1,247 registros</div>
+            <div style="display:flex;gap:4px">
+              <button style="background:#faf0e0;border:1px solid #e8c88a;border-radius:4px;padding:4px 9px;font-size:.7rem;color:#AF762B;font-weight:700;cursor:pointer">‹</button>
+              <button style="background:#CE7E1F;border:none;border-radius:4px;padding:4px 9px;font-size:.7rem;color:#fff;font-weight:700;cursor:pointer">1</button>
+              <button style="background:#faf0e0;border:1px solid #e8c88a;border-radius:4px;padding:4px 9px;font-size:.7rem;color:#AF762B;font-weight:700;cursor:pointer">2</button>
+              <button style="background:#faf0e0;border:1px solid #e8c88a;border-radius:4px;padding:4px 9px;font-size:.7rem;color:#AF762B;font-weight:700;cursor:pointer">3</button>
+              <button style="background:#faf0e0;border:1px solid #e8c88a;border-radius:4px;padding:4px 9px;font-size:.7rem;color:#AF762B;font-weight:700;cursor:pointer">›</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Modal de detalle -->
+    <div class="mockup" style="flex:1">
+      <div class="mockup-header">Modal de detalle — al hacer clic en "Ver ›"</div>
+      <div class="mockup-body" style="padding:0;overflow:hidden">
+        <div style="font-family:'Segoe UI',system-ui,sans-serif;font-size:12px;background:#f7f4f0;height:560px;overflow-y:auto">
+
+          <!-- Modal header -->
+          <div style="background:#faf0e0;border-bottom:1.5px solid #e8c88a;padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-size:.78rem;font-weight:800;color:#AF762B;text-transform:uppercase;letter-spacing:.5px">Detalle del movimiento</div>
+              <div style="font-size:.62rem;color:#999;margin-top:2px">ID: TXN-2026-0043817</div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <span style="background:#fce8e8;color:#b42828;font-size:.65rem;font-weight:700;padding:3px 10px;border-radius:99px;border:1px solid #f5b8b8">✗ No conciliado</span>
+              <button style="background:none;border:none;cursor:pointer;color:#999;font-size:1.1rem">✕</button>
+            </div>
+          </div>
+
+          <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+
+            <!-- Info grid -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div style="background:#fff;border-radius:6px;padding:10px;border:1px solid #e8c88a">
+                <div style="font-size:.58rem;color:#AF762B;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Nombre / negociación</div>
+                <div style="font-size:.8rem;font-weight:700;color:#2a2a2a">Hotel 72 Executive</div>
+              </div>
+              <div style="background:#fff;border-radius:6px;padding:10px;border:1px solid #e8c88a">
+                <div style="font-size:.58rem;color:#AF762B;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Hotel</div>
+                <div style="font-size:.8rem;font-weight:700;color:#2a2a2a">Hotel 72</div>
+              </div>
+              <div style="background:#fff;border-radius:6px;padding:10px;border:1px solid #e8c88a">
+                <div style="font-size:.58rem;color:#AF762B;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Razón social</div>
+                <div style="font-size:.78rem;color:#2a2a2a">GEH Suites S.A.S.</div>
+              </div>
+              <div style="background:#fff;border-radius:6px;padding:10px;border:1px solid #e8c88a">
+                <div style="font-size:.58rem;color:#AF762B;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Fecha movimiento</div>
+                <div style="font-size:.78rem;color:#2a2a2a">04/06/2026</div>
+              </div>
+              <div style="background:#fff;border-radius:6px;padding:10px;border:1px solid #e8c88a">
+                <div style="font-size:.58rem;color:#AF762B;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Banco</div>
+                <div style="font-size:.78rem;color:#2a2a2a">Bancolombia</div>
+              </div>
+              <div style="background:#fff;border-radius:6px;padding:10px;border:1px solid #e8c88a">
+                <div style="font-size:.58rem;color:#AF762B;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Tipo operación</div>
+                <div style="font-size:.78rem;color:#2a2a2a">Datáfono virtual</div>
+              </div>
+            </div>
+
+            <!-- Financial breakdown -->
+            <div style="background:#fff;border-radius:6px;padding:12px;border:1px solid #e8c88a">
+              <div style="font-size:.62rem;font-weight:700;color:#AF762B;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Desglose financiero</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+                <div>
+                  <div style="font-size:.58rem;color:#999;margin-bottom:1px">Valor compra</div>
+                  <div style="font-size:.78rem;font-weight:700;color:#2a2a2a">$3,488,000</div>
+                </div>
+                <div>
+                  <div style="font-size:.58rem;color:#999;margin-bottom:1px">Comisión</div>
+                  <div style="font-size:.78rem;font-weight:700;color:#b42828">-$209,280</div>
+                </div>
+                <div>
+                  <div style="font-size:.58rem;color:#999;margin-bottom:1px">Neto abonar</div>
+                  <div style="font-size:.78rem;font-weight:700;color:#1a6e3c">$3,200,000</div>
+                </div>
+                <div>
+                  <div style="font-size:.58rem;color:#999;margin-bottom:1px">Retefuente</div>
+                  <div style="font-size:.78rem;color:#2a2a2a">$34,880</div>
+                </div>
+                <div>
+                  <div style="font-size:.58rem;color:#999;margin-bottom:1px">Rete IVA</div>
+                  <div style="font-size:.78rem;color:#2a2a2a">$0</div>
+                </div>
+                <div>
+                  <div style="font-size:.58rem;color:#999;margin-bottom:1px">Rete ICA</div>
+                  <div style="font-size:.78rem;color:#2a2a2a">$13,952</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Observación -->
+            <div>
+              <div style="font-size:.62rem;font-weight:700;color:#AF762B;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Observación</div>
+              <textarea placeholder="Agregar observación…" style="width:100%;background:#fff;border:1.5px solid #e8c88a;border-radius:6px;padding:8px 10px;font-size:.72rem;resize:vertical;min-height:48px;color:#2a2a2a;font-family:inherit"></textarea>
+            </div>
+
+            <!-- Actions -->
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="font-size:.62rem;font-weight:700;color:#AF762B;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">Acciones</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                <button style="background:#1a6e3c;color:#fff;border:none;border-radius:6px;padding:8px;font-size:.72rem;font-weight:700;cursor:pointer">✓ Marcar conciliado</button>
+                <button style="background:#faf0e0;color:#AF762B;border:1.5px solid #e8c88a;border-radius:6px;padding:8px;font-size:.72rem;font-weight:700;cursor:pointer">📎 Abrir comprobante</button>
+                <button style="background:#faf0e0;color:#AF762B;border:1.5px solid #e8c88a;border-radius:6px;padding:8px;font-size:.72rem;font-weight:700;cursor:pointer">🏨 Asignar hotel</button>
+                <button style="background:#fce8e8;color:#b42828;border:1.5px solid #f5b8b8;border-radius:6px;padding:8px;font-size:.72rem;font-weight:700;cursor:pointer">⚠ Marcar duplicado</button>
+              </div>
+              <button style="background:#fff;color:#666;border:1.5px solid #e8c88a;border-radius:6px;padding:7px;font-size:.68rem;font-weight:600;cursor:pointer;text-align:center">🕐 Ver historial de cambios</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:14px">Tabla con colores por estado (borde izquierdo rojo = duplicado, dorado = sin hotel), toolbar de filtros y búsqueda, paginación, y modal deslizante con desglose financiero completo y botonera de acciones. ¿Está bien o cambiarías algo?</p>
