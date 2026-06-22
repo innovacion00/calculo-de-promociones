@@ -2316,7 +2316,7 @@ function renderPTMerged(card, sec, baseRates, promoDisc) {
   const tables = document.createElement('div');
   tables.className = 'pt-tables';
 
-  function makeSubTable(rows, label) {
+  function makeSubTable(rows, label, applyMinCheck) {
     const wrap = document.createElement('div');
     wrap.innerHTML = `<div class="pt-sub-label">${label}</div>`;
     const tbl = document.createElement('table');
@@ -2335,7 +2335,7 @@ function renderPTMerged(card, sec, baseRates, promoDisc) {
       addTd(trow, row.label, '');
       addTd(trow, fmt(bv), 'td-base');
       const minRatePT = HOTEL_MIN_RATES[currentHotel] || 0;
-      const ptAlert = minRatePT > 0 && tarVal <= minRatePT;
+      const ptAlert = applyMinCheck && minRatePT > 0 && tarVal <= minRatePT;
       const tdT = addTd(trow, fmt(tarVal), 'td-ota' + (ptAlert ? ' td-min-alert' : ''));
       tdT.title = ptAlert ? `â  Tarifa en mÃ­nimo permitido (${fmt(minRatePT)}) â Clic para copiar` : 'Clic para copiar';
       tdT.addEventListener('click', ()=>copyValue(tarVal));
@@ -2346,8 +2346,8 @@ function renderPTMerged(card, sec, baseRates, promoDisc) {
     return wrap;
   }
 
-  tables.appendChild(makeSubTable(sec.rowsCon||[], 'CON COMISIÃN (Ã·0.75)'));
-  tables.appendChild(makeSubTable(sec.rowsSin||[], 'SIN COMISIÃN'));
+  tables.appendChild(makeSubTable(sec.rowsCon||[], 'CON COMISIÃN (Ã·0.75)', true));
+  tables.appendChild(makeSubTable(sec.rowsSin||[], 'SIN COMISIÃN', false));
   body.appendChild(tables);
   card.appendChild(body);
 }
