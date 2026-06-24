@@ -2621,6 +2621,7 @@ CHANNELS.forEach(ch => ch.sections.forEach(sec => sec._id = 's'+(++_secIdCounter
 const hotelExtraSections = {}; // {hotel: {channelKey: section[]}}
 const hotelDeletedSections = {}; // {hotel: {channelKey: secId[]}}
 const hotelChannelOverrides = {}; // {hotel: {chKey: {geniusPct?, mobilePct?}}}
+const hotelSectionRows = {}; // {hotel: {secId: rows[]}}
 const hotelSectionOrder = {}; // {hotel: {channelKey: secId[]}} — custom drag-and-drop order
 
 function getHotelSections(hotel, chKey) {
@@ -2644,6 +2645,13 @@ function persistSectionOrder(ch) {
   if (!hotelSectionOrder[currentHotel]) hotelSectionOrder[currentHotel] = {};
   hotelSectionOrder[currentHotel][ch.key] = ch.sections.map(s => s._id);
   localStorage.setItem('rmd_state', getFullState());
+}
+
+function persistSectionRows(sec) {
+  if (!hotelSectionRows[currentHotel]) hotelSectionRows[currentHotel] = {};
+  hotelSectionRows[currentHotel][sec._id] = JSON.parse(JSON.stringify(
+    (sec.rows || []).map(({_origLabel, ...r}) => r)
+  ));
 }
 
 // ── BASE RATE COMPUTATION ────────────────────────────────────────────────────
@@ -2924,6 +2932,7 @@ function buildCfgPanel(sec, card, ch, baseRates, commission) {
         rows.splice(ri,1);
         // Remove the paired SIN/CON row too, so both tables stay in sync
         if (pairedRows && pairedRows[ri] !== undefined) pairedRows.splice(ri,1);
+        persistSectionRows(sec);
         rebuildCfgPanel(panel,sec,card,ch,baseRates,commission);
         reRender(card,sec,baseRates,commission,ch);
         scheduleRateSave();
@@ -2974,7 +2983,9 @@ function buildCfgPanel(sec, card, ch, baseRates, commission) {
         const fallbackCon = (sec.rowsCon && sec.rowsCon[0]?.discounts) || [0, 0];
         sec.rowsSin.push(makeNewRow(selectedKey, fallbackSin));
         sec.rowsCon.push(makeNewRow(selectedKey+'C', fallbackCon));
+        persistSectionRows(sec);
         rebuildCfgPanel(panel,sec,card,ch,baseRates,commission); reRender(card,sec,baseRates,commission,ch);
+        scheduleRateSave();
       });
     });
     panel.appendChild(addSin);
@@ -2988,7 +2999,9 @@ function buildCfgPanel(sec, card, ch, baseRates, commission) {
       showPlanPicker(addBtn, planOptions, selectedKey => {
         const fallbackDiscounts = (sec.rows && sec.rows[0]?.discounts) || [0, 0];
         sec.rows.push(makeNewRow(selectedKey, fallbackDiscounts));
+        persistSectionRows(sec);
         rebuildCfgPanel(panel,sec,card,ch,baseRates,commission); reRender(card,sec,baseRates,commission,ch);
+        scheduleRateSave();
       });
     });
     panel.appendChild(addBtn);
@@ -3520,6 +3533,14 @@ async function switchHotel(name) {
   });
   // Rebuild sections for new hotel (defaults + hotel-specific extras)
   CHANNELS.forEach(ch => { ch.sections = getHotelSections(name, ch.key); });
+  // Apply saved row overrides for this hotel
+  const switchRows = hotelSectionRows[name] || {};
+  CHANNELS.forEach(ch => ch.sections.forEach(sec => {
+    if (switchRows[sec._id]) {
+      sec.rows = JSON.parse(JSON.stringify(switchRows[sec._id]));
+      sec.rows.forEach(r => { r._origLabel = r.label; });
+    }
+  }));
   applyNameOverrides(); // Apply this hotel's title/label overrides before render
 
   // Load saved inputs for this hotel+room, re-render active channel
@@ -3739,7 +3760,8 @@ function getFullState() {
     hotelExtraSections:    JSON.parse(JSON.stringify(hotelExtraSections)),
     hotelDeletedSections:  JSON.parse(JSON.stringify(hotelDeletedSections)),
     hotelChannelOverrides: JSON.parse(JSON.stringify(hotelChannelOverrides)),
-    hotelSectionOrder:     JSON.parse(JSON.stringify(hotelSectionOrder))
+    hotelSectionOrder:     JSON.parse(JSON.stringify(hotelSectionOrder)),
+    hotelSectionRows:      JSON.parse(JSON.stringify(hotelSectionRows))
   });
 }
 
@@ -3780,6 +3802,10 @@ function restoreFullState(json) {
     Object.keys(s.hotelSectionOrder||{}).forEach(hotel => {
       hotelSectionOrder[hotel] = JSON.parse(JSON.stringify(s.hotelSectionOrder[hotel]));
     });
+    // Restore custom section rows
+    Object.keys(s.hotelSectionRows||{}).forEach(hotel => {
+      hotelSectionRows[hotel] = JSON.parse(JSON.stringify(s.hotelSectionRows[hotel]));
+    });
     const curChanOv = hotelChannelOverrides[currentHotel] || {};
     CHANNELS.forEach(ch => {
       const ov = curChanOv[ch.key] || {};
@@ -3800,6 +3826,14 @@ function restoreFullState(json) {
     });
     // Rebuild ch.sections for current hotel
     CHANNELS.forEach(ch => { ch.sections = getHotelSections(currentHotel, ch.key); });
+    // Restore saved rows per section
+    const curRows = hotelSectionRows[currentHotel] || {};
+    CHANNELS.forEach(ch => ch.sections.forEach(sec => {
+      if (curRows[sec._id]) {
+        sec.rows = JSON.parse(JSON.stringify(curRows[sec._id]));
+        sec.rows.forEach(r => { r._origLabel = r.label; });
+      }
+    }));
     // Restore promoVals onto the resolved sections
     CHANNELS.forEach(ch => ch.sections.forEach(sec => {
       if (s.promoValsMap[sec._id]) sec._promoVals = {...s.promoValsMap[sec._id]};
@@ -3872,7 +3906,10 @@ function getHotelStateSlice(hotel) {
   const sectionOrder = hotelSectionOrder[hotel]
     ? JSON.parse(JSON.stringify(hotelSectionOrder[hotel]))
     : {};
-  return { rawBaseInputs, rawPlanPcts, rawPaisPcts, promoVals, labelOverrides: hotelLabelOverrides, titleOverrides: hotelTitleOverrides, extraSections, deletedSectionIds, channelOverrides, sectionOrder };
+  const sectionRows = hotelSectionRows[hotel]
+    ? JSON.parse(JSON.stringify(hotelSectionRows[hotel]))
+    : {};
+  return { rawBaseInputs, rawPlanPcts, rawPaisPcts, promoVals, labelOverrides: hotelLabelOverrides, titleOverrides: hotelTitleOverrides, extraSections, deletedSectionIds, channelOverrides, sectionOrder, sectionRows };
 }
 
 function applyHotelConfig(hotel, config) {
@@ -3884,6 +3921,7 @@ function applyHotelConfig(hotel, config) {
   if (config.titleOverrides) titleOverrides[hotel] = config.titleOverrides;
   if (config.deletedSectionIds) hotelDeletedSections[hotel] = JSON.parse(JSON.stringify(config.deletedSectionIds));
   if (config.sectionOrder) hotelSectionOrder[hotel] = JSON.parse(JSON.stringify(config.sectionOrder));
+  if (config.sectionRows) hotelSectionRows[hotel] = JSON.parse(JSON.stringify(config.sectionRows));
   if (!hotelChannelOverrides[hotel]) hotelChannelOverrides[hotel] = {};
   if (config.channelOverrides) {
     Object.assign(hotelChannelOverrides[hotel], JSON.parse(JSON.stringify(config.channelOverrides)));
@@ -3934,6 +3972,14 @@ function applyHotelConfig(hotel, config) {
   }
   // Rebuild ch.sections for this hotel (applies extra sections + custom order)
   CHANNELS.forEach(ch => { ch.sections = getHotelSections(hotel, ch.key); });
+  // Restore saved rows per section (added/removed plans)
+  const savedRows = hotelSectionRows[hotel] || {};
+  CHANNELS.forEach(ch => ch.sections.forEach(sec => {
+    if (savedRows[sec._id]) {
+      sec.rows = JSON.parse(JSON.stringify(savedRows[sec._id]));
+      sec.rows.forEach(r => { r._origLabel = r.label; });
+    }
+  }));
   // Restore promoVals onto the resolved default sections.
   // Las secciones extra ya recibieron su _promoVals arriba.
   CHANNELS.forEach(ch => ch.sections.forEach(sec => {

@@ -27,6 +27,8 @@ export interface RateConfig {
   channelOverrides: Record<string, Record<string, number>>;
   // Custom section order per channel (drag-and-drop): {channelKey: secId[]}
   sectionOrder?: Record<string, string[]>;
+  // Per-section row overrides (added/removed plans): {secId: rows[]}
+  sectionRows?: Record<string, unknown[]>;
 }
 
 async function getCollection(): Promise<Collection<RateConfig>> {
