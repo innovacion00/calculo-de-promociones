@@ -3632,6 +3632,26 @@ function init() {
       document.querySelectorAll('.channel-page').forEach(p=>p.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById('page-'+ch.key).classList.add('active');
+
+      // Sync inputs with current hotel
+      const rooms = HOTEL_ROOM_TYPES[currentHotel] || [];
+      const roomSel = document.getElementById('room-'+ch.key);
+      if (roomSel && roomSel.tagName === 'SELECT') {
+        roomSel.innerHTML = rooms.map(rt=>`<option value="${rt.name}">${rt.name}</option>`).join('');
+        if (currentRoomType) roomSel.value = currentRoomType;
+      }
+      const rk = getRoomKey();
+      const savedBase = (hotelBaseInputs[rk]||{})[ch.key];
+      const defaultBase = rooms.length > 0 ? rooms[0].base : 240000;
+      const inp = document.getElementById('inp-'+ch.key);
+      if (inp) inp.value = savedBase !== undefined ? savedBase : defaultBase;
+
+      const ov = (hotelChannelOverrides[currentHotel] || {})[ch.key] || {};
+      const commPct = ov.commissionPct !== undefined ? ov.commissionPct : ch.commission;
+      ch._commission = commPct;
+      const comEl = document.getElementById('com-'+ch.key);
+      if (comEl) comEl.value = Math.round(commPct * 100);
+
       renderSections(ch);
     });
     tabsEl.appendChild(btn);
