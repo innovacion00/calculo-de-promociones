@@ -2876,9 +2876,9 @@ function buildCfgPanel(sec, card, ch, baseRates, commission) {
   panel.className = 'cfg-panel';
 
   function makeNewRow(baseKey, fallbackDiscounts) {
-    const discounts = Array.isArray(fallbackDiscounts) && fallbackDiscounts.length > 1
+    const discounts = Array.isArray(fallbackDiscounts) && fallbackDiscounts.length > 0
       ? [...fallbackDiscounts]
-      : [0, 0];
+      : [0];
     return { label: 'Nuevo Plan', base: baseKey, discounts, planPct: 0 };
   }
 
