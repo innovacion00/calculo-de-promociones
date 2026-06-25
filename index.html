@@ -2316,7 +2316,7 @@ function updateHotelSelectorForUser() {
   }
 }
 
-function handleLoginSubmit(e) {
+async function handleLoginSubmit(e) {
   if (e) e.preventDefault();
   const email = document.getElementById('login-email')?.value || '';
   const password = document.getElementById('login-password')?.value || '';
@@ -2325,20 +2325,30 @@ function handleLoginSubmit(e) {
   const btn = document.querySelector('#auth-overlay .auth-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Iniciando sesión...'; }
 
-  const result = authLogin(email, password);
-  if (result.ok) {
-    clearAuthError();
-    AUTH_SESSION = result.session;
-    authSaveSession(result.session);
-    if (result.session.activeHotelId && typeof HOTELS !== 'undefined') {
-      const h = HOTELS.find(x => x === result.session.activeHotelId);
-      if (h) currentHotel = h;
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      clearAuthError();
+      AUTH_SESSION = data.session;
+      authSaveSession(data.session);
+      if (data.session.activeHotelId && typeof HOTELS !== 'undefined') {
+        const h = HOTELS.find(x => x === data.session.activeHotelId);
+        if (h) currentHotel = h;
+      }
+      showDashboard();
+    } else {
+      showAuthError(data.error || 'Error al iniciar sesión.');
     }
-    showDashboard();
-  } else {
-    showAuthError(result.error || 'Error al iniciar sesión.');
+  } catch {
+    showAuthError('Error de conexión. Verifica tu red e intenta de nuevo.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Iniciar sesión'; }
   }
-  if (btn) { btn.disabled = false; btn.textContent = 'Iniciar sesión'; }
 }
 
 // ── INIT AUTH ───────────────────────────────────────────────────
@@ -3722,9 +3732,11 @@ async function switchHotel(name) {
     renderSections(ch);
   }
 
-  // Si el panel de histórico OTB está visible, recargar con el nuevo hotel
-  const histPanel = document.getElementById('otb-panel-history');
-  if (histPanel && histPanel.classList.contains('active')) otbRenderHistory();
+  // Recargar histórico OTB/STY para el nuevo hotel
+  const otbPage2 = document.getElementById('page-otb');
+  if (otbPage2 && otbPage2._initialized) otbRenderHistory();
+  const styPage2 = document.getElementById('page-sty');
+  if (styPage2 && styPage2._initialized) styRenderHistory();
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
@@ -4280,8 +4292,10 @@ function switchModule(mod) {
   // Init modules on first open
   const otbPage = document.getElementById('page-otb');
   if (isOTB && !otbPage._initialized) { initOTB(otbPage); otbPage._initialized = true; }
+  if (isOTB && otbPage._initialized) { otbRenderHistory(); }
   const styPage = document.getElementById('page-sty');
   if (isSTY && styPage && !styPage._initialized) { initSTY(styPage); styPage._initialized = true; }
+  if (isSTY && styPage && styPage._initialized) { styRenderHistory(); }
   if (isAgenda)    initAgenda();
   if (isUsers)     initUsersModule();
   if (isRep)       repInit();
