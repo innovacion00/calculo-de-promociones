@@ -151,6 +151,8 @@
   .cfg-pct input{width:48px;border:1px solid var(--gold-border);border-radius:4px;background:var(--off-white);font-size:.78rem;font-weight:700;text-align:center;padding:2px 4px;color:var(--gold-dark);outline:none;-moz-appearance:textfield;}
   .cfg-pct input::-webkit-inner-spin-button,.cfg-pct input::-webkit-outer-spin-button{-webkit-appearance:none;}
   .cfg-pct span{font-size:.72rem;color:var(--gold-dark);}
+  .cfg-pais{display:flex;align-items:center;gap:3px;font-size:.68rem;color:var(--gold-dark);white-space:nowrap;cursor:pointer;user-select:none;}
+  .cfg-pais input[type=checkbox]{width:13px;height:13px;cursor:pointer;accent-color:var(--gold-dark);}
   .cfg-add-btn{margin-top:8px;width:100%;padding:5px;background:none;border:1.5px dashed var(--gold-border);border-radius:6px;color:var(--gold-dark);font-size:.74rem;font-weight:600;cursor:pointer;transition:all .15s;}
   .cfg-add-btn:hover{background:var(--gold-pale);border-color:var(--gold);}
   .cfg-plan-picker{background:#fff;border:1.5px solid var(--gold-border);border-radius:8px;box-shadow:0 4px 18px rgba(0,0,0,.12);padding:4px;display:flex;flex-direction:column;gap:2px;margin-top:4px;}
@@ -3146,6 +3148,24 @@ function buildCfgPanel(sec, card, ch, baseRates, commission) {
         const sp=document.createElement('span'); sp.textContent='%';
         pp.appendChild(pIn); pp.appendChild(sp); rowEl.appendChild(pp);
       }
+      // % país toggle
+      const paisWrap = document.createElement('label');
+      paisWrap.className = 'cfg-pais';
+      paisWrap.title = 'Aplicar porcentaje de promoción del país a este plan';
+      const paisChk = document.createElement('input');
+      paisChk.type = 'checkbox';
+      paisChk.checked = !!row.promoAdd;
+      paisChk.addEventListener('change', () => {
+        row.promoAdd = paisChk.checked ? 0.05 : 0;
+        if (pairedRows && pairedRows[ri] !== undefined) pairedRows[ri].promoAdd = row.promoAdd;
+        persistSectionRows(sec);
+        reRender(card, sec, baseRates, commission, ch);
+        scheduleRateSave();
+      });
+      paisWrap.appendChild(paisChk);
+      paisWrap.appendChild(document.createTextNode('% País'));
+      rowEl.appendChild(paisWrap);
+
       const del=document.createElement('button'); del.className='icon-btn del'; del.textContent='✕';
       del.addEventListener('click',()=>{
         rows.splice(ri,1);
