@@ -1596,7 +1596,7 @@
     <div class="fin-table-wrap">
       <table class="fin-table">
         <thead><tr>
-          <th>Fecha checkout</th><th>Hotel</th><th>Localizador</th><th>Reserva</th><th>Huésped</th>
+          <th>#</th><th>Fecha checkout</th><th>Hotel</th><th>Hab.</th><th>Localizador</th><th>Reserva</th><th>Huésped</th>
           <th>Check-in</th><th>Valor total</th><th>Pagado</th><th>Saldo pendiente</th><th></th>
         </tr></thead>
         <tbody id="bal-table-body"><tr><td colspan="10" class="fin-empty">Cargando…</td></tr></tbody>
@@ -15288,7 +15288,7 @@ async function balLoadStats() {
 async function balLoadTable() {
   const tbody = document.getElementById('bal-table-body');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="10" class="fin-empty">Cargando…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="12" class="fin-empty">Cargando…</td></tr>';
 
   const params = new URLSearchParams();
   params.set('page', String(_balPage));
@@ -15308,46 +15308,37 @@ async function balLoadTable() {
     balRenderTable(json.data);
     balRenderPagination();
   } catch(e) {
-    tbody.innerHTML = '<tr><td colspan="10" class="fin-empty">Error de red</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" class="fin-empty">Error de red</td></tr>';
   }
 }
 
 function balRenderTable(rows) {
   const tbody = document.getElementById('bal-table-body');
   if (!rows || rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="10" class="fin-empty">Sin registros con los filtros actuales.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" class="fin-empty">Sin registros con los filtros actuales.</td></tr>';
     return;
   }
   _balRecordsMap = {};
   rows.forEach(function(r) { _balRecordsMap[r.id] = r; });
-  const STATUS_LABELS = {
-    no_balance:'Sin saldo', pending_balance:'Saldo pendiente',
-    under_investigation:'En investigación', collection_requested:'Cobro solicitado',
-    paid:'Pagado', adjusted:'Ajustado', uncollectable:'Incobrable',
-  };
-  const STATUS_CLASS = {
-    no_balance:'reconciled', pending_balance:'unreconciled',
-    under_investigation:'pending_review', collection_requested:'pending_review',
-    paid:'reconciled', adjusted:'adjusted', uncollectable:'unreconciled',
-  };
-  tbody.innerHTML = rows.map(function(r) {
+  const fmtCop = function(v) { return v != null ? '$ ' + Math.round(v).toLocaleString('es-CO') : '—'; };
+  const offset = (_balPage - 1) * _balPageSize;
+  tbody.innerHTML = rows.map(function(r, i) {
     const rowClass = r.balanceStatus === 'pending_balance' ? 'duplicate'
       : r.balanceStatus === 'under_investigation' ? 'reviewing'
       : r.balanceStatus === 'collection_requested' ? 'reviewing'
       : '';
-    const label = STATUS_LABELS[r.balanceStatus] || r.balanceStatus;
-    const badgeClass = STATUS_CLASS[r.balanceStatus] || '';
-    const fmtCop = function(v) { return v != null ? '$ ' + Math.round(v).toLocaleString('es-CO') : '—'; };
     return '<tr class="' + rowClass + '" data-id="' + finEsc(r.id) + '">' +
+      '<td style="color:#888;font-size:.8rem;text-align:center;">' + (offset + i + 1) + '</td>' +
       '<td>' + finEsc(r.checkoutDate ? r.checkoutDate.slice(0,10) : '—') + '</td>' +
       '<td style="font-weight:600">' + finEsc(r.hotelName || '—') + '</td>' +
+      '<td style="text-align:center;">' + finEsc(r.room || '—') + '</td>' +
       '<td>' + finEsc(r.localizador || '—') + '</td>' +
       '<td>' + finEsc(r.reservationId || '—') + '</td>' +
       '<td>' + finEsc(r.guestName || '—') + '</td>' +
       '<td>' + finEsc(r.checkInDate ? r.checkInDate.slice(0,10) : '—') + '</td>' +
-      '<td>' + finEsc(fmtCop(r.totalAmount)) + '</td>' +
-      '<td>' + finEsc(fmtCop(r.paidAmount)) + '</td>' +
-      '<td style="font-weight:700;' + (r.pendingBalance > 0 ? 'color:#c62828' : 'color:#2e7d32') + '">' + finEsc(fmtCop(r.pendingBalance)) + '</td>' +
+      '<td>' + fmtCop(r.totalAmount) + '</td>' +
+      '<td>' + fmtCop(r.paidAmount) + '</td>' +
+      '<td style="font-weight:700;' + (r.pendingBalance > 0 ? 'color:#c62828' : 'color:#2e7d32') + '">' + fmtCop(r.pendingBalance) + '</td>' +
       '<td><button class="fin-action-btn" style="padding:4px 10px;font-size:.75rem;" onclick="balOpenDetail(\'' + finEsc(r.id) + '\')">Ver</button></td>' +
       '</tr>';
   }).join('');
@@ -15373,7 +15364,7 @@ function balDebouncedLoad() {
 
 function balShowIdle() {
   const tbody = document.getElementById('bal-table-body');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="10" class="fin-empty" style="padding:2rem;color:#888;">Selecciona un hotel y una fecha, luego presiona <strong>Consultar</strong>.</td></tr>';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="12" class="fin-empty" style="padding:2rem;color:#888;">Selecciona un hotel y una fecha, luego presiona <strong>Consultar</strong>.</td></tr>';
   document.getElementById('bal-pagination-info').textContent = '';
   document.getElementById('bal-btn-prev').disabled = true;
   document.getElementById('bal-btn-next').disabled = true;

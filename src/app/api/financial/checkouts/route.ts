@@ -27,6 +27,7 @@ export interface CheckoutBalance {
   paymentMethod?: string;
   channel?: string;
   localizador?: string;
+  room?: string;
 }
 
 export function mapPmsToCheckout(
@@ -55,6 +56,7 @@ export function mapPmsToCheckout(
     channel:        stay.canal || undefined,
     localizador:    stay.localizador || undefined,
     paymentMethod:  formaPago || undefined,
+    room:           stay.room || undefined,
   };
 }
 
