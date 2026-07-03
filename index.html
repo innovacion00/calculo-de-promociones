@@ -1501,14 +1501,14 @@
   <div class="fin-header">
     <h2>💰 Gestión Financiera</h2>
     <div style="display:flex;gap:8px;">
-      <button class="fin-action-btn" onclick="finExportCsv()" id="fin-export-btn">⬇ Exportar CSV</button>
-      <button class="fin-action-btn" onclick="finDeleteAll()" id="fin-delete-btn" style="color:#c62828;border-color:#e57373;">🗑 Limpiar registros</button>
-      <button class="fin-action-btn primary" onclick="finOpenImport()" id="fin-import-btn">📥 Importar Excel</button>
+      <button class="fin-action-btn" onclick="finHeaderExport()" id="fin-export-btn">⬇ Exportar CSV</button>
+      <button class="fin-action-btn" onclick="finHeaderDelete()" id="fin-delete-btn" style="color:#c62828;border-color:#e57373;">🗑 Limpiar registros</button>
+      <button class="fin-action-btn primary" onclick="finHeaderImport()" id="fin-import-btn">📥 Importar Excel</button>
     </div>
   </div>
   <div class="fin-tabs">
     <button class="fin-tab active" id="fin-tab-reconciliations" onclick="finSwitchTab('reconciliations')">🏦 Conciliaciones</button>
-    <button class="fin-tab" id="fin-tab-balances" onclick="finSwitchTab('balances')" style="opacity:.5;cursor:default;" disabled title="Disponible en Plan 2">💳 Saldos Pendientes</button>
+    <button class="fin-tab" id="fin-tab-balances" onclick="finSwitchTab('balances')">💳 Saldos Pendientes</button>
     <button class="fin-tab" id="fin-tab-accounts-receivable" onclick="finSwitchTab('accounts-receivable')" style="opacity:.5;cursor:default;" disabled title="Disponible en Plan 3">📋 Cuentas por Cobrar</button>
   </div>
 
@@ -1568,9 +1568,45 @@
     </div>
   </div>
 
-  <!-- TAB: Saldos Pendientes (placeholder Plan 2) -->
+  <!-- TAB: Saldos Pendientes (Plan 2) -->
   <div class="fin-body" id="fin-pane-balances" style="display:none;">
-    <div class="fin-empty">💳 Sub-módulo Saldos Pendientes — disponible en Plan 2</div>
+    <!-- KPI row 1: resumen -->
+    <div class="fin-kpi-row" id="bal-kpi-row1">
+      <div class="fin-kpi"><div class="fin-kpi-label">Total checkouts</div><div class="fin-kpi-value" id="bal-kpi-total">—</div></div>
+      <div class="fin-kpi ok"><div class="fin-kpi-label">Sin saldo</div><div class="fin-kpi-value" id="bal-kpi-no-balance">—</div><div class="fin-kpi-sub" id="bal-kpi-no-balance-pct">—</div></div>
+      <div class="fin-kpi bad"><div class="fin-kpi-label">Con saldo pendiente</div><div class="fin-kpi-value" id="bal-kpi-with-balance">—</div><div class="fin-kpi-sub" id="bal-kpi-with-balance-pct">—</div></div>
+      <div class="fin-kpi bad"><div class="fin-kpi-label">Valor total pendiente</div><div class="fin-kpi-value" id="bal-kpi-total-amount">—</div></div>
+      <div class="fin-kpi"><div class="fin-kpi-label">Promedio de saldo</div><div class="fin-kpi-value" id="bal-kpi-avg">—</div></div>
+    </div>
+    <!-- KPI row 2: alertas -->
+    <div class="fin-section-title">Bandejas de alerta</div>
+    <div class="fin-kpi-row" id="bal-kpi-row2">
+      <div class="fin-kpi alert"><div class="fin-kpi-label">En investigación</div><div class="fin-kpi-value" id="bal-kpi-investigating">—</div></div>
+      <div class="fin-kpi alert"><div class="fin-kpi-label">Cobro solicitado</div><div class="fin-kpi-value" id="bal-kpi-collection">—</div></div>
+      <div class="fin-kpi" style="cursor:default;"><div class="fin-kpi-label">Hotel mayor saldo</div><div class="fin-kpi-value" id="bal-kpi-top-hotel" style="font-size:.88rem;">—</div></div>
+    </div>
+    <!-- Toolbar filtros -->
+    <div class="fin-toolbar">
+      <input type="text" id="bal-search" placeholder="Buscar reserva, huésped, hotel…" style="min-width:200px;">
+      <select id="bal-filter-hotel"><option value="">Todos los hoteles</option></select>
+      <input type="date" id="bal-filter-date" title="Fecha de checkout">
+      <button class="fin-action-btn primary" onclick="balQuery()">🔍 Consultar</button>
+    </div>
+    <!-- Tabla -->
+    <div class="fin-table-wrap">
+      <table class="fin-table">
+        <thead><tr>
+          <th>Fecha checkout</th><th>Hotel</th><th>Localizador</th><th>Reserva</th><th>Huésped</th>
+          <th>Check-in</th><th>Valor total</th><th>Pagado</th><th>Saldo pendiente</th><th></th>
+        </tr></thead>
+        <tbody id="bal-table-body"><tr><td colspan="10" class="fin-empty">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="fin-pagination">
+      <button onclick="balPrevPage()" id="bal-btn-prev">◀ Anterior</button>
+      <span id="bal-pagination-info"></span>
+      <button onclick="balNextPage()" id="bal-btn-next">Siguiente ▶</button>
+    </div>
   </div>
 
   <!-- TAB: Cuentas por Cobrar (placeholder Plan 3) -->
@@ -1619,6 +1655,18 @@
       <button class="fin-action-btn" onclick="finCloseImport()">Cancelar</button>
       <button class="fin-action-btn primary" id="fin-confirm-import-btn" onclick="finExecuteImport()" style="display:none;">✅ Importar</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL: Detalle saldo pendiente -->
+<div class="fin-modal-overlay" id="bal-detail-modal" onclick="if(event.target===this)balCloseDetail()">
+  <div class="fin-modal">
+    <div class="fin-modal-header">
+      <div class="fin-modal-title" id="bal-detail-title">Detalle de saldo pendiente</div>
+      <button onclick="balCloseDetail()" style="border:none;background:none;font-size:1.1rem;cursor:pointer;color:#888;">✕</button>
+    </div>
+    <div class="fin-modal-body" id="bal-detail-body"></div>
+    <div class="fin-modal-footer" id="bal-detail-footer"></div>
   </div>
 </div>
 
@@ -14743,6 +14791,19 @@ function finSwitchTab(tab, pushState) {
     const pane = document.getElementById('fin-pane-' + t);
     if (pane) pane.style.display = t === tab ? '' : 'none';
   });
+  const impBtn = document.getElementById('fin-import-btn');
+  const delBtn = document.getElementById('fin-delete-btn');
+  if (tab === 'reconciliations') {
+    if (impBtn) impBtn.style.display = hasPermission('canImportReconciliations') ? '' : 'none';
+    if (delBtn) delBtn.style.display = hasPermission('canImportReconciliations') ? '' : 'none';
+  } else {
+    if (impBtn) impBtn.style.display = 'none';
+    if (delBtn) delBtn.style.display = 'none';
+  }
+  if (tab === 'balances') {
+    balInitHotelFilter();
+    balShowIdle();
+  }
   if (pushState) {
     const url = new URL(window.location.href);
     url.searchParams.set('tab', tab);
@@ -15153,6 +15214,255 @@ function finShowToast(msg) {
   clearTimeout(t._to);
   t._to = setTimeout(function() { t.style.opacity = 0; t.style.transform = 'translateX(-50%) translateY(12px)'; }, 3000);
 }
+// ── Header button wrappers (context-aware por tab) ───────────
+function finHeaderImport() {
+  if (_finCurrentTab !== 'reconciliations') return;
+  finOpenImport();
+}
+function finHeaderDelete() {
+  if (_finCurrentTab !== 'reconciliations') return;
+  finDeleteAll();
+}
+function finHeaderExport() {
+  if (_finCurrentTab === 'balances') balExportCsv();
+  else finExportCsv();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FINANCIAL MODULE — Saldos Pendientes (Plan 2)
+// ═══════════════════════════════════════════════════════════════
+
+let _balPage = 1;
+const _balPageSize = 18;
+let _balTotal = 0;
+let _balDebounceTimer = null;
+let _balCurrentRecord = null;
+let _balRecordsMap = {};
+
+const BAL_HOTELS = [
+  'Aixo','Azuan','Rodadero','Avexi','ABI','Madisson',
+  'Windsor','Marina','Axis','San Siraka','Playa Salguero',
+  'Marqués','Aixo Remote','Boquilla',
+];
+let _balHotelFilterInit = false;
+function balInitHotelFilter() {
+  if (_balHotelFilterInit) return;
+  _balHotelFilterInit = true;
+  const sel = document.getElementById('bal-filter-hotel');
+  if (!sel) return;
+  BAL_HOTELS.forEach(function(name) {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+}
+
+async function balLoadStats() {
+  try {
+    const params = new URLSearchParams();
+    const hotel = document.getElementById('bal-filter-hotel') ? document.getElementById('bal-filter-hotel').value : '';
+    const date  = document.getElementById('bal-filter-date')  ? document.getElementById('bal-filter-date').value  : '';
+    if (hotel) params.set('hotelName', hotel);
+    if (date)  params.set('checkoutDate', date);
+    const res = await fetch('/api/financial/checkouts/stats?' + params.toString());
+    const json = await res.json();
+    if (!json.ok) return;
+    const s = json.stats;
+    const fmt = function(n) { return n != null ? n.toLocaleString('es-CO') : '—'; };
+    const fmtCop = function(n) { return n != null ? '$ ' + Math.round(n).toLocaleString('es-CO') : '—'; };
+    const pct = function(a, b) { return b > 0 ? (a / b * 100).toFixed(1) + '%' : '0%'; };
+    document.getElementById('bal-kpi-total').textContent = fmt(s.total);
+    document.getElementById('bal-kpi-no-balance').textContent = fmt(s.noBalance);
+    document.getElementById('bal-kpi-no-balance-pct').textContent = pct(s.noBalance, s.total) + ' del total';
+    document.getElementById('bal-kpi-with-balance').textContent = fmt(s.withBalance);
+    document.getElementById('bal-kpi-with-balance-pct').textContent = pct(s.withBalance, s.total) + ' del total';
+    document.getElementById('bal-kpi-total-amount').textContent = fmtCop(s.totalPendingAmount);
+    document.getElementById('bal-kpi-avg').textContent = fmtCop(s.avgPendingAmount);
+    document.getElementById('bal-kpi-investigating').textContent = fmt(s.underInvestigation);
+    document.getElementById('bal-kpi-collection').textContent = fmt(s.collectionRequested);
+    document.getElementById('bal-kpi-top-hotel').textContent = s.hotelWithMostBalance || '—';
+  } catch(e) { console.warn('balLoadStats', e); }
+}
+
+async function balLoadTable() {
+  const tbody = document.getElementById('bal-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="10" class="fin-empty">Cargando…</td></tr>';
+
+  const params = new URLSearchParams();
+  params.set('page', String(_balPage));
+  params.set('pageSize', String(_balPageSize));
+  const search = document.getElementById('bal-search') ? document.getElementById('bal-search').value.trim() : '';
+  const hotel  = document.getElementById('bal-filter-hotel') ? document.getElementById('bal-filter-hotel').value : '';
+  const date   = document.getElementById('bal-filter-date') ? document.getElementById('bal-filter-date').value : '';
+  if (search) params.set('search', search);
+  if (hotel)  params.set('hotelName', hotel);
+  if (date)   params.set('checkoutDate', date);
+
+  try {
+    const res = await fetch('/api/financial/checkouts?' + params.toString());
+    const json = await res.json();
+    if (!json.ok) { tbody.innerHTML = '<tr><td colspan="11" class="fin-empty">Error: ' + finEsc(json.error) + '</td></tr>'; return; }
+    _balTotal = json.total;
+    balRenderTable(json.data);
+    balRenderPagination();
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="10" class="fin-empty">Error de red</td></tr>';
+  }
+}
+
+function balRenderTable(rows) {
+  const tbody = document.getElementById('bal-table-body');
+  if (!rows || rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" class="fin-empty">Sin registros con los filtros actuales.</td></tr>';
+    return;
+  }
+  _balRecordsMap = {};
+  rows.forEach(function(r) { _balRecordsMap[r.id] = r; });
+  const STATUS_LABELS = {
+    no_balance:'Sin saldo', pending_balance:'Saldo pendiente',
+    under_investigation:'En investigación', collection_requested:'Cobro solicitado',
+    paid:'Pagado', adjusted:'Ajustado', uncollectable:'Incobrable',
+  };
+  const STATUS_CLASS = {
+    no_balance:'reconciled', pending_balance:'unreconciled',
+    under_investigation:'pending_review', collection_requested:'pending_review',
+    paid:'reconciled', adjusted:'adjusted', uncollectable:'unreconciled',
+  };
+  tbody.innerHTML = rows.map(function(r) {
+    const rowClass = r.balanceStatus === 'pending_balance' ? 'duplicate'
+      : r.balanceStatus === 'under_investigation' ? 'reviewing'
+      : r.balanceStatus === 'collection_requested' ? 'reviewing'
+      : '';
+    const label = STATUS_LABELS[r.balanceStatus] || r.balanceStatus;
+    const badgeClass = STATUS_CLASS[r.balanceStatus] || '';
+    const fmtCop = function(v) { return v != null ? '$ ' + Math.round(v).toLocaleString('es-CO') : '—'; };
+    return '<tr class="' + rowClass + '" data-id="' + finEsc(r.id) + '">' +
+      '<td>' + finEsc(r.checkoutDate ? r.checkoutDate.slice(0,10) : '—') + '</td>' +
+      '<td style="font-weight:600">' + finEsc(r.hotelName || '—') + '</td>' +
+      '<td>' + finEsc(r.localizador || '—') + '</td>' +
+      '<td>' + finEsc(r.reservationId || '—') + '</td>' +
+      '<td>' + finEsc(r.guestName || '—') + '</td>' +
+      '<td>' + finEsc(r.checkInDate ? r.checkInDate.slice(0,10) : '—') + '</td>' +
+      '<td>' + finEsc(fmtCop(r.totalAmount)) + '</td>' +
+      '<td>' + finEsc(fmtCop(r.paidAmount)) + '</td>' +
+      '<td style="font-weight:700;' + (r.pendingBalance > 0 ? 'color:#c62828' : 'color:#2e7d32') + '">' + finEsc(fmtCop(r.pendingBalance)) + '</td>' +
+      '<td><button class="fin-action-btn" style="padding:4px 10px;font-size:.75rem;" onclick="balOpenDetail(\'' + finEsc(r.id) + '\')">Ver</button></td>' +
+      '</tr>';
+  }).join('');
+}
+
+function balRenderPagination() {
+  const totalPages = Math.ceil(_balTotal / _balPageSize) || 1;
+  document.getElementById('bal-pagination-info').textContent =
+    'Página ' + _balPage + ' de ' + totalPages + ' · ' + _balTotal.toLocaleString('es-CO') + ' registros';
+  document.getElementById('bal-btn-prev').disabled = _balPage <= 1;
+  document.getElementById('bal-btn-next').disabled = _balPage >= totalPages;
+}
+
+function balPrevPage() { if (_balPage > 1) { _balPage--; balLoadTable(); } }
+function balNextPage() {
+  if (_balPage < Math.ceil(_balTotal / _balPageSize)) { _balPage++; balLoadTable(); }
+}
+
+function balDebouncedLoad() {
+  clearTimeout(_balDebounceTimer);
+  _balDebounceTimer = setTimeout(function() { _balPage = 1; balLoadTable(); }, 350);
+}
+
+function balShowIdle() {
+  const tbody = document.getElementById('bal-table-body');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="10" class="fin-empty" style="padding:2rem;color:#888;">Selecciona un hotel y una fecha, luego presiona <strong>Consultar</strong>.</td></tr>';
+  document.getElementById('bal-pagination-info').textContent = '';
+  document.getElementById('bal-btn-prev').disabled = true;
+  document.getElementById('bal-btn-next').disabled = true;
+}
+
+function balQuery() {
+  const hotel = document.getElementById('bal-filter-hotel') ? document.getElementById('bal-filter-hotel').value : '';
+  const date  = document.getElementById('bal-filter-date')  ? document.getElementById('bal-filter-date').value  : '';
+  if (!hotel) { finShowToast('⚠️ Selecciona un hotel antes de consultar.'); return; }
+  if (!date)  { finShowToast('⚠️ Selecciona una fecha de checkout antes de consultar.'); return; }
+  _balPage = 1;
+  balLoadStats();
+  balLoadTable();
+}
+
+// ── Detail modal ──────────────────────────────────────────────
+
+function balOpenDetail(id) {
+  const r = _balRecordsMap[id];
+  if (!r) { finShowToast('❌ Registro no encontrado'); return; }
+  _balCurrentRecord = r;
+  balRenderDetailModal(r);
+  document.getElementById('bal-detail-modal').classList.add('open');
+}
+
+function balRenderDetailModal(r) {
+  const fmt = function(v) { return v != null ? v : '—'; };
+  const fmtCop = function(v) { return v != null ? '$ ' + Math.round(v).toLocaleString('es-CO') : '—'; };
+  const STATUS_LABELS = {
+    no_balance:'Sin saldo', pending_balance:'Saldo pendiente',
+    under_investigation:'En investigación', collection_requested:'Cobro solicitado',
+    paid:'Pagado', adjusted:'Ajustado', uncollectable:'Incobrable',
+  };
+  const STATUS_CLASS = {
+    no_balance:'reconciled', pending_balance:'unreconciled',
+    under_investigation:'pending_review', collection_requested:'pending_review',
+    paid:'reconciled', adjusted:'adjusted', uncollectable:'unreconciled',
+  };
+  document.getElementById('bal-detail-title').textContent =
+    (r.guestName || r.reservationId || 'Detalle de saldo pendiente');
+  document.getElementById('bal-detail-body').innerHTML =
+    '<div class="fin-field-row">' +
+      '<div class="fin-field"><label>Hotel</label><span>' + finEsc(fmt(r.hotelName)) + '</span></div>' +
+      '<div class="fin-field"><label>Localizador</label><span>' + finEsc(fmt(r.localizador)) + '</span></div>' +
+    '</div>' +
+    '<div class="fin-field-row">' +
+      '<div class="fin-field"><label>Reserva</label><span>' + finEsc(fmt(r.reservationId)) + '</span></div>' +
+      '<div class="fin-field"><label>Huésped</label><span>' + finEsc(fmt(r.guestName)) + '</span></div>' +
+    '</div>' +
+    '<div class="fin-field-row">' +
+      '<div class="fin-field"><label>Check-in</label><span>' + finEsc(fmt(r.checkInDate ? r.checkInDate.slice(0,10) : null)) + '</span></div>' +
+      '<div class="fin-field"><label>Check-out</label><span>' + finEsc(fmt(r.checkoutDate ? r.checkoutDate.slice(0,10) : null)) + '</span></div>' +
+    '</div>' +
+    '<div class="fin-section-title">Desglose financiero</div>' +
+    '<div class="fin-field-row">' +
+      '<div class="fin-field"><label>Valor total</label><span>' + fmtCop(r.totalAmount) + '</span></div>' +
+      '<div class="fin-field"><label>Valor pagado</label><span>' + fmtCop(r.paidAmount) + '</span></div>' +
+    '</div>' +
+    '<div class="fin-field-row">' +
+      '<div class="fin-field"><label>Saldo pendiente</label><span style="font-weight:800;font-size:1.05rem;color:' + (r.pendingBalance > 0 ? '#c62828' : '#2e7d32') + '">' + fmtCop(r.pendingBalance) + '</span></div>' +
+      '<div class="fin-field"><label>Método de pago</label><span>' + finEsc(fmt(r.paymentMethod)) + '</span></div>' +
+    '</div>' +
+    '<div class="fin-section-title">Estado</div>' +
+    '<div class="fin-field-row">' +
+      '<div class="fin-field"><label>Estado actual</label><span><span class="fin-badge ' + finEsc(STATUS_CLASS[r.balanceStatus] || '') + '">' + finEsc(STATUS_LABELS[r.balanceStatus] || r.balanceStatus) + '</span></span></div>' +
+      '<div class="fin-field"><label>Canal</label><span>' + finEsc(fmt(r.channel)) + '</span></div>' +
+    '</div>';
+
+  const footer = document.getElementById('bal-detail-footer');
+  footer.innerHTML = '<button class="fin-action-btn" onclick="balCloseDetail()">Cerrar</button>';
+}
+
+function balCloseDetail() {
+  document.getElementById('bal-detail-modal').classList.remove('open');
+  _balCurrentRecord = null;
+}
+
+// ── Export ────────────────────────────────────────────────────
+function balExportCsv() {
+  const params = new URLSearchParams();
+  const hotel  = document.getElementById('bal-filter-hotel') ? document.getElementById('bal-filter-hotel').value : '';
+  const date   = document.getElementById('bal-filter-date') ? document.getElementById('bal-filter-date').value : '';
+  const search = document.getElementById('bal-search') ? document.getElementById('bal-search').value.trim() : '';
+  if (hotel)  params.set('hotelName', hotel);
+  if (date)   params.set('checkoutDate', date);
+  if (search) params.set('search', search);
+  window.open('/api/financial/checkouts/export?' + params.toString(), '_blank');
+}
+
 // ═══════════════════════════════════════════════════════════════
 // END FINANCIAL MODULE
 // ═══════════════════════════════════════════════════════════════
