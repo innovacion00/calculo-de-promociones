@@ -1504,8 +1504,8 @@
     <h2>💰 Gestión Financiera</h2>
     <div style="display:flex;gap:8px;">
       <button class="fin-action-btn" onclick="finHeaderExport()" id="fin-export-btn">⬇ Exportar CSV</button>
-      <button class="fin-action-btn" onclick="finHeaderDelete()" id="fin-delete-btn" style="color:#c62828;border-color:#e57373;">🗑 Limpiar registros</button>
-      <button class="fin-action-btn primary" onclick="finHeaderImport()" id="fin-import-btn">📥 Importar Excel</button>
+      <button class="fin-action-btn" onclick="finHeaderDelete()" id="fin-delete-btn" style="color:#c62828;border-color:#e57373;display:none;">🗑 Limpiar registros</button>
+      <button class="fin-action-btn primary" onclick="finHeaderImport()" id="fin-import-btn" style="display:none;">📥 Importar Excel</button>
     </div>
   </div>
   <div class="fin-tabs">
@@ -1523,15 +1523,6 @@
       <div class="fin-kpi ok"><div class="fin-kpi-label">Conciliado</div><div class="fin-kpi-value" id="fin-kpi-reconciled">—</div><div class="fin-kpi-sub" id="fin-kpi-reconciled-pct">—</div></div>
       <div class="fin-kpi bad"><div class="fin-kpi-label">No conciliado</div><div class="fin-kpi-value" id="fin-kpi-unreconciled">—</div><div class="fin-kpi-sub" id="fin-kpi-unreconciled-pct">—</div></div>
     </div>
-    <!-- KPI row 2: alertas -->
-    <div class="fin-section-title">Bandejas de alerta</div>
-    <div class="fin-kpi-row" id="fin-kpi-alertas">
-      <div class="fin-kpi alert" style="cursor:pointer;" onclick="finFilterBy('no_hotel')"><div class="fin-kpi-label">Sin hotel</div><div class="fin-kpi-value" id="fin-kpi-no-hotel">—</div></div>
-      <div class="fin-kpi alert" style="cursor:pointer;" onclick="finFilterBy('no_receipt')"><div class="fin-kpi-label">Sin comprobante</div><div class="fin-kpi-value" id="fin-kpi-no-receipt">—</div></div>
-      <div class="fin-kpi alert" style="cursor:pointer;" onclick="finFilterBy('probable_duplicate')"><div class="fin-kpi-label">Duplicados probables</div><div class="fin-kpi-value" id="fin-kpi-duplicates">—</div></div>
-      <div class="fin-kpi alert" style="cursor:pointer;" onclick="finFilterBy('no_confirmation')"><div class="fin-kpi-label">Sin referencia</div><div class="fin-kpi-value" id="fin-kpi-no-conf">—</div></div>
-      <div class="fin-kpi alert" style="cursor:pointer;" onclick="finFilterBy('requires_support')"><div class="fin-kpi-label">Requiere revisión</div><div class="fin-kpi-value" id="fin-kpi-requires">—</div></div>
-    </div>
     <!-- Toolbar filtros -->
     <div class="fin-toolbar">
       <input type="text" id="fin-search" placeholder="Buscar hotel, banco, referencia…" oninput="finDebouncedLoad()" style="min-width:200px;">
@@ -1539,16 +1530,9 @@
         <option value="">Todos los estados</option>
         <option value="reconciled">Conciliado</option>
         <option value="unreconciled">No conciliado</option>
-        <option value="pending_review">En revisión</option>
-        <option value="probable_duplicate">Duplicado probable</option>
-        <option value="requires_support">Requiere soporte</option>
-        <option value="no_hotel">Sin hotel</option>
-        <option value="under_investigation">En investigación</option>
-        <option value="adjusted">Ajustado</option>
       </select>
       <select id="fin-filter-hotel" onchange="finLoadTable()"><option value="">Todos los hoteles</option></select>
       <select id="fin-filter-bank" onchange="finLoadTable()"><option value="">Todos los bancos</option></select>
-      <select id="fin-filter-brand" onchange="finLoadTable()"><option value="">Todas las franquicias</option></select>
       <input type="date" id="fin-filter-from" onchange="finLoadTable()" title="Fecha desde">
       <input type="date" id="fin-filter-to" onchange="finLoadTable()" title="Fecha hasta">
       <button class="fin-action-btn" onclick="finClearFilters()">✕ Limpiar</button>
@@ -1557,10 +1541,10 @@
     <div class="fin-table-wrap">
       <table class="fin-table">
         <thead><tr>
-          <th>Fecha del movimiento</th><th>Nombre</th><th>Hotel</th><th>Banco</th><th>Franquicia</th>
+          <th>Fecha del movimiento</th><th>Nombre</th><th>Hotel</th><th>Banco</th>
           <th>Neto abonar</th><th>Estado</th><th></th>
         </tr></thead>
-        <tbody id="fin-table-body"><tr><td colspan="8" class="fin-empty">Cargando…</td></tr></tbody>
+        <tbody id="fin-table-body"><tr><td colspan="7" class="fin-empty">Cargando…</td></tr></tbody>
       </table>
     </div>
     <div class="fin-pagination">
@@ -10559,8 +10543,8 @@ function styRenderInlinePickupChart() {
 
   function barColor(pickup, alpha) {
     alpha = alpha || 1;
-    if (pickup > 1)   return 'rgba(60,170,90,'+alpha+')';
-    if (pickup < -1)  return 'rgba(195,0,0,'+alpha+')';
+    if (pickup > 0)   return 'rgba(60,170,90,'+alpha+')';
+    if (pickup < 0)   return 'rgba(195,0,0,'+alpha+')';
     return 'rgba(150,150,150,'+alpha+')';
   }
 
@@ -10610,7 +10594,7 @@ function styRenderInlinePickupChart() {
               font: { size: 9, weight: 'bold' },
               color: function(ctx) {
                 var pu = rows[ctx.dataIndex].pickup;
-                return pu > 1 ? '#0e5a30' : pu < -1 ? '#a00' : '#555';
+                return pu > 0 ? '#0e5a30' : pu < 0 ? '#a00' : '#555';
               }
             },
             {
@@ -10695,9 +10679,9 @@ function styRenderInlinePickupChart() {
   var legendDiv = document.getElementById('ch-inline-pickup-legend');
   if (legendDiv) {
     var legendItems = [
-      { color: 'rgba(60,170,90,0.8)',    label: '↑ Pickup subió (> +1.0pp)' },
-      { color: 'rgba(150,150,150,0.75)', label: '→ Estable (entre -1.0pp y +1.0pp)' },
-      { color: 'rgba(195,0,0,0.85)',     label: '↓ Pickup bajó (< -1.0pp)' },
+      { color: 'rgba(60,170,90,0.8)',    label: '↑ Pickup subió (> 0pp)' },
+      { color: 'rgba(150,150,150,0.75)', label: '→ Estable (= 0pp)' },
+      { color: 'rgba(195,0,0,0.85)',     label: '↓ Pickup bajó (< 0pp)' },
       { color: 'rgba(30,80,180,0.75)',   label: '— Occ Base' }
     ];
     var legHTML = '';
@@ -11935,8 +11919,8 @@ function styRenderPickupChartInto(rows, container, chartKey) {
 
   function barColor(pickup, alpha) {
     alpha = alpha || 1;
-    if (pickup > 1)   return 'rgba(60,170,90,'+alpha+')';
-    if (pickup < -1)  return 'rgba(195,0,0,'+alpha+')';
+    if (pickup > 0)   return 'rgba(60,170,90,'+alpha+')';
+    if (pickup < 0)   return 'rgba(195,0,0,'+alpha+')';
     return 'rgba(150,150,150,'+alpha+')';
   }
 
@@ -11987,7 +11971,7 @@ function styRenderPickupChartInto(rows, container, chartKey) {
               font: { size: 9, weight: 'bold' },
               color: function(ctx) {
                 var pu = rows[ctx.dataIndex].pickup;
-                return pu > 1 ? '#0e5a30' : pu < -1 ? '#a00' : '#555';
+                return pu > 0 ? '#0e5a30' : pu < 0 ? '#a00' : '#555';
               }
             },
             {
@@ -12072,9 +12056,9 @@ function styRenderPickupChartInto(rows, container, chartKey) {
   var legendDiv = document.getElementById(canvasId+'-legend');
   if (legendDiv) {
     var legendItems = [
-      { color: 'rgba(60,170,90,0.8)',    label: '↑ Pickup subió (> +1.0pp)' },
-      { color: 'rgba(150,150,150,0.75)', label: '→ Estable (entre -1.0pp y +1.0pp)' },
-      { color: 'rgba(195,0,0,0.85)',     label: '↓ Pickup bajó (< -1.0pp)' },
+      { color: 'rgba(60,170,90,0.8)',    label: '↑ Pickup subió (> 0pp)' },
+      { color: 'rgba(150,150,150,0.75)', label: '→ Estable (= 0pp)' },
+      { color: 'rgba(195,0,0,0.85)',     label: '↓ Pickup bajó (< 0pp)' },
       { color: 'rgba(30,80,180,0.75)',   label: '— Occ Base' }
     ];
     var legHTML = '';
@@ -14781,7 +14765,6 @@ async function finLoadFilterOptions() {
     if (!json.ok) return;
     const hotelSel = document.getElementById('fin-filter-hotel');
     const bankSel  = document.getElementById('fin-filter-bank');
-    const brandSel = document.getElementById('fin-filter-brand');
     if (hotelSel) {
       const cur = hotelSel.value;
       hotelSel.innerHTML = '<option value="">Todos los hoteles</option>' +
@@ -14793,12 +14776,6 @@ async function finLoadFilterOptions() {
       bankSel.innerHTML = '<option value="">Todos los bancos</option>' +
         json.banks.map(function(b) { return '<option value="' + finEsc(b) + '">' + finEsc(b) + '</option>'; }).join('');
       bankSel.value = cur;
-    }
-    if (brandSel) {
-      const cur = brandSel.value;
-      brandSel.innerHTML = '<option value="">Todas las franquicias</option>' +
-        json.brands.map(function(b) { return '<option value="' + finEsc(b) + '">' + finEsc(b) + '</option>'; }).join('');
-      brandSel.value = cur;
     }
   } catch(e) { /* silencioso */ }
 }
@@ -14814,13 +14791,8 @@ function finSwitchTab(tab, pushState) {
   });
   const impBtn = document.getElementById('fin-import-btn');
   const delBtn = document.getElementById('fin-delete-btn');
-  if (tab === 'reconciliations') {
-    if (impBtn) impBtn.style.display = hasPermission('canImportReconciliations') ? '' : 'none';
-    if (delBtn) delBtn.style.display = hasPermission('canImportReconciliations') ? '' : 'none';
-  } else {
-    if (impBtn) impBtn.style.display = 'none';
-    if (delBtn) delBtn.style.display = 'none';
-  }
+  if (impBtn) impBtn.style.display = 'none';
+  if (delBtn) delBtn.style.display = 'none';
   if (tab === 'balances') {
     balInitHotelFilter();
     balShowIdle();
@@ -14847,18 +14819,13 @@ async function finLoadStats() {
     document.getElementById('fin-kpi-reconciled-pct').textContent = pct(s.reconciled, s.total) + ' del total';
     document.getElementById('fin-kpi-unreconciled').textContent = fmt(s.unreconciled);
     document.getElementById('fin-kpi-unreconciled-pct').textContent = pct(s.unreconciled, s.total) + ' del total';
-    document.getElementById('fin-kpi-no-hotel').textContent = fmt(s.noHotel);
-    document.getElementById('fin-kpi-no-receipt').textContent = fmt(s.noReceipt);
-    document.getElementById('fin-kpi-duplicates').textContent = fmt(s.probableDuplicate);
-    document.getElementById('fin-kpi-no-conf').textContent = fmt(s.noConfirmation);
-    document.getElementById('fin-kpi-requires').textContent = fmt(s.requiresSupport);
   } catch(e) { console.warn('finLoadStats', e); }
 }
 
 async function finLoadTable() {
   const tbody = document.getElementById('fin-table-body');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="8" class="fin-empty">Cargando…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7" class="fin-empty">Cargando…</td></tr>';
 
   const params = new URLSearchParams();
   params.set('page', String(_finPage));
@@ -14867,54 +14834,43 @@ async function finLoadTable() {
   const status = document.getElementById('fin-filter-status') ? document.getElementById('fin-filter-status').value : '';
   const hotel  = document.getElementById('fin-filter-hotel') ? document.getElementById('fin-filter-hotel').value : '';
   const bank   = document.getElementById('fin-filter-bank') ? document.getElementById('fin-filter-bank').value : '';
-  const brand  = document.getElementById('fin-filter-brand') ? document.getElementById('fin-filter-brand').value : '';
   const from   = document.getElementById('fin-filter-from') ? document.getElementById('fin-filter-from').value : '';
   const to     = document.getElementById('fin-filter-to') ? document.getElementById('fin-filter-to').value : '';
   if (search) params.set('search', search);
   if (status) params.set('status', status);
   if (hotel)  params.set('hotelName', hotel);
   if (bank)   params.set('bank', bank);
-  if (brand)  params.set('cardBrand', brand);
   if (from)   params.set('dateFrom', from);
   if (to)     params.set('dateTo', to);
 
   try {
     const res = await fetch('/api/financial/reconciliations?' + params.toString());
     const json = await res.json();
-    if (!json.ok) { tbody.innerHTML = '<tr><td colspan="8" class="fin-empty">Error: ' + finEsc(json.error) + '</td></tr>'; return; }
+    if (!json.ok) { tbody.innerHTML = '<tr><td colspan="7" class="fin-empty">Error: ' + finEsc(json.error) + '</td></tr>'; return; }
     _finTotal = json.total;
     finRenderTable(json.data);
     finRenderPagination();
   } catch(e) {
-    tbody.innerHTML = '<tr><td colspan="8" class="fin-empty">Error de red</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="fin-empty">Error de red</td></tr>';
   }
 }
 
 function finRenderTable(rows) {
   const tbody = document.getElementById('fin-table-body');
   if (!rows || rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="fin-empty">Sin registros con los filtros actuales.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="fin-empty">Sin registros con los filtros actuales.</td></tr>';
     return;
   }
-  const STATUS_LABELS = {
-    reconciled:'Conciliado', unreconciled:'No conciliado', pending_review:'En revisión',
-    probable_duplicate:'Duplicado probable', requires_support:'Requiere soporte',
-    no_hotel:'Sin hotel', under_investigation:'En investigación', adjusted:'Ajustado',
-  };
+  const STATUS_LABELS = { reconciled:'Conciliado', unreconciled:'No conciliado' };
   tbody.innerHTML = rows.map(function(r) {
-    const rowClass = r.inconsistencyFlags && r.inconsistencyFlags.includes('no_hotel') ? 'no-hotel'
-      : r.inconsistencyFlags && r.inconsistencyFlags.includes('probable_duplicate') ? 'duplicate'
-      : (r.reconciledStatus === 'pending_review' || r.reconciledStatus === 'under_investigation') ? 'reviewing'
-      : '';
     const label = STATUS_LABELS[r.reconciledStatus] || r.reconciledStatus;
     const fmtDate = r.movementDate ? r.movementDate.slice(0,10) : '—';
     const fmtAmt = r.netAmount != null ? '$ ' + Math.round(r.netAmount).toLocaleString('es-CO') : '—';
-    return '<tr class="' + rowClass + '" data-id="' + finEsc(r.id) + '">' +
+    return '<tr data-id="' + finEsc(r.id) + '">' +
       '<td>' + finEsc(fmtDate) + '</td>' +
-      '<td style="font-weight:600">' + finEsc(r.movementName || r.companyName || '—') + '</td>' +
+      '<td style="font-weight:600">' + finEsc(r.movementName || '—') + '</td>' +
       '<td>' + finEsc(r.hotelName || '—') + '</td>' +
       '<td>' + finEsc(r.bank || '—') + '</td>' +
-      '<td>' + finEsc(r.cardBrand || '—') + '</td>' +
       '<td style="font-weight:700">' + finEsc(fmtAmt) + '</td>' +
       '<td><span class="fin-badge ' + finEsc(r.reconciledStatus) + '">' + finEsc(label) + '</span></td>' +
       '<td><button class="fin-action-btn" style="padding:4px 10px;font-size:.75rem;" onclick="finOpenDetail(\'' + finEsc(r.id) + '\')">Ver</button></td>' +
@@ -14941,17 +14897,16 @@ function finDebouncedLoad() {
 }
 
 function finClearFilters() {
-  ['fin-search','fin-filter-status','fin-filter-hotel','fin-filter-bank','fin-filter-brand','fin-filter-from','fin-filter-to']
+  ['fin-search','fin-filter-status','fin-filter-hotel','fin-filter-bank','fin-filter-from','fin-filter-to']
     .forEach(function(id) { const el = document.getElementById(id); if (el) el.value = ''; });
   _finPage = 1;
   finLoadTable();
 }
 
-function finFilterBy(inconsistencyFlag) {
-  const map = { no_hotel:'no_hotel', requires_support:'requires_support', probable_duplicate:'probable_duplicate' };
+function finFilterBy(status) {
   const statusEl = document.getElementById('fin-filter-status');
-  if (statusEl && map[inconsistencyFlag]) {
-    statusEl.value = map[inconsistencyFlag];
+  if (statusEl) {
+    statusEl.value = status;
     _finPage = 1;
     finLoadTable();
   }
@@ -14962,7 +14917,7 @@ let _finDetailRecord = null;
 
 async function finOpenDetail(id) {
   try {
-    const res = await fetch('/api/financial/reconciliations?search=' + encodeURIComponent(id) + '&pageSize=1');
+    const res = await fetch('/api/financial/reconciliations?id=' + encodeURIComponent(id));
     const json = await res.json();
     const r = json.data && json.data[0];
     if (!r) { finShowToast('❌ Registro no encontrado'); return; }
@@ -14975,103 +14930,30 @@ async function finOpenDetail(id) {
 function finRenderDetailModal(r) {
   const fmt = function(v) { return v != null ? v : '—'; };
   const fmtCop = function(v) { return v != null ? '$ ' + Math.round(v).toLocaleString('es-CO') : '—'; };
-  const STATUS_LABELS = {
-    reconciled:'Conciliado', unreconciled:'No conciliado', pending_review:'En revisión',
-    probable_duplicate:'Duplicado probable', requires_support:'Requiere soporte',
-    no_hotel:'Sin hotel', under_investigation:'En investigación', adjusted:'Ajustado',
-  };
-  document.getElementById('fin-detail-title').textContent = r.movementName || r.companyName || 'Detalle de movimiento';
+  const STATUS_LABELS = { reconciled:'Conciliado', unreconciled:'No conciliado' };
+  document.getElementById('fin-detail-title').textContent = r.movementName || 'Detalle de movimiento';
   document.getElementById('fin-detail-body').innerHTML =
     '<div class="fin-field-row">' +
       '<div class="fin-field"><label>Hotel</label><span>' + finEsc(fmt(r.hotelName)) + '</span></div>' +
-      '<div class="fin-field"><label>Razón social</label><span>' + finEsc(fmt(r.companyName)) + '</span></div>' +
-    '</div>' +
-    '<div class="fin-field-row">' +
-      '<div class="fin-field"><label>Fecha del movimiento</label><span>' + finEsc(fmt(r.movementDate ? r.movementDate.slice(0,10) : null)) + '</span></div>' +
       '<div class="fin-field"><label>Banco</label><span>' + finEsc(fmt(r.bank)) + '</span></div>' +
     '</div>' +
     '<div class="fin-field-row">' +
-      '<div class="fin-field"><label>Tipo de operación</label><span>' + finEsc(fmt(r.operationType)) + '</span></div>' +
+      '<div class="fin-field"><label>Fecha del movimiento</label><span>' + finEsc(fmt(r.movementDate ? r.movementDate.slice(0,10) : null)) + '</span></div>' +
       '<div class="fin-field"><label>Nº Confirmación</label><span>' + finEsc(fmt(r.confirmationNumber)) + '</span></div>' +
-    '</div>' +
-    '<div class="fin-section-title">Desglose financiero</div>' +
-    '<div class="fin-field-row">' +
-      '<div class="fin-field"><label>Valor compra</label><span>' + fmtCop(r.purchaseValue) + '</span></div>' +
-      '<div class="fin-field"><label>Comisión</label><span>' + fmtCop(r.commission) + '</span></div>' +
     '</div>' +
     '<div class="fin-field-row">' +
       '<div class="fin-field"><label>Neto abonar</label><span style="font-weight:800;font-size:1.05rem">' + fmtCop(r.netAmount) + '</span></div>' +
-      '<div class="fin-field"><label>Retefuente</label><span>' + fmtCop(r.withholdingTax) + '</span></div>' +
-    '</div>' +
-    '<div class="fin-field-row">' +
-      '<div class="fin-field"><label>ReteIVA</label><span>' + fmtCop(r.reteIva) + '</span></div>' +
-      '<div class="fin-field"><label>ReteICA</label><span>' + fmtCop(r.reteIca) + '</span></div>' +
-    '</div>' +
-    '<div class="fin-section-title">Estado e inconsistencias</div>' +
-    '<div class="fin-field-row">' +
       '<div class="fin-field"><label>Estado</label><span><span class="fin-badge ' + finEsc(r.reconciledStatus) + '">' + finEsc(STATUS_LABELS[r.reconciledStatus] || r.reconciledStatus) + '</span></span></div>' +
-      '<div class="fin-field"><label>Duplicado</label><span>' + (r.duplicateFlag ? '⚠️ Sí' : '—') + '</span></div>' +
     '</div>' +
-    (r.inconsistencyFlags && r.inconsistencyFlags.length ? '<div class="fin-field" style="margin-bottom:12px"><label>Flags</label><span>' + r.inconsistencyFlags.map(function(f){ return '<span class="fin-badge pending_review" style="margin-right:4px">' + finEsc(f) + '</span>'; }).join('') + '</span></div>' : '') +
-    (r.receiptUrl ? '<div class="fin-field" style="margin-bottom:12px"><label>Comprobante</label><span><a href="' + finEsc(r.receiptUrl) + '" target="_blank" rel="noopener">Ver comprobante ↗</a></span></div>' : '') +
-    '<div class="fin-field" style="margin-top:8px"><label>Observación</label>' +
-      '<textarea id="fin-detail-notes" rows="3" placeholder="Agregar observación…">' + finEsc(r.notes || '') + '</textarea>' +
-    '</div>';
+    '<div class="fin-field" style="margin-top:8px"><label>Notas</label><span>' + finEsc(fmt(r.notes)) + '</span></div>';
 
   const footer = document.getElementById('fin-detail-footer');
-  const canEdit = hasPermission('canEditReconciliations');
-  const canMark = hasPermission('canMarkReconciled');
-  footer.innerHTML =
-    (canEdit ? '<button class="fin-action-btn primary" onclick="finSaveNotes(\'' + finEsc(r.id) + '\')">💾 Guardar</button>' : '') +
-    (canMark && r.reconciledStatus !== 'reconciled' ? '<button class="fin-action-btn" style="background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7;" onclick="finMarkReconciled(\'' + finEsc(r.id) + '\')">✅ Marcar conciliado</button>' : '') +
-    (canMark && r.reconciledStatus === 'reconciled' ? '<button class="fin-action-btn" onclick="finMarkUnreconciled(\'' + finEsc(r.id) + '\')">↩ Desmarcar</button>' : '') +
-    '<button class="fin-action-btn" onclick="finCloseDetail()">Cerrar</button>';
+  footer.innerHTML = '<button class="fin-action-btn" onclick="finCloseDetail()">Cerrar</button>';
 }
 
 function finCloseDetail() {
   document.getElementById('fin-detail-modal').classList.remove('open');
   _finDetailRecord = null;
-}
-
-async function finSaveNotes(id) {
-  const notesEl = document.getElementById('fin-detail-notes');
-  const notes = notesEl ? notesEl.value : '';
-  try {
-    const res = await fetch('/api/financial/reconciliations/' + encodeURIComponent(id), {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notes: notes }),
-    });
-    const json = await res.json();
-    if (!json.ok) { finShowToast('❌ ' + (json.error || 'Error')); return; }
-    finShowToast('✅ Observación guardada');
-    finCloseDetail();
-    finLoadTable();
-  } catch(e) { finShowToast('❌ Error de red'); }
-}
-
-async function finMarkReconciled(id) {
-  try {
-    const res = await fetch('/api/financial/reconciliations/' + encodeURIComponent(id) + '/mark-reconciled', { method: 'POST' });
-    const json = await res.json();
-    if (!json.ok) { finShowToast('❌ ' + (json.error || 'Error')); return; }
-    finShowToast('✅ Marcado como conciliado');
-    finCloseDetail();
-    finLoadStats();
-    finLoadTable();
-  } catch(e) { finShowToast('❌ Error de red'); }
-}
-
-async function finMarkUnreconciled(id) {
-  try {
-    const res = await fetch('/api/financial/reconciliations/' + encodeURIComponent(id) + '/mark-unreconciled', { method: 'POST' });
-    const json = await res.json();
-    if (!json.ok) { finShowToast('❌ ' + (json.error || 'Error')); return; }
-    finShowToast('✅ Desmarcado como conciliado');
-    finCloseDetail();
-    finLoadStats();
-    finLoadTable();
-  } catch(e) { finShowToast('❌ Error de red'); }
 }
 
 // ── Import modal ──────────────────────────────────────────────
@@ -15208,14 +15090,12 @@ function finExportCsv() {
   const status = document.getElementById('fin-filter-status') ? document.getElementById('fin-filter-status').value : '';
   const hotel  = document.getElementById('fin-filter-hotel') ? document.getElementById('fin-filter-hotel').value : '';
   const bank   = document.getElementById('fin-filter-bank') ? document.getElementById('fin-filter-bank').value : '';
-  const brand  = document.getElementById('fin-filter-brand') ? document.getElementById('fin-filter-brand').value : '';
   const from   = document.getElementById('fin-filter-from') ? document.getElementById('fin-filter-from').value : '';
   const to     = document.getElementById('fin-filter-to') ? document.getElementById('fin-filter-to').value : '';
   const search = document.getElementById('fin-search') ? document.getElementById('fin-search').value.trim() : '';
   if (status) params.set('status', status);
   if (hotel)  params.set('hotelName', hotel);
   if (bank)   params.set('bank', bank);
-  if (brand)  params.set('cardBrand', brand);
   if (from)   params.set('dateFrom', from);
   if (to)     params.set('dateTo', to);
   if (search) params.set('search', search);

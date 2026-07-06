@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '../../../../lib/auth/session';
-import { listRecords, insertMany, ensureIndexes, deleteAll } from '../../../../lib/db/models/financialReconciliation';
+import {
+  listBitrixReconciliations,
+  getBitrixReconciliationById,
+  type ReconciledStatus,
+} from '../../../../lib/bitrixReconciliations';
+import { insertMany, ensureIndexes, deleteAll } from '../../../../lib/db/models/financialReconciliation';
 import { insertAuditLog } from '../../../../lib/db/models/financialAuditLog';
 import { randomUUID } from 'crypto';
 
@@ -12,13 +17,26 @@ export async function GET(req: NextRequest) {
   }
 
   const sp = req.nextUrl.searchParams;
+
+  const id = sp.get('id');
+  if (id) {
+    try {
+      const record = await getBitrixReconciliationById(id);
+      return NextResponse.json({ ok: true, data: record ? [record] : [], total: record ? 1 : 0 });
+    } catch (e) {
+      return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
+    }
+  }
+
+  const rawStatus = sp.get('status');
+  const status: ReconciledStatus | undefined =
+    rawStatus === 'reconciled' || rawStatus === 'unreconciled' ? rawStatus : undefined;
+
   try {
-    const result = await listRecords({
-      hotelId: sp.get('hotelId') ?? undefined,
+    const result = await listBitrixReconciliations({
       hotelName: sp.get('hotelName') ?? undefined,
-      status: (sp.get('status') as never) ?? undefined,
       bank: sp.get('bank') ?? undefined,
-      cardBrand: sp.get('cardBrand') ?? undefined,
+      status,
       dateFrom: sp.get('dateFrom') ?? undefined,
       dateTo: sp.get('dateTo') ?? undefined,
       search: sp.get('search') ?? undefined,
@@ -30,6 +48,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
   }
 }
+
+// ── Legacy Excel import / manual cleanup (Mongo-backed) ──────────────────────
+// Kept for API compatibility; unreachable from the UI since the reconciliations
+// submodule now reads live from Bitrix (see GET above) and no longer persists data.
 
 const COL_ALIASES: Record<string, string[]> = {
   hotel:              ['Hotel', 'Establecimiento', 'Propiedad', 'Nombre establecimiento'],

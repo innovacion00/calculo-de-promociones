@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '../../../../../lib/auth/session';
-import { listRecords } from '../../../../../lib/db/models/financialReconciliation';
+import { listBitrixReconciliations, type ReconciledStatus } from '../../../../../lib/bitrixReconciliations';
 
 function escCsv(val: unknown): string {
   const s = String(val ?? '');
@@ -18,12 +18,15 @@ export async function GET(req: NextRequest) {
   }
 
   const sp = req.nextUrl.searchParams;
+  const rawStatus = sp.get('status');
+  const status: ReconciledStatus | undefined =
+    rawStatus === 'reconciled' || rawStatus === 'unreconciled' ? rawStatus : undefined;
+
   try {
-    const { data } = await listRecords({
-      hotelId: sp.get('hotelId') ?? undefined,
-      status: (sp.get('status') as never) ?? undefined,
+    const { data } = await listBitrixReconciliations({
+      hotelName: sp.get('hotelName') ?? undefined,
       bank: sp.get('bank') ?? undefined,
-      cardBrand: sp.get('cardBrand') ?? undefined,
+      status,
       dateFrom: sp.get('dateFrom') ?? undefined,
       dateTo: sp.get('dateTo') ?? undefined,
       search: sp.get('search') ?? undefined,
@@ -32,23 +35,17 @@ export async function GET(req: NextRequest) {
     });
 
     const headers = [
-      'Fecha', 'Hotel', 'Razón Social', 'Banco', 'Franquicia',
-      'Tipo Operación', 'Nº Confirmación', 'Neto Abonar', 'Estado',
-      'Duplicado', 'Inconsistencias', 'Observación',
+      'Fecha', 'Nombre', 'Hotel', 'Banco', 'Nº Confirmación', 'Neto Abonar', 'Estado', 'Notas',
     ];
 
     const rows = data.map(r => [
       r.movementDate ?? '',
+      r.movementName ?? '',
       r.hotelName ?? '',
-      r.companyName ?? '',
       r.bank ?? '',
-      r.cardBrand ?? '',
-      r.operationType ?? '',
       r.confirmationNumber ?? '',
       r.netAmount ?? '',
-      r.reconciledStatus,
-      r.duplicateFlag ? 'Sí' : 'No',
-      r.inconsistencyFlags.join('; '),
+      r.reconciledStatus === 'reconciled' ? 'Conciliado' : 'No conciliado',
       r.notes ?? '',
     ].map(escCsv).join(','));
 
