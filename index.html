@@ -14945,7 +14945,8 @@ function finRenderDetailModal(r) {
       '<div class="fin-field"><label>Neto abonar</label><span style="font-weight:800;font-size:1.05rem">' + fmtCop(r.netAmount) + '</span></div>' +
       '<div class="fin-field"><label>Estado</label><span><span class="fin-badge ' + finEsc(r.reconciledStatus) + '">' + finEsc(STATUS_LABELS[r.reconciledStatus] || r.reconciledStatus) + '</span></span></div>' +
     '</div>' +
-    '<div class="fin-field" style="margin-top:8px"><label>Notas</label><span>' + finEsc(fmt(r.notes)) + '</span></div>';
+    '<div class="fin-field" style="margin-top:8px"><label>Notas</label><span>' + finEsc(fmt(r.notes)) + '</span></div>' +
+    '<div class="fin-field" style="margin-top:8px"><label>Notas Espejo</label><span>' + finEsc(fmt(r.mirrorNotes)) + '</span></div>';
 
   const footer = document.getElementById('fin-detail-footer');
   footer.innerHTML = '<button class="fin-action-btn" onclick="finCloseDetail()">Cerrar</button>';

@@ -18,11 +18,12 @@ const FIELD = {
   movementDate: 'UF_CRM_1718396297448',
   confirmationNumber: 'UF_CRM_1718397018945',
   notes: 'UF_CRM_1718396768717',
+  mirrorNotes: 'UF_CRM_1782163973301',
 } as const;
 
 const SELECT_FIELDS = [
   'ID', 'TITLE', 'STAGE_ID', 'CATEGORY_ID',
-  FIELD.hotel, FIELD.bank, FIELD.netAmount, FIELD.movementDate, FIELD.confirmationNumber, FIELD.notes,
+  FIELD.hotel, FIELD.bank, FIELD.netAmount, FIELD.movementDate, FIELD.confirmationNumber, FIELD.notes, FIELD.mirrorNotes,
 ];
 
 const HOTEL_ENUM: Record<string, string> = {
@@ -71,6 +72,7 @@ export interface BitrixReconciliation {
   netAmount?: number;
   confirmationNumber?: string;
   notes?: string;
+  mirrorNotes?: string;
   reconciledStatus: ReconciledStatus;
 }
 
@@ -166,6 +168,7 @@ export function mapDeal(deal: RawDeal): BitrixReconciliation {
     netAmount: parseMoney(deal[FIELD.netAmount]),
     confirmationNumber: deal[FIELD.confirmationNumber] ? String(deal[FIELD.confirmationNumber]) : undefined,
     notes: deal[FIELD.notes] ? String(deal[FIELD.notes]) : undefined,
+    mirrorNotes: deal[FIELD.mirrorNotes] ? String(deal[FIELD.mirrorNotes]) : undefined,
     reconciledStatus: stageId === RECONCILED_STAGE_ID ? 'reconciled' : 'unreconciled',
   };
 }
