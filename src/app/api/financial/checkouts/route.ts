@@ -64,6 +64,7 @@ async function fetchCheckoutsFromSource(params: {
   hotelName?: string;
   checkoutDate?: string;
   search?: string;
+  channel?: string;
   page: number;
   pageSize: number;
 }): Promise<{ data: CheckoutBalance[]; total: number }> {
@@ -93,6 +94,20 @@ async function fetchCheckoutsFromSource(params: {
     );
   }
 
+  if (params.channel) {
+    records = records.filter(r => r.channel === params.channel);
+  }
+
+  records.sort((a, b) => {
+    const numA = parseInt((a.room ?? '').match(/\d+/)?.[0] ?? '', 10);
+    const numB = parseInt((b.room ?? '').match(/\d+/)?.[0] ?? '', 10);
+    if (isNaN(numA) && isNaN(numB)) return (a.room ?? '').localeCompare(b.room ?? '');
+    if (isNaN(numA)) return 1;
+    if (isNaN(numB)) return -1;
+    if (numA !== numB) return numA - numB;
+    return (a.room ?? '').localeCompare(b.room ?? '');
+  });
+
   const total = records.length;
   const start = (params.page - 1) * params.pageSize;
   return { data: records.slice(start, start + params.pageSize), total };
@@ -111,6 +126,7 @@ export async function GET(req: NextRequest) {
       hotelName:    sp.get('hotelName')    ?? undefined,
       checkoutDate: sp.get('checkoutDate') ?? undefined,
       search:       sp.get('search')       ?? undefined,
+      channel:      sp.get('channel')      ?? undefined,
       page:         sp.get('page')     ? Number(sp.get('page'))     : 1,
       pageSize:     sp.get('pageSize') ? Number(sp.get('pageSize')) : 18,
     });

@@ -44,6 +44,11 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const channel = sp.get('channel');
+    if (channel) {
+      records = records.filter(r => r.channel === channel);
+    }
+
     const headers = [
       'Fecha Checkout', 'Hotel', 'Reserva', 'Localizador', 'Huésped',
       'Check-in', 'Valor Hospedaje', 'Valor Pagado', 'Saldo Pendiente',

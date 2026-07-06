@@ -1592,16 +1592,17 @@
       <input type="text" id="bal-search" placeholder="Buscar reserva, huésped, hotel…" style="min-width:200px;">
       <select id="bal-filter-hotel"><option value="">Todos los hoteles</option></select>
       <input type="date" id="bal-filter-date" title="Fecha de checkout">
+      <select id="bal-filter-channel" onchange="balOnChannelChange()"><option value="">Todos los canales</option></select>
       <button class="fin-action-btn primary" onclick="balQuery()">🔍 Consultar</button>
     </div>
     <!-- Tabla -->
     <div class="fin-table-wrap">
       <table class="fin-table">
         <thead><tr>
-          <th>#</th><th>Fecha checkout</th><th>Hotel</th><th>Hab.</th><th>Localizador</th><th>Reserva</th><th>Huésped</th>
+          <th>#</th><th>Fecha checkout</th><th>Hotel</th><th>Hab.</th><th>Canal</th><th>Localizador</th><th>Reserva</th><th>Huésped</th>
           <th>Check-in</th><th>Valor total</th><th>Pagado</th><th>Saldo pendiente</th><th></th>
         </tr></thead>
-        <tbody id="bal-table-body"><tr><td colspan="10" class="fin-empty">Cargando…</td></tr></tbody>
+        <tbody id="bal-table-body"><tr><td colspan="13" class="fin-empty">Cargando…</td></tr></tbody>
       </table>
     </div>
     <div class="fin-pagination">
@@ -15254,10 +15255,13 @@ function finHeaderExport() {
 
 let _balPage = 1;
 const _balPageSize = 18;
+const _balFetchAllSize = 5000;
 let _balTotal = 0;
 let _balDebounceTimer = null;
 let _balCurrentRecord = null;
 let _balRecordsMap = {};
+let _balAllRecords = [];
+let _balFilteredRecords = [];
 
 const BAL_HOTELS = [
   'Aixo','Azuan','Rodadero','Avexi','ABI','Madisson',
@@ -15305,14 +15309,38 @@ async function balLoadStats() {
   } catch(e) { console.warn('balLoadStats', e); }
 }
 
+function balPopulateChannelFilterFromRecords(records) {
+  const sel = document.getElementById('bal-filter-channel');
+  if (!sel) return;
+  const current = sel.value;
+  const channels = Array.from(new Set(records.map(function(r) { return r.channel; }).filter(Boolean))).sort();
+  sel.innerHTML = '<option value="">Todos los canales</option>' +
+    channels.map(function(c) { return '<option value="' + finEsc(c) + '">' + finEsc(c) + '</option>'; }).join('');
+  sel.value = (current && channels.includes(current)) ? current : '';
+}
+
+function balApplyChannelFilterAndRender() {
+  const channel = document.getElementById('bal-filter-channel') ? document.getElementById('bal-filter-channel').value : '';
+  _balFilteredRecords = channel ? _balAllRecords.filter(function(r) { return r.channel === channel; }) : _balAllRecords;
+  _balTotal = _balFilteredRecords.length;
+  const start = (_balPage - 1) * _balPageSize;
+  balRenderTable(_balFilteredRecords.slice(start, start + _balPageSize));
+  balRenderPagination();
+}
+
+function balOnChannelChange() {
+  _balPage = 1;
+  balApplyChannelFilterAndRender();
+}
+
 async function balLoadTable() {
   const tbody = document.getElementById('bal-table-body');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="12" class="fin-empty">Cargando…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="13" class="fin-empty">Cargando…</td></tr>';
 
   const params = new URLSearchParams();
-  params.set('page', String(_balPage));
-  params.set('pageSize', String(_balPageSize));
+  params.set('page', '1');
+  params.set('pageSize', String(_balFetchAllSize));
   const search = document.getElementById('bal-search') ? document.getElementById('bal-search').value.trim() : '';
   const hotel  = document.getElementById('bal-filter-hotel') ? document.getElementById('bal-filter-hotel').value : '';
   const date   = document.getElementById('bal-filter-date') ? document.getElementById('bal-filter-date').value : '';
@@ -15323,19 +15351,20 @@ async function balLoadTable() {
   try {
     const res = await fetch('/api/financial/checkouts?' + params.toString());
     const json = await res.json();
-    if (!json.ok) { tbody.innerHTML = '<tr><td colspan="11" class="fin-empty">Error: ' + finEsc(json.error) + '</td></tr>'; return; }
-    _balTotal = json.total;
-    balRenderTable(json.data);
-    balRenderPagination();
+    if (!json.ok) { tbody.innerHTML = '<tr><td colspan="13" class="fin-empty">Error: ' + finEsc(json.error) + '</td></tr>'; return; }
+    _balAllRecords = json.data;
+    balPopulateChannelFilterFromRecords(_balAllRecords);
+    _balPage = 1;
+    balApplyChannelFilterAndRender();
   } catch(e) {
-    tbody.innerHTML = '<tr><td colspan="12" class="fin-empty">Error de red</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="13" class="fin-empty">Error de red</td></tr>';
   }
 }
 
 function balRenderTable(rows) {
   const tbody = document.getElementById('bal-table-body');
   if (!rows || rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="12" class="fin-empty">Sin registros con los filtros actuales.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="13" class="fin-empty">Sin registros con los filtros actuales.</td></tr>';
     return;
   }
   _balRecordsMap = {};
@@ -15352,6 +15381,7 @@ function balRenderTable(rows) {
       '<td>' + finEsc(r.checkoutDate ? r.checkoutDate.slice(0,10) : '—') + '</td>' +
       '<td style="font-weight:600">' + finEsc(r.hotelName || '—') + '</td>' +
       '<td style="text-align:center;">' + finEsc(r.room || '—') + '</td>' +
+      '<td>' + finEsc(r.channel || '—') + '</td>' +
       '<td>' + finEsc(r.localizador || '—') + '</td>' +
       '<td>' + finEsc(r.reservationId || '—') + '</td>' +
       '<td>' + finEsc(r.guestName || '—') + '</td>' +
@@ -15372,9 +15402,9 @@ function balRenderPagination() {
   document.getElementById('bal-btn-next').disabled = _balPage >= totalPages;
 }
 
-function balPrevPage() { if (_balPage > 1) { _balPage--; balLoadTable(); } }
+function balPrevPage() { if (_balPage > 1) { _balPage--; balApplyChannelFilterAndRender(); } }
 function balNextPage() {
-  if (_balPage < Math.ceil(_balTotal / _balPageSize)) { _balPage++; balLoadTable(); }
+  if (_balPage < Math.ceil(_balTotal / _balPageSize)) { _balPage++; balApplyChannelFilterAndRender(); }
 }
 
 function balDebouncedLoad() {
@@ -15384,7 +15414,7 @@ function balDebouncedLoad() {
 
 function balShowIdle() {
   const tbody = document.getElementById('bal-table-body');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="12" class="fin-empty" style="padding:2rem;color:#888;">Selecciona un hotel y una fecha, luego presiona <strong>Consultar</strong>.</td></tr>';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="13" class="fin-empty" style="padding:2rem;color:#888;">Selecciona un hotel y una fecha, luego presiona <strong>Consultar</strong>.</td></tr>';
   document.getElementById('bal-pagination-info').textContent = '';
   document.getElementById('bal-btn-prev').disabled = true;
   document.getElementById('bal-btn-next').disabled = true;
@@ -15465,12 +15495,14 @@ function balCloseDetail() {
 // ── Export ────────────────────────────────────────────────────
 function balExportCsv() {
   const params = new URLSearchParams();
-  const hotel  = document.getElementById('bal-filter-hotel') ? document.getElementById('bal-filter-hotel').value : '';
-  const date   = document.getElementById('bal-filter-date') ? document.getElementById('bal-filter-date').value : '';
-  const search = document.getElementById('bal-search') ? document.getElementById('bal-search').value.trim() : '';
-  if (hotel)  params.set('hotelName', hotel);
-  if (date)   params.set('checkoutDate', date);
-  if (search) params.set('search', search);
+  const hotel   = document.getElementById('bal-filter-hotel')   ? document.getElementById('bal-filter-hotel').value   : '';
+  const date    = document.getElementById('bal-filter-date')    ? document.getElementById('bal-filter-date').value    : '';
+  const search  = document.getElementById('bal-search')         ? document.getElementById('bal-search').value.trim()  : '';
+  const channel = document.getElementById('bal-filter-channel') ? document.getElementById('bal-filter-channel').value : '';
+  if (hotel)   params.set('hotelName', hotel);
+  if (date)    params.set('checkoutDate', date);
+  if (search)  params.set('search', search);
+  if (channel) params.set('channel', channel);
   window.open('/api/financial/checkouts/export?' + params.toString(), '_blank');
 }
 

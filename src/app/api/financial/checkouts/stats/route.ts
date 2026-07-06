@@ -19,20 +19,25 @@ export async function GET(req: NextRequest) {
       checkoutDate,
     });
 
-    const filtered = allStays.filter(({ stay }) => stay.checkOut?.startsWith(checkoutDate));
-    const enriched = await enrichStaysWithPayments(filtered);
+    const filteredByCheckout = allStays.filter(({ stay }) => stay.checkOut?.startsWith(checkoutDate));
+    const enriched = await enrichStaysWithPayments(filteredByCheckout);
 
     const all = enriched.map(({ stay, hotelKey, valorPagado, formaPago }) =>
       mapPmsToCheckout(stay, hotelKey, valorPagado, formaPago)
     );
 
-    const withBalance        = all.filter(r => r.pendingBalance > 0).length;
-    const noBalance          = all.length - withBalance;
-    const totalPendingAmount = all.reduce((acc, r) => acc + r.pendingBalance, 0);
+    const channels = Array.from(new Set(all.map(r => r.channel).filter((c): c is string => !!c))).sort();
+
+    const channelFilter = sp.get('channel');
+    const filtered = channelFilter ? all.filter(r => r.channel === channelFilter) : all;
+
+    const withBalance        = filtered.filter(r => r.pendingBalance > 0).length;
+    const noBalance          = filtered.length - withBalance;
+    const totalPendingAmount = filtered.reduce((acc, r) => acc + r.pendingBalance, 0);
     const avgPendingAmount   = withBalance > 0 ? totalPendingAmount / withBalance : 0;
 
     const byHotel: Record<string, number> = {};
-    for (const r of all) {
+    for (const r of filtered) {
       if (r.pendingBalance > 0) byHotel[r.hotelName] = (byHotel[r.hotelName] ?? 0) + r.pendingBalance;
     }
     const hotelWithMostBalance = Object.keys(byHotel).length > 0
@@ -42,7 +47,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       stats: {
-        total: all.length,
+        total: filtered.length,
         noBalance,
         withBalance,
         totalPendingAmount,
@@ -50,6 +55,7 @@ export async function GET(req: NextRequest) {
         underInvestigation:  0,
         collectionRequested: 0,
         hotelWithMostBalance,
+        channels,
       },
     });
   } catch (e) {
