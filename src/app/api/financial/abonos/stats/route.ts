@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '../../../../../lib/auth/session';
-import { getHotelOptions, getBankOptions } from '../../../../../lib/bitrixEnums';
+import { getAbonosStats } from '../../../../../lib/bitrixAbonos';
 
 export async function GET() {
   const session = await getSession();
@@ -8,9 +8,11 @@ export async function GET() {
   if (!session.permissions.includes('canViewFinancialModule')) {
     return NextResponse.json({ ok: false, error: 'Sin permisos.' }, { status: 403 });
   }
-  return NextResponse.json({
-    ok: true,
-    hotels: getHotelOptions(),
-    banks: getBankOptions(),
-  });
+
+  try {
+    const stats = await getAbonosStats();
+    return NextResponse.json({ ok: true, stats });
+  } catch (e) {
+    return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
+  }
 }

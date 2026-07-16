@@ -1079,7 +1079,7 @@
   .fin-kpi{min-width:calc(50% - 7px);}
 }
 </style>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="/vendor/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script>
@@ -1511,6 +1511,7 @@
   <div class="fin-tabs">
     <button class="fin-tab active" id="fin-tab-reconciliations" onclick="finSwitchTab('reconciliations')">🏦 Conciliaciones</button>
     <button class="fin-tab" id="fin-tab-balances" onclick="finSwitchTab('balances')">💳 Saldos Pendientes</button>
+    <button class="fin-tab" id="fin-tab-abonos" onclick="finSwitchTab('abonos')">💸 Abonos</button>
     <button class="fin-tab" id="fin-tab-accounts-receivable" onclick="finSwitchTab('accounts-receivable')" style="opacity:.5;cursor:default;" disabled title="Disponible en Plan 3">📋 Cuentas por Cobrar</button>
   </div>
 
@@ -1593,6 +1594,36 @@
       <button onclick="balPrevPage()" id="bal-btn-prev">◀ Anterior</button>
       <span id="bal-pagination-info"></span>
       <button onclick="balNextPage()" id="bal-btn-next">Siguiente ▶</button>
+    </div>
+  </div>
+
+  <!-- TAB: Abonos (negociaciones fallidas por abonar) -->
+  <div class="fin-body" id="fin-pane-abonos" style="display:none;">
+    <!-- KPI row -->
+    <div class="fin-kpi-row" id="abo-kpi-row">
+      <div class="fin-kpi"><div class="fin-kpi-label">Negociaciones fallidas</div><div class="fin-kpi-value" id="abo-kpi-total">—</div></div>
+      <div class="fin-kpi bad"><div class="fin-kpi-label">Neto a abonar</div><div class="fin-kpi-value" id="abo-kpi-amount">—</div></div>
+    </div>
+    <!-- Toolbar filtros -->
+    <div class="fin-toolbar">
+      <input type="text" id="abo-search" placeholder="Buscar nombre, hotel, banco…" oninput="aboDebouncedLoad()" style="min-width:200px;">
+      <select id="abo-filter-hotel" onchange="aboLoadTable()"><option value="">Todos los hoteles</option></select>
+      <select id="abo-filter-bank" onchange="aboLoadTable()"><option value="">Todos los bancos</option></select>
+      <button class="fin-action-btn" onclick="aboClearFilters()">✕ Limpiar</button>
+    </div>
+    <!-- Tabla -->
+    <div class="fin-table-wrap">
+      <table class="fin-table">
+        <thead><tr>
+          <th>Nombre</th><th>Hotel</th><th>Banco</th><th>Neto abonar</th><th>Causa del fallo</th><th>Estado</th>
+        </tr></thead>
+        <tbody id="abo-table-body"><tr><td colspan="6" class="fin-empty">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="fin-pagination">
+      <button onclick="aboPrevPage()" id="abo-btn-prev">◀ Anterior</button>
+      <span id="abo-pagination-info"></span>
+      <button onclick="aboNextPage()" id="abo-btn-next">Siguiente ▶</button>
     </div>
   </div>
 
@@ -14748,7 +14779,7 @@ function finInit() {
   if (expBtn) expBtn.style.display = hasPermission('canExportFinancialReports') ? '' : 'none';
 
   const urlTab = new URLSearchParams(window.location.search).get('tab');
-  if (urlTab && ['reconciliations','balances','accounts-receivable'].includes(urlTab)) {
+  if (urlTab && ['reconciliations','balances','abonos','accounts-receivable'].includes(urlTab)) {
     _finCurrentTab = urlTab;
   }
   finSwitchTab(_finCurrentTab, false);
@@ -14783,7 +14814,7 @@ async function finLoadFilterOptions() {
 function finSwitchTab(tab, pushState) {
   if (pushState === undefined) pushState = true;
   _finCurrentTab = tab;
-  ['reconciliations','balances','accounts-receivable'].forEach(function(t) {
+  ['reconciliations','balances','abonos','accounts-receivable'].forEach(function(t) {
     const btn = document.getElementById('fin-tab-' + t);
     if (btn) btn.classList.toggle('active', t === tab);
     const pane = document.getElementById('fin-pane-' + t);
@@ -14796,6 +14827,9 @@ function finSwitchTab(tab, pushState) {
   if (tab === 'balances') {
     balInitHotelFilter();
     balShowIdle();
+  }
+  if (tab === 'abonos') {
+    aboInit();
   }
   if (pushState) {
     const url = new URL(window.location.href);
@@ -15127,6 +15161,7 @@ function finHeaderDelete() {
 }
 function finHeaderExport() {
   if (_finCurrentTab === 'balances') balExportCsv();
+  else if (_finCurrentTab === 'abonos') aboExportCsv();
   else finExportCsv();
 }
 
@@ -15385,6 +15420,144 @@ function balExportCsv() {
   if (search)  params.set('search', search);
   if (channel) params.set('channel', channel);
   window.open('/api/financial/checkouts/export?' + params.toString(), '_blank');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FINANCIAL MODULE — Abonos (negociaciones fallidas por abonar)
+// ═══════════════════════════════════════════════════════════════
+
+let _aboInitialized = false;
+let _aboPage = 1;
+const _aboPageSize = 18;
+let _aboTotal = 0;
+let _aboDebounceTimer = null;
+
+function aboInit() {
+  if (_aboInitialized) return;
+  _aboInitialized = true;
+  aboLoadFilterOptions();
+  aboLoadStats();
+  aboLoadTable();
+}
+
+async function aboLoadFilterOptions() {
+  try {
+    const res = await fetch('/api/financial/abonos/distinct');
+    const json = await res.json();
+    if (!json.ok) return;
+    const hotelSel = document.getElementById('abo-filter-hotel');
+    const bankSel  = document.getElementById('abo-filter-bank');
+    if (hotelSel) {
+      const cur = hotelSel.value;
+      hotelSel.innerHTML = '<option value="">Todos los hoteles</option>' +
+        json.hotels.map(function(h) { return '<option value="' + finEsc(h) + '">' + finEsc(h) + '</option>'; }).join('');
+      hotelSel.value = cur;
+    }
+    if (bankSel) {
+      const cur = bankSel.value;
+      bankSel.innerHTML = '<option value="">Todos los bancos</option>' +
+        json.banks.map(function(b) { return '<option value="' + finEsc(b) + '">' + finEsc(b) + '</option>'; }).join('');
+      bankSel.value = cur;
+    }
+  } catch(e) { /* silencioso */ }
+}
+
+async function aboLoadStats() {
+  try {
+    const res = await fetch('/api/financial/abonos/stats');
+    const json = await res.json();
+    if (!json.ok) return;
+    const s = json.stats;
+    document.getElementById('abo-kpi-total').textContent = s.total.toLocaleString('es-CO');
+    document.getElementById('abo-kpi-amount').textContent = '$ ' + Math.round(s.totalNetAmount).toLocaleString('es-CO');
+  } catch(e) { console.warn('aboLoadStats', e); }
+}
+
+async function aboLoadTable() {
+  const tbody = document.getElementById('abo-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6" class="fin-empty">Cargando…</td></tr>';
+
+  const params = new URLSearchParams();
+  params.set('page', String(_aboPage));
+  params.set('pageSize', String(_aboPageSize));
+  const search = document.getElementById('abo-search') ? document.getElementById('abo-search').value.trim() : '';
+  const hotel  = document.getElementById('abo-filter-hotel') ? document.getElementById('abo-filter-hotel').value : '';
+  const bank   = document.getElementById('abo-filter-bank') ? document.getElementById('abo-filter-bank').value : '';
+  if (search) params.set('search', search);
+  if (hotel)  params.set('hotelName', hotel);
+  if (bank)   params.set('bank', bank);
+
+  try {
+    const res = await fetch('/api/financial/abonos?' + params.toString());
+    const json = await res.json();
+    if (!json.ok) { tbody.innerHTML = '<tr><td colspan="6" class="fin-empty">Error: ' + finEsc(json.error) + '</td></tr>'; return; }
+    _aboTotal = json.total;
+    aboRenderTable(json.data);
+    aboRenderPagination();
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="6" class="fin-empty">Error de red</td></tr>';
+  }
+}
+
+function aboRenderTable(rows) {
+  const tbody = document.getElementById('abo-table-body');
+  if (!rows || rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="fin-empty">Sin registros con los filtros actuales.</td></tr>';
+    return;
+  }
+  const fmtAmt = function(v) { return v != null ? '$ ' + Math.round(v).toLocaleString('es-CO') : '—'; };
+  const fmtReason = function(v) {
+    const full = v || '—';
+    const short = full.length > 30 ? full.slice(0, 27) + '…' : full;
+    return '<span title="' + finEsc(full) + '">' + finEsc(short) + '</span>';
+  };
+  tbody.innerHTML = rows.map(function(r) {
+    return '<tr data-id="' + finEsc(r.id) + '">' +
+      '<td style="font-weight:600">' + finEsc(r.name || '—') + '</td>' +
+      '<td>' + finEsc(r.hotelName || '—') + '</td>' +
+      '<td>' + finEsc(r.bank || '—') + '</td>' +
+      '<td style="font-weight:700">' + finEsc(fmtAmt(r.netAmount)) + '</td>' +
+      '<td>' + fmtReason(r.failureReason) + '</td>' +
+      '<td>' + (r.status ? '<span class="fin-badge unreconciled">' + finEsc(r.status) + '</span>' : '—') + '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+function aboRenderPagination() {
+  const totalPages = Math.ceil(_aboTotal / _aboPageSize) || 1;
+  document.getElementById('abo-pagination-info').textContent =
+    'Página ' + _aboPage + ' de ' + totalPages + ' · ' + _aboTotal.toLocaleString('es-CO') + ' registros';
+  document.getElementById('abo-btn-prev').disabled = _aboPage <= 1;
+  document.getElementById('abo-btn-next').disabled = _aboPage >= totalPages;
+}
+
+function aboPrevPage() { if (_aboPage > 1) { _aboPage--; aboLoadTable(); } }
+function aboNextPage() {
+  if (_aboPage < Math.ceil(_aboTotal / _aboPageSize)) { _aboPage++; aboLoadTable(); }
+}
+
+function aboDebouncedLoad() {
+  clearTimeout(_aboDebounceTimer);
+  _aboDebounceTimer = setTimeout(function() { _aboPage = 1; aboLoadTable(); }, 350);
+}
+
+function aboClearFilters() {
+  ['abo-search','abo-filter-hotel','abo-filter-bank'].forEach(function(id) { const el = document.getElementById(id); if (el) el.value = ''; });
+  _aboPage = 1;
+  aboLoadTable();
+}
+
+// ── Export ────────────────────────────────────────────────────
+function aboExportCsv() {
+  const params = new URLSearchParams();
+  const search = document.getElementById('abo-search') ? document.getElementById('abo-search').value.trim() : '';
+  const hotel  = document.getElementById('abo-filter-hotel') ? document.getElementById('abo-filter-hotel').value : '';
+  const bank   = document.getElementById('abo-filter-bank') ? document.getElementById('abo-filter-bank').value : '';
+  if (search) params.set('search', search);
+  if (hotel)  params.set('hotelName', hotel);
+  if (bank)   params.set('bank', bank);
+  window.open('/api/financial/abonos/export?' + params.toString(), '_blank');
 }
 
 // ═══════════════════════════════════════════════════════════════
