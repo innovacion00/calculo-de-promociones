@@ -1,0 +1,11 @@
+# DOMAIN debe apuntar (registro A) al droplet antes de levantar esto, para que
+# Caddy pueda emitir el certificado Let's Encrypt automáticamente.
+{$DOMAIN}
+
+encode gzip
+
+@api path /api/*
+reverse_proxy @api backend:3000
+
+root * /srv
+file_server

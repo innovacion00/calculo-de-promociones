@@ -1,0 +1,14 @@
+# Overlay para probar el stack completo en localhost, sin dominio ni TLS reales.
+# Uso: docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+#
+# NO usar esto en el droplet: desactiva la cookie "Secure" (NODE_ENV=development)
+# y expone el frontend en 8080 en vez de 80/443.
+services:
+  backend:
+    environment:
+      NODE_ENV: development
+      FRONTEND_ORIGIN: http://localhost:8080
+
+  frontend:
+    environment:
+      DOMAIN: ":80"
