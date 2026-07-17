@@ -1,0 +1,9 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import FinancialPage from '../components/financial/FinancialPage.jsx';
+import '../styles/components/financial.css';
+---
+
+<AppLayout title="GEH Suites — Gestión Financiera">
+  <FinancialPage client:load />
+</AppLayout>

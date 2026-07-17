@@ -1,0 +1,60 @@
+/* Módulo financiero. Port de las clases .fin-* de index.html. */
+.fin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.fin-header h2 { font-size: 1.25rem; font-weight: 800; color: var(--gold-dark); margin: 0; }
+
+.fin-tabs { display: flex; gap: 4px; padding-top: 12px; border-bottom: 1.5px solid var(--gold-border); margin-bottom: 20px; }
+.fin-tab {
+  padding: 7px 18px; border: none; background: none; cursor: pointer; font-size: 0.82rem;
+  font-weight: 600; color: #888; border-radius: 6px 6px 0 0; transition: all 0.15s; font-family: inherit;
+}
+.fin-tab.active { background: var(--gold-subtle); color: var(--gold-dark); border-bottom: 2px solid var(--gold); }
+.fin-tab:hover:not(.active):not(:disabled) { background: #f5f5f5; color: #555; }
+.fin-tab:disabled { opacity: 0.5; cursor: default; }
+
+.fin-kpi-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+.fin-kpi { flex: 1; min-width: 160px; background: #fff; border: 1.5px solid var(--gold-border); border-radius: 10px; padding: 14px 18px; }
+.fin-kpi-label { font-size: 0.72rem; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+.fin-kpi-value { font-size: 1.45rem; font-weight: 800; color: #1a1a2e; margin-top: 4px; }
+.fin-kpi-sub { font-size: 0.72rem; color: #aaa; margin-top: 2px; }
+.fin-kpi.alert { border-color: #f4a800; background: #fffbf0; }
+.fin-kpi.alert .fin-kpi-value { color: #b07800; }
+.fin-kpi.ok { border-color: #43a047; background: #f0faf0; }
+.fin-kpi.ok .fin-kpi-value { color: #2e7d32; }
+.fin-kpi.bad { border-color: #e53935; background: #fff5f5; }
+.fin-kpi.bad .fin-kpi-value { color: #c62828; }
+
+.fin-section-title { font-size: 0.78rem; font-weight: 800; color: var(--gold-dark); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 12px; }
+
+.fin-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+.fin-toolbar input, .fin-toolbar select {
+  padding: 7px 12px; border: 1.5px solid var(--gold-border); border-radius: 7px;
+  font-size: 0.82rem; background: #fff; color: #333; outline: none; font-family: inherit;
+}
+.fin-toolbar input:focus, .fin-toolbar select:focus { border-color: var(--gold); }
+
+.fin-action-btn {
+  padding: 7px 16px; border: 1.5px solid var(--gold-border); border-radius: 7px; background: #fff;
+  color: var(--gold-dark); font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.15s; font-family: inherit;
+}
+.fin-action-btn:hover { background: var(--gold-subtle); }
+.fin-action-btn.primary { background: var(--gold); color: #fff; border-color: var(--gold); }
+.fin-action-btn.primary:hover { background: var(--gold-dark); border-color: var(--gold-dark); }
+
+.fin-table-wrap { overflow-x: auto; }
+.fin-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.fin-table th {
+  background: var(--gold-subtle); color: var(--gold-dark); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.4px; font-size: 0.72rem; padding: 9px 12px; text-align: left;
+  border-bottom: 2px solid var(--gold-border); white-space: nowrap;
+}
+.fin-table td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; color: #333; vertical-align: middle; text-align: left; }
+.fin-table tr:hover td { background: #faf8f5; }
+.fin-empty { text-align: center; color: var(--gray3); padding: 24px; }
+
+.fin-badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; }
+.fin-badge.reconciled { background: #e8f5e9; color: #2e7d32; }
+.fin-badge.unreconciled { background: #ffebee; color: #c62828; }
+
+.fin-pagination { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-size: 0.82rem; color: #666; }
+.fin-pagination button { padding: 5px 13px; border: 1.5px solid var(--gold-border); border-radius: 6px; background: #fff; color: var(--gold-dark); cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+.fin-pagination button:disabled { opacity: 0.4; cursor: default; }

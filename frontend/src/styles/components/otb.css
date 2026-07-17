@@ -1,0 +1,117 @@
+/* Módulo OTB. Tarjetas de carga, tabs, badges de estado de pickup. */
+.otb-header h2 { font-size: 1.2rem; font-weight: 800; color: var(--gold-dark); margin-bottom: 4px; }
+.otb-header p { font-size: 0.78rem; color: var(--gray3); margin-bottom: 16px; }
+
+.otb-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+.otb-toolbar select { padding: 7px 12px; border: 1.5px solid var(--gold-border); border-radius: 7px; font-size: 0.82rem; background: #fff; font-family: inherit; }
+
+.otb-tabs { display: flex; gap: 4px; border-bottom: 1.5px solid var(--gold-border); margin-bottom: 20px; }
+.otb-tab { padding: 7px 18px; border: none; background: none; cursor: pointer; font-size: 0.82rem; font-weight: 600; color: #888; border-radius: 6px 6px 0 0; font-family: inherit; }
+.otb-tab.active { background: var(--gold-subtle); color: var(--gold-dark); border-bottom: 2px solid var(--gold); }
+.otb-tab:hover:not(.active) { background: #f5f5f5; }
+
+.otb-upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+@media (max-width: 700px) { .otb-upload-grid { grid-template-columns: 1fr; } }
+.otb-upload-card { background: #fff; border: 1.5px solid var(--gold-border); border-radius: 12px; padding: 18px; text-align: center; }
+.otb-upload-card.has-file { border-color: #43a047; background: #f5fbf5; }
+.otb-upload-icon { font-size: 1.8rem; }
+.otb-upload-title { font-size: 0.8rem; font-weight: 800; color: var(--gold-dark); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+.otb-upload-hint { font-size: 0.72rem; color: var(--gray3); margin-top: 3px; }
+.otb-cutoff-label { display: block; text-align: left; font-size: 0.72rem; font-weight: 700; color: var(--gold-dark); margin: 12px 0 4px; }
+.otb-cutoff-input { width: 100%; padding: 6px 8px; border-radius: 6px; border: 1.5px solid var(--gold-border); font-size: 0.82rem; font-family: inherit; }
+.otb-file-name { font-size: 0.74rem; color: #555; margin: 10px 0; min-height: 18px; }
+.otb-meta { font-size: 0.7rem; color: #555; text-align: left; margin-top: 8px; background: var(--gold-subtle); padding: 8px 10px; border-radius: 6px; }
+.otb-meta-warn { color: #b07800; }
+
+.otb-status { font-size: 0.8rem; color: var(--gray3); margin-bottom: 14px; }
+.otb-error { background: #fbe9e7; border: 1.5px solid #ef9a9a; color: #b71c1c; font-size: 0.78rem; padding: 10px 12px; border-radius: 8px; margin: 12px 0; }
+
+/* Badges de estado de pickup (reusa .fin-badge base). */
+.otb-badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 0.68rem; font-weight: 700; white-space: nowrap; }
+.otb-badge.strong-up, .otb-badge.moderate-up { background: #e8f5e9; color: #2e7d32; }
+.otb-badge.stable { background: #f0f0f0; color: #616161; }
+.otb-badge.moderate-down, .otb-badge.strong-down { background: #ffebee; color: #c62828; }
+.otb-badge.unknown { background: #f5f5f5; color: #9e9e9e; }
+
+/* Especificidad ".fin-table td.otb-pickup-pos" para ganarle a ".fin-table td { color:#333 }" de financial.css. */
+.otb-pickup-pos, .fin-table td.otb-pickup-pos { color: #2e7d32; font-weight: 700; }
+.otb-pickup-neg, .fin-table td.otb-pickup-neg { color: #c62828; font-weight: 700; }
+
+/* ── Histórico: filtros por fecha/mes ── */
+.otb-hist-filters { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.otb-hist-filters label { font-size: 0.77rem; color: var(--gray3); display: flex; align-items: center; gap: 5px; }
+.otb-hist-filters input { padding: 3px 7px; border-radius: 5px; border: 1.5px solid var(--gold-border); font-size: 0.8rem; font-family: inherit; }
+
+/* ── Histórico: botones de acción + fila de gráfico expandible ── */
+.otb-hist-actions { white-space: nowrap; }
+.otb-hist-btn { padding: 3px 9px; font-size: 0.68rem; font-weight: 600; border: 1.5px solid var(--gold-border); border-radius: 6px; background: #fff; cursor: pointer; margin-right: 4px; font-family: inherit; }
+.otb-hist-btn:hover { background: var(--gold-subtle); }
+.otb-hist-btn.active { background: var(--gold-subtle); border-color: var(--gold); }
+.otb-hist-btn.danger { border-color: #ef9a9a; color: #c62828; }
+.otb-hist-btn.danger:hover { background: #fbe9e7; }
+.otb-hist-detail { padding: 0 12px 16px !important; background: #fafaf5; }
+
+/* ── Ficha Técnica de Pickup ── */
+.otb-techsheet { margin-bottom: 18px; }
+.otb-techsheet-title { font-size: 0.72rem; font-weight: 700; color: var(--gray3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+.otb-kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.otb-kpi { background: #fff; border: 1px solid var(--gold-border); border-radius: 10px; padding: 14px; text-align: center; }
+.otb-kpi-label { font-size: 0.65rem; font-weight: 700; color: var(--gray3); text-transform: uppercase; letter-spacing: 0.8px; }
+.otb-kpi-value { font-size: 1.3rem; font-weight: 800; color: var(--gold-dark); margin: 4px 0; }
+.otb-kpi-sub { font-size: 0.68rem; color: var(--gray3); }
+.otb-kpi.up .otb-kpi-value { color: #1a6e3c; }
+.otb-kpi.down .otb-kpi-value { color: #c00; }
+
+/* ── Gráficos ── */
+.otb-chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 900px) { .otb-chart-grid { grid-template-columns: 1fr; } }
+.otb-chart-box { background: #fff; border: 1.5px solid var(--gold-border); border-radius: 12px; padding: 14px 16px; }
+.otb-chart-box:first-child, .otb-chart-box.full { grid-column: 1 / -1; }
+.otb-chart-title { font-size: 0.82rem; font-weight: 800; color: var(--gold-dark); }
+.otb-chart-sub { font-size: 0.68rem; color: var(--gray3); margin: 2px 0 8px; }
+.otb-chart-tip { background: rgba(15, 15, 15, 0.92); color: #fff; border-radius: 8px; padding: 10px 12px; font-size: 0.72rem; line-height: 1.5; }
+.otb-chart-tip-title { font-weight: 800; margin-bottom: 4px; }
+
+/* ── Consultor RM ── */
+.otb-diag { border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; border: 2px solid; }
+.otb-diag.positive { background: #e8f5e9; border-color: #4caf50; color: #1b5e20; }
+.otb-diag.negative { background: #ffebee; border-color: #f44336; color: #b71c1c; }
+.otb-diag.mixed { background: #fff8e1; border-color: #ff9800; color: #e65100; }
+.otb-diag.stable { background: #f3f3f3; border-color: #9e9e9e; color: #424242; }
+.otb-diag-title { font-size: 0.85rem; font-weight: 800; margin-bottom: 8px; }
+.otb-diag-text { font-size: 0.82rem; line-height: 1.6; }
+.otb-diag-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.otb-diag-chips span { background: rgba(0, 0, 0, 0.07); padding: 4px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; }
+
+.otb-rec-section { margin-bottom: 18px; }
+.otb-rec-title { font-size: 0.8rem; font-weight: 800; margin-bottom: 8px; }
+.otb-rec-title.green { color: #1b5e20; }
+.otb-rec-title.red { color: #b71c1c; }
+.otb-rec-title.orange { color: #e65100; }
+.otb-rec-title.dark { color: #2c1a00; }
+.otb-rec-empty { border-radius: 8px; padding: 12px 16px; font-size: 0.78rem; }
+.otb-rec-empty.green { background: #e8f5e9; border: 1px solid #4caf50; color: #388e3c; }
+.otb-rec-empty.red { background: #ffebee; border: 1px solid #f44336; color: #c62828; }
+
+.otb-date-cards { display: flex; flex-wrap: wrap; gap: 10px; }
+.otb-date-card { border-radius: 10px; padding: 14px 16px; min-width: 220px; flex: 1 1 220px; border: 1.5px solid; }
+.otb-date-card.green { background: #e8f5e9; border-color: #4caf50; color: #1b5e20; }
+.otb-date-card.red { background: #ffebee; border-color: #f44336; color: #b71c1c; }
+.otb-date-card.orange { background: #fff8e1; border-color: #ff9800; color: #e65100; }
+.otb-date-card-title { font-size: 0.82rem; font-weight: 800; margin-bottom: 4px; }
+.otb-date-card-reason { font-size: 0.72rem; opacity: 0.85; margin-bottom: 6px; }
+.otb-date-card-metrics { display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.72rem; margin-bottom: 8px; }
+.otb-date-card-actions { padding-left: 14px; margin: 0; }
+.otb-date-card-actions li { font-size: 0.72rem; margin-bottom: 3px; }
+
+.otb-pri-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+.otb-pri-col { border-radius: 10px; padding: 14px 16px; flex: 1 1 200px; min-width: 200px; border: 1.5px solid; }
+.otb-pri-col.high { background: #ffebee; border-color: #f44336; color: #b71c1c; }
+.otb-pri-col.medium { background: #fff8e1; border-color: #ff9800; color: #e65100; }
+.otb-pri-col.low { background: #f5f5f5; border-color: #9e9e9e; color: #424242; }
+.otb-pri-col-head { font-size: 0.78rem; font-weight: 800; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid currentColor; }
+.otb-pri-empty { font-size: 0.72rem; opacity: 0.6; }
+.otb-pri-item { margin-bottom: 10px; }
+.otb-pri-item-title { font-size: 0.75rem; font-weight: 700; margin-bottom: 3px; }
+.otb-pri-item-body { font-size: 0.7rem; line-height: 1.5; margin-bottom: 4px; }
+.otb-pri-item-dates { font-size: 0.68rem; opacity: 0.75; }

@@ -1,0 +1,175 @@
+/* Módulo Simulador de Tarifas. Port fiel de index.html (líneas 50–223, 514–560, 1694–1709):
+   tabs de canal, tarjetas de estrategia, panel de edición de filas, tabla de resultados,
+   vista Price Travel, modal "Nueva estrategia" y modal "Configuración de Promociones". */
+
+/* ── Tabs de canal ── */
+.channel-tabs { background: var(--white); display: flex; overflow-x: auto; border-bottom: 2px solid var(--gold-border); border-radius: 8px 8px 0 0; margin-bottom: 16px; scrollbar-width: none; }
+.channel-tabs::-webkit-scrollbar { display: none; }
+.channel-tab { padding: 12px 22px; border: none; background: none; font-size: .78rem; font-weight: 700; cursor: pointer; white-space: nowrap; border-bottom: 3px solid transparent; color: var(--gray4); transition: all .2s; letter-spacing: .8px; text-transform: uppercase; margin-bottom: -2px; }
+.channel-tab:hover { color: var(--gold); background: var(--gold-subtle); }
+.channel-tab.active { color: var(--gold); border-bottom-color: var(--gold); background: var(--gold-subtle); }
+
+/* ── Barra de inputs ── */
+.input-bar { background: var(--white); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; box-shadow: 0 2px 8px rgba(175, 118, 43, .08); border: 1.5px solid var(--gold-border); }
+.input-group { display: flex; flex-direction: column; gap: 3px; }
+.input-group label { color: var(--gold-dark); font-size: .68rem; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; }
+.input-group select, .input-group input[type=number], .input-group input[type=text] { background: var(--off-white); border: 1.5px solid var(--gold-border); border-radius: 6px; padding: 7px 12px; font-size: 1rem; font-weight: 700; color: var(--text); font-family: inherit; }
+.input-group input[type=number] { width: 180px; }
+.input-group select { min-width: 180px; cursor: pointer; }
+.input-group input:focus, .input-group select:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(206, 126, 31, .15); }
+.commission-input { width: 72px !important; font-size: .92rem !important; }
+.input-divider { width: 1.5px; height: 44px; background: var(--gold-border); }
+.base-rates { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
+.base-rate-chip { background: var(--gold-pale); border: 1px solid var(--gold-border); border-radius: 16px; padding: 5px 12px; display: flex; flex-direction: column; gap: 1px; }
+.chip-label { color: var(--gold-dark); font-size: .6rem; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
+.chip-val { color: var(--text); font-weight: 700; font-size: .84rem; }
+
+/* ── Leyenda + nueva estrategia ── */
+.toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.legend { display: flex; gap: 16px; font-size: .74rem; flex-wrap: wrap; color: var(--gray4); align-items: center; }
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+.add-promo-btn { padding: 6px 16px; background: var(--gold-pale); border: 1.5px dashed var(--gold); border-radius: 20px; color: var(--gold-dark); font-size: .76rem; font-weight: 700; cursor: pointer; transition: all .15s; }
+.add-promo-btn:hover { background: var(--gold-subtle); border-style: solid; }
+
+/* ── Barra Genius/Mobile (solo Booking) ── */
+.genius-config-bar { background: #f0ebff; border: 1.5px solid #c9b8f5; border-radius: 10px; padding: 10px 16px; margin: 10px 0; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.genius-config-bar label { font-size: .65rem; font-weight: 800; color: #5a3fa0; text-transform: uppercase; letter-spacing: .6px; white-space: nowrap; }
+.genius-cfg-group { display: flex; align-items: center; gap: 5px; background: #fff; border: 1px solid #c9b8f5; border-radius: 16px; padding: 2px 10px; }
+.genius-cfg-group span { font-size: .65rem; font-weight: 700; color: #5a3fa0; white-space: nowrap; }
+.genius-cfg-group input { width: 40px; border: none; border-bottom: 1.5px solid #9b7ee0; background: transparent; font-size: .82rem; font-weight: 800; color: #3a2a80; text-align: center; outline: none; font-family: inherit; }
+
+/* ── Grid de tarjetas ── */
+.sections-grid { display: grid; gap: 14px; }
+
+/* ── Tarjeta de estrategia ── */
+.section-card { background: var(--white); border-radius: var(--radius); box-shadow: 0 2px 8px rgba(175, 118, 43, .07); border: 1px solid var(--gold-border); }
+.section-card.pt-full { grid-column: 1 / -1; }
+.section-card.dragging { opacity: .4; }
+.section-card.drag-over { outline: 2px dashed var(--gold); outline-offset: -2px; }
+
+.section-header { background: var(--white); border-radius: var(--radius) var(--radius) 0 0; border-bottom: 2px solid var(--gold-border); padding: 9px 14px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.section-title { flex: 1; font-size: .7rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--gold-dark); min-width: 80px; outline: none; border-bottom: 1px dashed transparent; cursor: text; padding: 1px 2px; }
+.section-title:focus { border-bottom-color: var(--gold); }
+.promo-ctrl { display: flex; align-items: center; gap: 5px; background: rgba(206, 126, 31, .10); border: 1px solid var(--gold-border); border-radius: 20px; padding: 2px 9px; }
+.promo-ctrl label { font-size: .63rem; font-weight: 700; color: var(--gold-dark); letter-spacing: .8px; text-transform: uppercase; white-space: nowrap; }
+.promo-input { width: 48px; border: none; border-bottom: 1.5px solid var(--gold); background: transparent; font-size: .85rem; font-weight: 800; color: var(--gold-dark); text-align: center; padding: 1px 2px; outline: none; font-family: inherit; }
+.promo-pct { font-size: .8rem; font-weight: 700; color: var(--gold-dark); }
+.icon-btn { width: 24px; height: 24px; border: none; border-radius: 50%; background: var(--gray1); color: var(--gray4); font-size: .75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; flex-shrink: 0; }
+.icon-btn:hover { background: var(--gold-border); color: var(--gold-dark); }
+.icon-btn.del:hover { background: #fde; color: #c00; }
+.icon-btn.copy:hover { background: #d4edda; color: #1a6e3c; }
+
+.drag-handle { cursor: grab; color: var(--gray4); font-size: .85rem; line-height: 1; padding: 2px 4px; flex-shrink: 0; user-select: none; border-radius: 4px; }
+.drag-handle:hover { background: var(--gold-border); color: var(--gold-dark); }
+.drag-handle:active { cursor: grabbing; }
+
+/* ── Panel de edición de filas ── */
+.cfg-panel { border-top: 1.5px solid var(--gold-border); background: #fffcf5; padding: 10px 14px; }
+.cfg-group-label { font-size: .68rem; font-weight: 700; color: var(--gold-dark); text-transform: uppercase; letter-spacing: .8px; margin: 6px 0 4px; }
+.cfg-row { display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid var(--gray2); }
+.cfg-row:last-of-type { border-bottom: none; }
+.cfg-row-label { flex: 1; font-size: .78rem; }
+.cfg-row-label input { width: 100%; border: none; border-bottom: 1px solid var(--gold-border); background: transparent; font-size: .78rem; color: var(--text); padding: 1px 3px; outline: none; font-family: inherit; }
+.cfg-row-label input:focus { border-bottom-color: var(--gold); }
+.cfg-pct { display: flex; align-items: center; gap: 3px; }
+.cfg-pct input { width: 48px; border: 1px solid var(--gold-border); border-radius: 4px; background: var(--off-white); font-size: .78rem; font-weight: 700; text-align: center; padding: 2px 4px; color: var(--gold-dark); outline: none; font-family: inherit; }
+.cfg-pct span { font-size: .72rem; color: var(--gold-dark); }
+.cfg-pais { display: flex; align-items: center; gap: 3px; font-size: .68rem; color: var(--gold-dark); white-space: nowrap; cursor: pointer; user-select: none; }
+.cfg-pais input[type=checkbox] { width: 13px; height: 13px; cursor: pointer; accent-color: var(--gold-dark); }
+.cfg-add-btn { margin-top: 8px; width: 100%; padding: 5px; background: none; border: 1.5px dashed var(--gold-border); border-radius: 6px; color: var(--gold-dark); font-size: .74rem; font-weight: 600; cursor: pointer; transition: all .15s; }
+.cfg-add-btn:hover { background: var(--gold-pale); border-color: var(--gold); }
+.cfg-plan-picker { position: absolute; z-index: 20; background: #fff; border: 1.5px solid var(--gold-border); border-radius: 8px; box-shadow: 0 4px 18px rgba(0, 0, 0, .12); padding: 4px; display: flex; flex-direction: column; gap: 2px; margin-top: 4px; min-width: 200px; }
+.cfg-plan-picker-item { background: none; border: none; border-radius: 5px; padding: 7px 12px; text-align: left; font-size: .78rem; font-weight: 600; color: #333; cursor: pointer; white-space: nowrap; }
+.cfg-plan-picker-item:hover { background: var(--gold-pale); color: var(--gold-dark); }
+.cfg-plan-picker-close { color: #999 !important; border-top: 1px solid var(--gray2); margin-top: 2px; padding-top: 8px !important; }
+
+/* ── Tabla de resultados ── */
+.table-wrap { overflow-x: auto; border-radius: 0 0 var(--radius) var(--radius); }
+.table-wrap table, .pt-tables table { width: 100%; min-width: 40px; border-collapse: collapse; font-size: .76rem; }
+.table-wrap thead th, .pt-tables thead th { background: var(--gold-pale); padding: 5px 7px; text-align: right; font-size: .63rem; font-weight: 800; color: var(--gold-dark); border-bottom: 1.5px solid var(--gold-border); white-space: nowrap; letter-spacing: .3px; text-transform: uppercase; }
+.table-wrap thead th:first-child, .pt-tables thead th:first-child { text-align: left; }
+.table-wrap tbody tr:nth-child(even), .pt-tables tbody tr:nth-child(even) { background: #fdfaf6; }
+.table-wrap tbody tr:hover, .pt-tables tbody tr:hover { background: var(--gold-subtle); }
+.table-wrap tbody tr.row-dragging { opacity: .4; }
+.table-wrap tbody tr.row-drag-over td { box-shadow: 0 -2px 0 var(--gold) inset; }
+.row-drag-handle { cursor: grab; color: var(--gray4); font-size: .7rem; user-select: none; text-align: center; padding: 2px 4px; width: 18px; }
+.row-drag-handle:hover { color: var(--gold-dark); }
+.table-wrap td, .pt-tables td { padding: 5px 7px; text-align: right; color: #444; white-space: nowrap; }
+.table-wrap td:first-child, .pt-tables td:first-child { text-align: left; color: #333; font-size: .73rem; font-weight: 500; max-width: 130px; white-space: normal; line-height: 1.3; }
+.td-base { color: #aaa; font-size: .78rem; }
+.td-mid { color: #888; font-size: .78rem; }
+.td-ota { background: var(--green-bg); color: var(--green); font-weight: 800; cursor: pointer; border-radius: 4px; font-size: .83rem; transition: filter .15s, transform .1s; user-select: none; }
+.td-ota::after { content: '⧉'; font-size: .6rem; margin-left: 4px; opacity: .5; }
+.td-ota:hover { filter: brightness(.93); transform: scale(1.02); }
+.td-ota.td-min-alert { background: #fde !important; color: #c00 !important; }
+.td-ota.td-min-alert::after { content: '⚠' !important; color: #c00; }
+.td-net { background: var(--blue-bg); color: var(--blue); font-weight: 800; font-size: .83rem; }
+.td-mobile { background: #f3e8ff; color: #7c3aed; font-weight: 800; cursor: pointer; border-radius: 4px; font-size: .83rem; transition: filter .15s, transform .1s; user-select: none; }
+.td-mobile::after { content: '⧉'; font-size: .6rem; margin-left: 4px; opacity: .5; }
+.td-mobile:hover { filter: brightness(.93); transform: scale(1.02); }
+tr.pair-sep td { border-bottom: 2px solid var(--gold-border) !important; }
+
+/* ── Price Travel (sin/con comisión) ── */
+.pt-merged-body { padding: 0 14px 14px; }
+.pt-comparison { background: linear-gradient(135deg, #fffbf0, #fdf5e0); border: 1.5px solid var(--gold-border); border-radius: 8px; padding: 10px 14px; margin: 10px 0; display: flex; gap: 20px; flex-wrap: wrap; align-items: center; }
+.pt-cmp-item { display: flex; flex-direction: column; gap: 2px; }
+.pt-cmp-label { font-size: .62rem; font-weight: 700; color: var(--gold-dark); text-transform: uppercase; letter-spacing: .8px; }
+.pt-cmp-val { font-size: .9rem; font-weight: 800; color: var(--text); }
+.pt-cmp-diff { font-size: .82rem; font-weight: 700; color: #c00; }
+.pt-tables { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pt-tables > div { overflow-x: auto; }
+.pt-sub-label { font-size: .67rem; font-weight: 800; color: var(--gold-dark); text-transform: uppercase; letter-spacing: .8px; padding: 6px 0 4px; border-bottom: 1.5px solid var(--gold-border); margin-bottom: 4px; }
+@media (max-width: 900px) { .pt-tables { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .sections-grid { grid-template-columns: 1fr; } }
+
+/* ── Toast de copiado ── */
+.sim-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--white); border: 1.5px solid var(--gold); color: var(--gold-dark); padding: 9px 20px; border-radius: 24px; font-size: .82rem; font-weight: 700; z-index: 9999; box-shadow: 0 4px 20px rgba(175, 118, 43, .18); }
+
+/* ── Modal genérico ("Nueva estrategia") ── */
+.modal-overlay { position: fixed; inset: 0; z-index: 4000; background: rgba(0, 0, 0, .52); display: flex; align-items: center; justify-content: center; }
+.modal-box { background: #fff; border-radius: 14px; width: 90%; max-width: 420px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 8px 40px rgba(0, 0, 0, .22); border: 2px solid var(--gold-border); }
+.modal-title { font-size: .88rem; font-weight: 800; color: var(--gold-dark); text-transform: uppercase; letter-spacing: .7px; padding: 16px 22px 0; }
+.modal-sub { font-size: .73rem; color: #888; margin: 3px 22px 0; padding-bottom: 12px; border-bottom: 1px solid var(--gold-border); }
+.add-promo-col-list { padding: 14px 22px 6px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.add-promo-col-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; cursor: pointer; border-radius: 8px; border: 1.5px solid #eee; user-select: none; }
+.modal-actions { padding: 12px 22px 16px; border-top: 1px solid var(--gold-border); display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ── Modal "Configuración de Promociones" ── */
+.pcfg-modal { background: var(--white); border-radius: 12px; width: 100%; max-width: 1200px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 40px rgba(175, 118, 43, .3); border: 2px solid var(--gold-border); }
+.pcfg-head { background: var(--gold-pale); border-bottom: 2px solid var(--gold-border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; border-radius: 12px 12px 0 0; flex-shrink: 0; }
+.pcfg-ch-tabs { display: flex; overflow-x: auto; border-bottom: 2px solid var(--gold-border); scrollbar-width: none; flex-shrink: 0; }
+.pcfg-ch-tabs::-webkit-scrollbar { display: none; }
+.pcfg-ch-tab { padding: 10px 18px; border: none; background: none; font-size: .75rem; font-weight: 700; cursor: pointer; white-space: nowrap; border-bottom: 3px solid transparent; color: var(--gray4); transition: all .15s; letter-spacing: .5px; margin-bottom: -2px; }
+.pcfg-ch-tab.active { color: var(--gold); border-bottom-color: var(--gold); background: var(--gold-subtle); }
+.pcfg-ch-tab:hover { color: var(--gold-dark); background: var(--gold-subtle); }
+.pcfg-body { flex: 1; overflow: auto; padding: 16px 20px; }
+.pcfg-sec { background: var(--off-white); border: 1px solid var(--gold-border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+.pcfg-sec-head { background: var(--gold-pale); padding: 8px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--gold-border); flex-wrap: wrap; }
+.pcfg-sec-title { font-size: .7rem; font-weight: 800; color: var(--gold-dark); text-transform: uppercase; letter-spacing: .8px; flex: 1; min-width: 120px; }
+.pcfg-promo-field { display: flex; align-items: center; gap: 4px; }
+.pcfg-promo-field label { font-size: .64rem; font-weight: 700; color: var(--gold-dark); letter-spacing: .5px; text-transform: uppercase; white-space: nowrap; }
+.pcfg-num { width: 52px; border: 1.5px solid var(--gold-border); border-radius: 4px; background: var(--white); font-size: .82rem; font-weight: 700; text-align: center; padding: 3px 5px; color: var(--gold-dark); outline: none; font-family: inherit; }
+.pcfg-num:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(206, 126, 31, .15); }
+.pcfg-num.is-pending { border-color: #f0a500; background: #fffbf0; }
+.pcfg-num.is-saved { border-color: #1a6e3c; background: #f0faf4; }
+.pcfg-rows-table { width: 100%; border-collapse: collapse; font-size: .75rem; }
+.pcfg-rows-table th { background: var(--gray1); padding: 5px 10px; text-align: left; font-size: .63rem; font-weight: 800; color: var(--gray4); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--gray2); }
+.pcfg-rows-table th:not(:first-child) { text-align: center; }
+.pcfg-rows-table td { padding: 5px 10px; border-bottom: 1px solid var(--gray2); vertical-align: middle; text-align: center; }
+.pcfg-rows-table td:first-child { text-align: left; }
+.pcfg-rows-table tr:last-child td { border-bottom: none; }
+.pcfg-rows-table tr:hover td { background: #fdfaf6; }
+.pcfg-row-label { font-size: .73rem; color: var(--text); }
+.pcfg-pais-badge { font-size: .61rem; background: var(--blue-bg); color: var(--blue); padding: 1px 5px; border-radius: 8px; margin-left: 4px; font-weight: 700; }
+.pcfg-dash { color: var(--gray3); font-size: .7rem; }
+.pcfg-sdot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; vertical-align: middle; }
+.pcfg-foot { display: flex; align-items: center; gap: 8px; padding: 12px 20px; border-top: 2px solid var(--gold-border); background: #fffdf8; flex-wrap: wrap; border-radius: 0 0 12px 12px; flex-shrink: 0; }
+.pcfg-foot-status { font-size: .72rem; color: var(--gray3); }
+.pcfg-foot-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.pcfg-hist-wrap { padding: 0 20px 16px; }
+.pcfg-hist-empty { font-size: .74rem; color: var(--gray3); text-align: center; padding: 16px; }
+.pcfg-hist-table { width: 100%; border-collapse: collapse; font-size: .72rem; }
+.pcfg-hist-table th { background: var(--gold-pale); padding: 5px 8px; font-size: .63rem; font-weight: 800; color: var(--gold-dark); text-transform: uppercase; border-bottom: 1.5px solid var(--gold-border); white-space: nowrap; }
+.pcfg-hist-table td { padding: 5px 8px; border-bottom: 1px solid var(--gray2); }
+.pcfg-hist-table tr:hover td { background: var(--gold-subtle); }

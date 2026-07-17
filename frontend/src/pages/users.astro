@@ -1,0 +1,10 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import UsersPage from '../components/users/UsersPage.jsx';
+import '../styles/components/financial.css';
+import '../styles/components/users.css';
+---
+
+<AppLayout title="GEH Suites — Usuarios">
+  <UsersPage client:load />
+</AppLayout>

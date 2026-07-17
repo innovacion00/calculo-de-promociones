@@ -1,0 +1,16 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import AppChrome from '../components/layout/AppChrome.jsx';
+---
+
+<AppLayout title="GEH Suites — Inicio">
+  <AppChrome client:load>
+    <section>
+      <h2 style="color: var(--gold-dark); font-size: 1.1rem; margin-bottom: 8px;">Bienvenido</h2>
+      <p style="color: var(--gray4); font-size: 0.9rem;">
+        Selecciona un módulo en el menú lateral. La migración avanza por fases:
+        el módulo de Gestión Financiera es el siguiente en portarse.
+      </p>
+    </section>
+  </AppChrome>
+</AppLayout>

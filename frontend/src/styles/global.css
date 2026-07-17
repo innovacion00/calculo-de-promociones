@@ -1,0 +1,17 @@
+/* Reset + base. Port de index.html líneas 16–17. */
+@import './variables.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+  background: var(--off-white);
+  color: var(--text);
+  min-height: 100vh;
+}

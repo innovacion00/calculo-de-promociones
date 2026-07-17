@@ -1,0 +1,21 @@
+{
+  "name": "calculo-de-promociones-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Backend Express (monolito modular) para GEH Suites Revenue Management",
+  "scripts": {
+    "dev": "node --watch --env-file=../.env src/server.js",
+    "start": "node --env-file=../.env src/server.js"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "mongodb": "^7.2.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^20"
+  }
+}

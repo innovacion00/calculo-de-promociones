@@ -1,0 +1,21 @@
+---
+// Layout base. Importa estilos globales + de componentes del shell.
+// Las páginas de módulo envuelven su contenido con <AppChrome> para obtener header+sidebar.
+import '../styles/global.css';
+import '../styles/components/chrome.css';
+import '../styles/components/sidebar.css';
+
+const { title = 'GEH Suites — Revenue Management' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

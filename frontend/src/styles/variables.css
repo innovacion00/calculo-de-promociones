@@ -1,0 +1,23 @@
+/* Variables de marca GEH Suites.
+   Port fiel de index.html (:root, líneas 8–15). Paleta dorada/lujo.
+   Fuente única de verdad para colores/espaciado en el frontend nuevo. */
+:root {
+  --gold: #ce7e1f;
+  --gold-dark: #af762b;
+  --gold-pale: #faf0e0;
+  --gold-subtle: #fdf8f0;
+  --gold-border: #e8c88a;
+  --white: #ffffff;
+  --off-white: #f7f4f0;
+  --gray1: #f2f2f2;
+  --gray2: #e4e4e4;
+  --gray3: #999;
+  --gray4: #666;
+  --text: #2a2a2a;
+  --green: #1a6e3c;
+  --green-bg: #d4edda;
+  --blue: #14427a;
+  --blue-bg: #d0e4f7;
+  --border: #e0d8cc;
+  --radius: 8px;
+}

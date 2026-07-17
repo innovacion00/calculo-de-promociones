@@ -1,0 +1,38 @@
+/* Módulo Monitoreo. Port de las clases .mon-* de index.html. */
+.mon-module-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+.mon-module-title { font-size: 0.9rem; font-weight: 900; color: var(--gold-dark); text-transform: uppercase; letter-spacing: 0.8px; }
+.mon-module-subtitle { font-size: 0.75rem; color: var(--gray3); }
+.mon-refresh-btn {
+  padding: 5px 12px; background: none; border: 1.5px solid var(--gold-border); border-radius: 6px;
+  cursor: pointer; font-size: 0.8rem; color: var(--gold-dark); transition: background 0.15s; font-family: inherit;
+}
+.mon-refresh-btn:hover { background: var(--gold-pale); }
+
+.mon-stats-grid { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.mon-stat-card { min-width: 140px; background: var(--gold-subtle); border: 1px solid var(--gold-border); border-radius: 12px; padding: 14px 16px; }
+.mon-stat-label { font-size: 0.7rem; color: var(--gold-dark); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+.mon-stat-value { font-size: 1.6rem; font-weight: 800; color: var(--gold-dark); margin-top: 4px; }
+
+.mon-msg { font-size: 0.8rem; color: var(--gray3); min-height: 18px; margin-bottom: 10px; }
+.mon-msg.error { color: #c62828; }
+
+.mon-users-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.mon-user-card { background: #fff; border: 1px solid var(--gold-border); border-radius: 12px; padding: 14px 16px; }
+.mon-user-head { display: flex; align-items: center; gap: 10px; }
+.mon-user-avatar {
+  width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+  color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem; flex-shrink: 0;
+}
+.mon-user-name { font-size: 0.88rem; font-weight: 800; color: #2b2b2b; }
+.mon-user-id { font-size: 0.7rem; color: var(--gray3); margin-top: 2px; }
+.mon-user-status {
+  margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+  border-radius: 999px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
+}
+.mon-user-status.opened { background: #e8f4ff; color: #1d4ed8; }
+.mon-user-status.paused { background: #fff7db; color: #a16207; }
+.mon-user-status.closed { background: #ffeaea; color: #b91c1c; }
+.mon-user-status .mon-dot { width: 7px; height: 7px; border-radius: 50%; }
+.mon-user-status.opened .mon-dot { background: #22c55e; }
+.mon-user-status.paused .mon-dot { background: #fbbf24; }
+.mon-user-status.closed .mon-dot { background: #ef4444; }

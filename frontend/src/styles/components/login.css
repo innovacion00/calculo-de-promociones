@@ -1,0 +1,37 @@
+/* Pantalla de login. Inspirada en .auth-* de index.html. */
+.login-screen {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--off-white), var(--gold-subtle));
+  padding: 24px;
+}
+.login-card {
+  background: var(--white); border: 1.5px solid var(--gold-border); border-radius: 14px;
+  padding: 40px 36px 32px; width: 100%; max-width: 400px;
+  box-shadow: 0 24px 60px rgba(175, 118, 43, 0.18);
+}
+.login-title {
+  color: var(--gold-dark); font-size: 1rem; font-weight: 800;
+  letter-spacing: 1.4px; text-transform: uppercase; text-align: center;
+}
+.login-subtitle { color: var(--gray3); font-size: 0.72rem; text-align: center; margin: 6px 0 26px; }
+.login-field { margin-bottom: 16px; }
+.login-field label {
+  display: block; font-size: 0.66rem; font-weight: 700; color: var(--gold-dark);
+  text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px;
+}
+.login-field input {
+  width: 100%; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: 8px;
+  font-size: 0.85rem; color: var(--text); background: var(--off-white); transition: border 0.15s;
+}
+.login-field input:focus { outline: none; border-color: var(--gold); background: var(--white); }
+.login-btn {
+  width: 100%; padding: 12px; background: var(--gold); color: var(--white); border: none;
+  border-radius: 8px; font-size: 0.82rem; font-weight: 800; letter-spacing: 0.8px;
+  text-transform: uppercase; cursor: pointer; transition: background 0.15s; margin-top: 4px;
+}
+.login-btn:hover:not(:disabled) { background: var(--gold-dark); }
+.login-btn:disabled { opacity: 0.6; cursor: default; }
+.login-error {
+  background: #fbe9e7; border: 1.5px solid #ef9a9a; color: #b71c1c;
+  font-size: 0.76rem; padding: 10px 12px; border-radius: 8px; margin-bottom: 16px;
+}

@@ -1,0 +1,41 @@
+/* Módulo Usuarios: badges de rol/estado, modal de alta/edición, grid de hoteles. */
+.users-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+.users-header-title { font-size: 1.05rem; font-weight: 900; color: var(--gold-dark); text-transform: uppercase; letter-spacing: 1px; }
+.users-header-sub { font-size: 0.7rem; color: var(--gray3); margin-top: 2px; }
+
+.badge-role { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 0.68rem; font-weight: 700; }
+.badge-role.master_admin { background: #ede7f6; color: #4527a0; }
+.badge-role.admin { background: #e3f2fd; color: #1565c0; }
+.badge-role.revenue_manager { background: #e8f5e9; color: #2e7d32; }
+.badge-role.revenue_assistant { background: #f1f8e9; color: #558b2f; }
+.badge-role.operations { background: #fff3e0; color: #e65100; }
+.badge-role.viewer { background: #f5f5f5; color: #616161; }
+.badge-role.reservas { background: #e0f2f1; color: #00695c; }
+
+.badge-active { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 0.68rem; font-weight: 700; background: #e8f5e9; color: #2e7d32; }
+.badge-inactive { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 0.68rem; font-weight: 700; background: #ffebee; color: #c62828; }
+
+.users-row-btn {
+  padding: 3px 9px; border: 1px solid var(--gold-border); border-radius: 5px; background: var(--white);
+  font-size: 0.68rem; font-weight: 700; cursor: pointer; margin-right: 4px;
+}
+.users-row-btn.danger { border-color: #f5c6cb; color: #c00; }
+.users-row-btn.ok { border-color: #d1e7dd; color: #0a3622; }
+
+/* Modal */
+.um-overlay { position: fixed; inset: 0; z-index: 3000; background: rgba(0, 0, 0, 0.52); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.um-modal { background: #fff; border-radius: 14px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0, 0, 0, 0.22); border: 2px solid var(--gold-border); }
+.um-header { padding: 16px 22px 12px; border-bottom: 1px solid var(--gold-border); }
+.um-title { font-size: 0.95rem; font-weight: 800; color: var(--gold-dark); }
+.um-body { padding: 18px 22px; }
+.um-field { margin-bottom: 14px; }
+.um-field label { display: block; font-size: 0.68rem; font-weight: 700; color: var(--gold-dark); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+.um-field input, .um-field select {
+  width: 100%; padding: 9px 11px; border: 1.5px solid var(--border); border-radius: 7px;
+  font-size: 0.84rem; color: var(--text); background: var(--off-white); font-family: inherit;
+}
+.um-field input:focus, .um-field select:focus { outline: none; border-color: var(--gold); background: #fff; }
+.um-hotels-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; max-height: 180px; overflow-y: auto; border: 1.5px solid var(--border); border-radius: 7px; padding: 10px; }
+.um-hotels-grid label { display: flex; align-items: center; gap: 6px; font-size: 0.74rem; font-weight: 500; color: var(--text); text-transform: none; letter-spacing: 0; margin: 0; cursor: pointer; }
+.um-footer { padding: 14px 22px; border-top: 1px solid var(--gold-border); display: flex; justify-content: flex-end; gap: 8px; }
+.um-error { background: #fbe9e7; border: 1.5px solid #ef9a9a; color: #b71c1c; font-size: 0.76rem; padding: 9px 12px; border-radius: 7px; margin-bottom: 14px; }

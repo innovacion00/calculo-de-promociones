@@ -1,0 +1,11 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import SimulatorPage from '../components/simulator/SimulatorPage.jsx';
+import '../styles/components/financial.css';
+import '../styles/components/otb.css';
+import '../styles/components/simulator.css';
+---
+
+<AppLayout title="GEH Suites — Simulador de Tarifas">
+  <SimulatorPage client:load />
+</AppLayout>
