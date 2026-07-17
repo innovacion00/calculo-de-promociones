@@ -77,6 +77,7 @@ export default function BalancesTab() {
         columns={columns} filters={filters}
         manualQuery initialLoad={false}
         requiredFilters={['hotelName', 'checkoutDate']}
+        rowClassName={(r) => (r.pendingBalance > 0 ? 'fin-row-danger' : undefined)}
         emptyPrompt="Selecciona un hotel y una fecha de checkout, luego pulsa Consultar."
         onLoad={handleLoad}
         loadingText="Consultando el PMS… (puede tardar varios segundos)"

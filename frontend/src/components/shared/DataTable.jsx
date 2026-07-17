@@ -35,11 +35,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  * @param {string} [props.loadingText]       Texto del estado de carga (p. ej. para avisar que el PMS es lento)
  * @param {(rows: any[]) => void} [props.onRows]
  * @param {(filters: Record<string,string>) => void} [props.onLoad]  Se llama al iniciar cada carga, con los filtros actuales
+ * @param {(row: any) => string|undefined} [props.rowClassName]  Clase CSS extra por fila (p. ej. resaltar saldo pendiente)
  */
 export default function DataTable({
   endpoint, columns, filters = [], exportEndpoint, pageSize = 18,
   manualQuery = false, initialLoad = true, requiredFilters = [], emptyPrompt = 'Sin registros con los filtros actuales.',
-  queryLabel = '🔍 Consultar', loadingText = 'Cargando…', onRows, onLoad,
+  queryLabel = '🔍 Consultar', loadingText = 'Cargando…', onRows, onLoad, rowClassName,
 }) {
   const [filterValues, setFilterValues] = useState(/** @type {Record<string,string>} */ ({}));
   const [page, setPage] = useState(1);
@@ -170,7 +171,7 @@ export default function DataTable({
               <tr><td colSpan={columns.length} className="fin-empty">Sin registros con los filtros actuales.</td></tr>
             ) : (
               rows.map((row, i) => (
-                <tr key={row.id ?? i}>
+                <tr key={row.id ?? i} className={rowClassName ? rowClassName(row) : undefined}>
                   {columns.map((c) => (
                     <td key={c.key} style={c.cellStyle ? parseStyle(c.cellStyle) : undefined}>
                       {c.render ? c.render(row) : (row[c.key] ?? '—')}

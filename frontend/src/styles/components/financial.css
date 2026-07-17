@@ -49,6 +49,8 @@
 }
 .fin-table td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; color: #333; vertical-align: middle; text-align: left; }
 .fin-table tr:hover td { background: #faf8f5; }
+.fin-table tr.fin-row-danger td { color: #c62828; }
+.fin-table tr.fin-row-danger:hover td { background: #fdecea; }
 .fin-empty { text-align: center; color: var(--gray3); padding: 24px; }
 
 .fin-badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; }
