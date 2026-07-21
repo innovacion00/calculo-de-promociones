@@ -172,22 +172,55 @@ export async function fetchAllPmsStays(params) {
 }
 
 /**
+ * @param {string} raw
+ * @returns {string}
+ */
+function normalizeName(raw) {
+  return raw
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .trim().toUpperCase().replace(/\s+/g, ' ');
+}
+
+/**
+ * @typedef {Object} PmsEstadoCuentaReserva
+ * @property {number} reservaId
+ * @property {string} titular
+ * @property {string} checkIn
+ * @property {string} checkOut
+ * @property {string} codeReserva
+ * @property {string} [localizador]
+ * @property {PmsPago[]} pagos
+ */
+
+/**
+ * Con localizador consulta directo; sin localizador (walk-in) el PMS devuelve todas las
+ * reservas del rango checkIn/checkOut y hay que ubicar la propia por nombre del titular.
  * @param {string} baseUrl
  * @param {string} token
- * @param {string} localizador
+ * @param {{ localizador: string } | { checkIn?: string, checkOut?: string, titular?: string }} params
  * @returns {Promise<{ valorPagado: number, formaPago?: string }>}
  */
-async function fetchEstadoCuenta(baseUrl, token, localizador) {
+async function fetchEstadoCuenta(baseUrl, token, params) {
+  const body = 'localizador' in params
+    ? { localizador: params.localizador, checkIn: null, checkOut: null }
+    : { localizador: null, checkIn: params.checkIn, checkOut: params.checkOut };
+
   const res = await fetch(`${baseUrl}/api/EstadoCuenta/GetEstadoCuentaReserva`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ localizador, checkIn: null, checkOut: null }),
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(10_000),
   });
-  if (!res.ok) throw new Error(`EstadoCuenta failed (${res.status}) for localizador ${localizador}`);
+  if (!res.ok) throw new Error(`EstadoCuenta failed (${res.status})`);
 
-  const json = /** @type {{ isSuccess: boolean, result: Array<{ pagos: PmsPago[] }> }} */ (await res.json());
-  const pagos = json.result?.[0]?.pagos ?? [];
+  const json = /** @type {{ isSuccess: boolean, result: PmsEstadoCuentaReserva[] }} */ (await res.json());
+  const results = json.result ?? [];
+
+  const reservation = 'localizador' in params
+    ? results[0]
+    : results.find((r) => normalizeName(r.titular ?? '') === normalizeName(params.titular ?? ''));
+
+  const pagos = reservation?.pagos ?? [];
   const valorPagado = pagos.reduce((s, p) => s + (p.monto ?? 0), 0);
   return { valorPagado, formaPago: pagos[0]?.formaPago };
 }
@@ -204,15 +237,19 @@ export async function enrichStaysWithPayments(stays) {
       let valorPagado = 0;
       let formaPago;
 
-      if (stay.localizador) {
-        const ip = getHotelIp(hotelKey);
-        if (ip) {
-          const baseUrl = `${ip}:${PMS_PORT}`;
-          const token = await getPmsToken(baseUrl);
-          const payment = await fetchEstadoCuenta(baseUrl, token, stay.localizador);
-          valorPagado = payment.valorPagado;
-          formaPago = payment.formaPago;
-        }
+      const ip = getHotelIp(hotelKey);
+      if (ip) {
+        const baseUrl = `${ip}:${PMS_PORT}`;
+        const token = await getPmsToken(baseUrl);
+        const payment = stay.localizador
+          ? await fetchEstadoCuenta(baseUrl, token, { localizador: stay.localizador })
+          : await fetchEstadoCuenta(baseUrl, token, {
+              checkIn: stay.checkIn,
+              checkOut: stay.checkOut,
+              titular: stay.titular?.[0]?.tercero,
+            });
+        valorPagado = payment.valorPagado;
+        formaPago = payment.formaPago;
       }
 
       return { stay, hotelKey, hotelName, valorPagado, formaPago };
